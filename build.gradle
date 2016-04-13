@@ -4,8 +4,8 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.2'
-        classpath 'net.saliman:gradle-cobertura-plugin:2.2.8'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+        classpath 'net.saliman:gradle-cobertura-plugin:2.3.1'
     }
 }
 
@@ -38,8 +38,8 @@ subprojects {
     ext.jdkVer = ext.java8 ? "8" : "7"
     ext.quasarJar = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}${ext.java8 ? "-jdk8" : ""}.jar" // project(':quasar-core').jar.archivePath
 
-    ext.asmVer    = '5.0.4'
-    ext.kotlinVer = '1.0.1'
+    ext.asmVer    = '5.1'
+    ext.kotlinVer = '1.0.1-2'
 
     if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
         println "sonatype username or password not set"
@@ -117,10 +117,10 @@ subprojects {
         }
         testCompile "org.ow2.asm:asm:$asmVer"
 
-        jmhCompile 'org.openjdk.jmh:jmh-core:1.11.2'
-        jmhCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.11.2'
+        jmhCompile 'org.openjdk.jmh:jmh-core:1.12'
+        jmhCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.12'
 
-        compileOnly 'org.kohsuke.metainf-services:metainf-services:1.6'
+        compileOnly 'org.kohsuke.metainf-services:metainf-services:1.7'
         // compileOnly 'com.google.auto.service:auto-service:1.0-rc1' // same as metainf-services
         // markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
@@ -435,7 +435,7 @@ project (':quasar-core') {
         jdk7Compile ":jsr166e"
         compile ":high-scale-lib"
         compile "org.hdrhistogram:HdrHistogram:2.1.8"
-        compile("org.latencyutils:LatencyUtils:2.0.2") {
+        compile("org.latencyutils:LatencyUtils:2.0.3") {
             exclude group: "org.hdrhistogram", module: '*'
         }
         compile "org.ow2.asm:asm:$asmVer"
@@ -608,8 +608,8 @@ project (':quasar-actors') {
     dependencies {
         provided project(path: ':quasar-core', configuration: "jdk${jdkVer}Archives")
         // compile 'org.mutabilitydetector:MutabilityDetector:0.9.2'
-        compile "org.slf4j:slf4j-api:1.7.13"
-        compile "net.bytebuddy:byte-buddy:1.0.0"
+        compile "org.slf4j:slf4j-api:1.7.21"
+        compile "net.bytebuddy:byte-buddy:1.3.11"
         testRuntime("org.apache.logging.log4j:log4j-slf4j-impl:2.5") {
             exclude group: "org.slf4j", module: '*'
         }
@@ -631,7 +631,7 @@ project (':quasar-galaxy') {
             exclude group: "org.slf4j", module: '*'
         }
 
-        testCompile ('org.gridkit.lab:telecontrol-ssh:0.7.24'){
+            testCompile ('org.gridkit.lab:telecontrol-ssh:0.7.24'){
             exclude group: 'org.ow2.asm', module: '*'
             exclude group: 'org.slf4j', module: '*'
         }
