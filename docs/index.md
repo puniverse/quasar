@@ -973,7 +973,7 @@ The event-source behavior is an actor that can be notified of *event* messages, 
 
 To create an event source actor, simply construct an instance of the [`EventSourceActor`]({{javadoc}}/actors/behaviors/EventSourceActor.html) class. Event handlers are instances of [`EventHandler`]({{javadoc}}/actors/behaviors/EventHandler.html). Event handlers can be registered or unregistered with the actor, and events sent to the actor, through the behavior's interface, the [`EventSource`]({{javadoc}}/actors/behaviors/EventSource.html) class.
 
-Event handlers are called synchronously on the same strand as the actor's, so they may delay processing by other handlers if they block the strand.
+Event handlers are called synchronously on the same strand as the actor's and _should not_ block the strand.
 
 #### FiniteStateMachineActor
 
