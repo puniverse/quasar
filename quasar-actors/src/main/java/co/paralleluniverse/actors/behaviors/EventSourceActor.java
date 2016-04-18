@@ -231,7 +231,7 @@ public class EventSourceActor<Event> extends BehaviorActor {
         handlers.clear();
     }
 
-    private void notifyHandlers(Event event) {
+    private void notifyHandlers(Event event) throws InterruptedException, SuspendExecution {
         log().debug("{} Got event {}", this, event);
         for (ListIterator<EventHandler<Event>> it = handlers.listIterator(); it.hasNext();) {
             EventHandler<Event> handler = it.next();
