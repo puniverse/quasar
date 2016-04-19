@@ -382,17 +382,20 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
         }
 
         boolean lease() {
+            final SelectActionImpl sa = this.sa;
             if (sa == null)
                 return true;
             return sa.lease();
         }
 
         void returnLease() {
+            final SelectActionImpl sa = this.sa;
             if (sa != null)
                 sa.returnLease();
         }
 
         void won() {
+            final SelectActionImpl sa = this.sa;
             if (sa != null) {
                 Object x = item;
                 sa.setItem(x == CHANNEL_CLOSED ? null : x);
