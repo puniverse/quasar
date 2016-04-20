@@ -90,7 +90,7 @@ public final class SelectActionImpl<Message> extends SelectAction<Message> {
     void fire() throws SuspendExecution {
         if (listener == null)
             return;
-        if(isData)
+        if (isData)
             ((SelectSendListener<Message>)listener).onSend();
         else
             ((SelectReceiveListener<Message>)listener).onReceive(item);
