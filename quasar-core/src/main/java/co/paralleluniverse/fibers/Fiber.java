@@ -761,8 +761,16 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             task.doPark(ex == SuspendExecution.YIELD); // now we can complete parking
 
             assert ppa == null || ex == SuspendExecution.PARK; // can't have postParkActions on yield
-            if (ppa != null)
-                ppa.run(this);
+            if (ppa != null) {
+                // Redirect any exceptions thrown by the user code provided in the post-park action, as exceptions
+                // which propagate out of here may not always be caught and printed.
+                try {
+                    ppa.run(this);
+                } catch (Throwable t) {
+                    onException(t);
+                    throw Exceptions.rethrow(t);
+                }
+            }
 
 //            if (monitor != null)
 //                monitor.fiberSuspended();

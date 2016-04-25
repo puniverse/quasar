@@ -181,6 +181,7 @@ public class FiberTimedScheduler {
             final Fiber fiber = task.fiber;
             fiber.unpark(task.blocker);
         } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

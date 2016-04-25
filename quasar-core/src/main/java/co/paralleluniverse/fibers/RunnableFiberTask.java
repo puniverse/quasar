@@ -14,9 +14,8 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
-import co.paralleluniverse.common.util.Debug;
-import co.paralleluniverse.common.util.SystemProperties;
-import co.paralleluniverse.common.util.UtilUnsafe;
+import co.paralleluniverse.common.util.*;
+
 import static co.paralleluniverse.fibers.FiberTask.*;
 import co.paralleluniverse.fibers.instrument.DontInstrument;
 import co.paralleluniverse.strands.SettableFuture;
@@ -126,6 +125,8 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
     protected void onException(Throwable t) {
         if (future != null)
             future.setException(t);
+        else
+            throw Exceptions.rethrow(t);
     }
 
     protected void parking(boolean yield) {
