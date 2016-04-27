@@ -15,7 +15,7 @@
 package co.paralleluniverse.strands;
 
 /**
- * Creates new {@link Strand strnads} on demand.
+ * Creates new {@link Strand strands} on demand.
  */
 public interface StrandFactory {
     Strand newStrand(SuspendableCallable<?> target);
