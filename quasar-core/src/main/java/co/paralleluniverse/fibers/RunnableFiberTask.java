@@ -149,10 +149,32 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
 
     @Override
     public void doPark(boolean yield) {
-        if (yield)
+        if (yield) {
             submit();
-        else
-            this.state = PARKED;
+        } else {
+            int newState;
+            int _state;
+            loop: do {
+                _state = getState();
+                switch (_state) {
+                    case PARKING:
+                        newState = PARKED;
+                        break;
+                    case RUNNABLE:
+                        newState = RUNNABLE;
+                        break loop;
+                    case LEASED:
+                        newState = RUNNABLE;
+                        break;
+                    default:
+                        throw new AssertionError("Illegal task state (a fiber has no chance to enter `doPark` in anything else than `PARKED` or `RESTART`): " + _state);
+                }
+            } while (!compareAndSetState(_state, newState));
+
+            if (newState == RUNNABLE)
+                submit();
+        }
+
         onParked(yield);
     }
 
@@ -223,7 +245,8 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
                     newState = RUNNABLE;
                     break;
                 case PARKING:
-                    continue; // spin and wait
+                    newState = RUNNABLE; // Represents immediate resume for `doPark`
+                    break;
                 case LEASED:
                     if (Debug.isDebug())
                         record("unpark", "current: %s - %s. return.", this, _state);
@@ -241,7 +264,8 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
             this.unparker = unblocker;
             if (CAPTURE_UNPARK_STACK)
                 this.unparkStackTrace = Thread.currentThread().getStackTrace();
-            submit();
+            if (_state != PARKING)
+                submit();
         }
     }
 
