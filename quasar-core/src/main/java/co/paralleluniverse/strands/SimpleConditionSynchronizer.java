@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.strands;
 
-import java.util.Iterator;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -46,10 +45,8 @@ public class SimpleConditionSynchronizer extends ConditionSynchronizer implement
 
     @Override
     public void signalAll() {
-        for (Iterator<Strand> it = waiters.iterator(); it.hasNext();) {
-            final Strand s = it.next();
+        for (Strand s : waiters) {
             record("signalAll", "%s signalling %s", this, s);
-
             Strand.unpark(s, owner);
         }
     }
