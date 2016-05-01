@@ -276,8 +276,8 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         }
 
         @Override
-        public void unpark(Object unblocker) {
-            super.unpark(unblocker == FiberTask.EMERGENCY_UNBLOCKER ? ParkableForkJoinTask.EMERGENCY_UNBLOCKER : unblocker);
+        public boolean unpark(Object unblocker) {
+            return super.unpark(unblocker == FiberTask.EMERGENCY_UNBLOCKER ? ParkableForkJoinTask.EMERGENCY_UNBLOCKER : unblocker);
         }
 
         @Override

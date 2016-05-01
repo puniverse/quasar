@@ -52,9 +52,9 @@ interface FiberTask<V> extends Future<V> {
 
     void doPark(boolean yield);
 
-    void unpark();
+    boolean unpark();
 
-    void unpark(Object unblocker);
+    boolean unpark(Object unblocker);
 
     boolean tryUnpark(Object unblocker);
 

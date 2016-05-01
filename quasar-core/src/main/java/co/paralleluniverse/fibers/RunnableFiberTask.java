@@ -222,14 +222,14 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
     }
 
     @Override
-    public void unpark() {
-        unpark(null);
+    public boolean unpark() {
+        return unpark(null);
     }
 
     @Override
-    public void unpark(Object unblocker) {
+    public boolean unpark(Object unblocker) {
         if (fiber.isDone())
-            return;
+            return false;
 
         int newState;
         int _state;
@@ -241,7 +241,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
                     break;
                 case PARKED:
                     if (parkExclusive & unblocker != blocker & unblocker != EMERGENCY_UNBLOCKER)
-                        return;
+                        return false;
                     newState = RUNNABLE;
                     break;
                 case PARKING:
@@ -250,7 +250,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
                 case LEASED:
                     if (Debug.isDebug())
                         record("unpark", "current: %s - %s. return.", this, _state);
-                    return;
+                    return false;
                 default:
                     throw new AssertionError("Unknown task state: " + _state);
             }
@@ -266,6 +266,8 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
             if (_state != PARKING)
                 submit();
         }
+
+        return _state == PARKED || _state == PARKING; // Actually woken up the fiber
     }
 
     @Override

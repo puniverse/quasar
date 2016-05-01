@@ -1281,6 +1281,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         task.unpark(unblocker);
     }
 
+    final boolean unpark1(Object unblocker) {
+        record(1, "Fiber", "unpark1", "Unpark %s by %s", this, unblocker);
+        return task.unpark(unblocker);
+    }
+
     @Override
     @Suspendable
     public final void join() throws ExecutionException, InterruptedException {

@@ -238,17 +238,17 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             return false;
     }
 
-    public void unpark() {
-        unpark(null);
+    public boolean unpark() {
+        return unpark(null);
     }
 
-    public void unpark(Object unblocker) {
-        unpark(null, unblocker);
+    public boolean unpark(Object unblocker) {
+        return unpark(null, unblocker);
     }
 
-    public void unpark(ForkJoinPool fjPool, Object unblocker) {
+    public boolean unpark(ForkJoinPool fjPool, Object unblocker) {
         if (isDone())
-            return;
+            return false;
 
         int newState;
         int _state;
@@ -260,7 +260,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
                     break;
                 case PARKED:
                     if (parkExclusive & unblocker != blocker & unblocker != EMERGENCY_UNBLOCKER)
-                        return;
+                        return false;
                     newState = RUNNABLE;
                     break;
                 case PARKING:
@@ -269,7 +269,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
                 case LEASED:
                     if (Debug.isDebug())
                         record("unpark", "current: %s - %s. return.", this, _state);
-                    return;
+                    return false;
                 default:
                     throw new AssertionError("Unknown task state: " + _state);
             }
@@ -289,6 +289,8 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
                     submit();
             }
         }
+
+        return _state == PARKED || _state == PARKING; // Actually woken up the fiber
     }
 
     protected boolean tryUnpark(Object unblocker) {
