@@ -23,6 +23,7 @@ import co.paralleluniverse.fibers.Fiber;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.ForkJoinWorkerThread;
+
 import sun.misc.Unsafe;
 
 /**
@@ -219,7 +220,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
                     break;
                 case PARKING:
                 case PARKED:
-                    throw new AssertionError("Illegal task state: " + _state);
+                    throw new AssertionError("Unexpected task state (fiber parking or parked has no chance to to call `park`): " + _state);
                 default:
                     throw new AssertionError("Unknown task state: " + _state);
             }
@@ -251,7 +252,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
         int newState;
         int _state;
-        for (;;) {
+        do {
             _state = getState();
             switch (_state) {
                 case RUNNABLE:
@@ -272,12 +273,11 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
                 default:
                     throw new AssertionError("Unknown task state: " + _state);
             }
-            if (compareAndSetState(_state, newState))
-                break;
-        }
+        } while (!compareAndSetState(_state, newState));
 
         if (Debug.isDebug())
             record("unpark", "current: %s - %s -> %s", this, _state, newState);
+
         if (newState == RUNNABLE) {
             this.unparker = unblocker;
             if (CAPTURE_UNPARK_STACK)

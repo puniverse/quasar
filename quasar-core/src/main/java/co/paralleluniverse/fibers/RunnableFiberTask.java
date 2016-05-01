@@ -203,7 +203,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
                     break;
                 case PARKING:
                 case PARKED:
-                    throw new AssertionError("Illegal task state: " + _state);
+                    throw new AssertionError("Unexpected task state (fiber parking or parked has no chance to to call `park`): " + _state);
                 default:
                     throw new AssertionError("Unknown task state: " + _state);
             }
@@ -233,7 +233,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
 
         int newState;
         int _state;
-        for (;;) {
+        do {
             _state = getState();
             switch (_state) {
                 case RUNNABLE:
@@ -254,12 +254,11 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
                 default:
                     throw new AssertionError("Unknown task state: " + _state);
             }
-            if (compareAndSetState(_state, newState))
-                break;
-        }
+        } while (!compareAndSetState(_state, newState));
 
         if (Debug.isDebug())
             record("unpark", "current: %s - %s -> %s", this, _state, newState);
+
         if (newState == RUNNABLE) {
             this.unparker = unblocker;
             if (CAPTURE_UNPARK_STACK)
