@@ -1,4 +1,4 @@
-/*
+ /*
  * Quasar: lightweight strands and actors for the JVM.
  * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
  *
@@ -454,13 +454,19 @@ public class Selector<Message> implements Synchronization {
         record("lease", "trying lease %s", this);
         Object w;
         int i = 0;
+        long start = 0;
         do {
             w = winner;
             if (w != null & w != LEASED)
                 return false;
-            if (i++ > 1 << 22) {
-                // System.err.println(Arrays.toString(st));
-                throw new RuntimeException("Unable to obtain selector lease: " + w);
+
+            if (i++ > (1 << 22)) {
+                if (start == 0)
+                    start = System.nanoTime();
+                else if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) > 10000)
+                    throw new RuntimeException("Unable to obtain selector lease in 10 seconds: " + w);
+                i = 0;
+                Thread.yield();
             }
         } while (!casWinner(null, LEASED));
         // st = Thread.currentThread().getStackTrace();
