@@ -180,7 +180,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             record(1, "Fiber", "<init>", "Creating fiber name: %s, scheduler: %s, parent: %s, target: %s, task: %s, stackSize: %s", name, scheduler, parent, target, task, stackSize);
 
         if (target != null) {
-            verifyInstrumentedTarget(target);
+            if (verifyInstrumentation)
+                verifyInstrumentedTarget(target);
 
             if (target instanceof Stranded)
                 ((Stranded) target).setStrand(this);
