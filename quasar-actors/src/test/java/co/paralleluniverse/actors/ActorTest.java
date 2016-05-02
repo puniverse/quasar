@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.actors.behaviors.MessageSelector;
 import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
@@ -278,6 +279,21 @@ public class ActorTest {
         actor.ref().send(new ComplexMessage(ComplexMessage.Type.BAZ, 3));
 
         assertThat(actor.get(), equalTo(Arrays.asList(1, 3, 2)));
+    }
+
+    @Test
+    public void testSelectiveReceiveMsgSelector() throws Exception {
+        Actor<Object, String> actor = spawnActor(new BasicActor<Object, String>(mailboxConfig) {
+            @Override
+            protected String doRun() throws SuspendExecution, InterruptedException {
+                return receive(MessageSelector.select().ofType(String.class));
+            }
+        });
+
+        actor.ref().send(1);
+        actor.ref().send("hello");
+
+        assertThat(actor.get(), equalTo("hello"));
     }
 
     @Test
