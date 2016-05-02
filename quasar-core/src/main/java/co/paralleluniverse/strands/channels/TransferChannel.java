@@ -597,7 +597,7 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
                 if (isData == haveData) // can't match
                     break;
 
-                // avoid deadlock by orderdering lease acquisition:
+                // avoid deadlock by ordering lease acquisition:
                 // if p requires a lease and is of lower hashCode than sa, we return sa's lease, acquire p's, and then reacquire sa's.
                 SelectActionImpl sa2 = p.sa;
                 boolean leasedp;
