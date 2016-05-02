@@ -274,6 +274,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     @Override
     public final String getName() {
+        if (name == null) // benign race
+            this.name = "fiber-" + ((scheduler != null && scheduler != DefaultFiberScheduler.getInstance()) ? (scheduler.getName() + '-') : "") + fid;
         return name;
     }
 
@@ -281,10 +283,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     public final Fiber<V> setName(String name) {
         if (state != State.NEW)
             throw new IllegalStateException("Fiber name cannot be changed once it has started");
-        if (name != null)
-            this.name = name;
-        else
-            this.name = "fiber-" + ((scheduler != null && scheduler != DefaultFiberScheduler.getInstance()) ? (scheduler.getName() + '-') : "") + fid;
+        this.name = name;
         return this;
     }
 
