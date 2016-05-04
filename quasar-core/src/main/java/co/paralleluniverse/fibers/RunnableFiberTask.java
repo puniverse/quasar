@@ -14,8 +14,10 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
-import co.paralleluniverse.common.util.*;
-
+import co.paralleluniverse.common.util.Debug;
+import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.common.util.SystemProperties;
+import co.paralleluniverse.common.util.UtilUnsafe;
 import static co.paralleluniverse.fibers.FiberTask.*;
 import co.paralleluniverse.fibers.instrument.DontInstrument;
 import co.paralleluniverse.strands.SettableFuture;
