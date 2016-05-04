@@ -1494,23 +1494,20 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                             return makeFiberInfo(State.RUNNING, null, threadStack);
                     } else
                         return makeFiberInfo(State.RUNNING, null, null);
-                } else {
-                    if (stack) {
-                        FiberInfo fi = execFiberInfo(1, TimeUnit.MILLISECONDS);
-                        if (fi != null) {
-                            // we need to unpark because if someone else had tried to unpark while we were in execStackTrace(), it would have silently failed.
-                            unpark();
-                            return fi;
-                        }
-                    } else {
-                        State s;
-                        if ((s = state) == State.WAITING || s == State.TIMED_WAITING) {
-                            Object blocker = getBlocker();
-                            if ((s = state) == State.WAITING || s == State.TIMED_WAITING)
-                                return makeFiberInfo(s, blocker, null);
-                        }
+                } else if (stack) {
+                    FiberInfo fi = execFiberInfo(1, TimeUnit.MILLISECONDS);
+                    if (fi != null) {
+                        // we need to unpark because if someone else had tried to unpark while we were in execStackTrace(), it would have silently failed.
+                        unpark();
+                        return fi;
                     }
-
+                } else {
+                    State s;
+                    if ((s = state) == State.WAITING || s == State.TIMED_WAITING) {
+                        Object blocker = getBlocker();
+                        if ((s = state) == State.WAITING || s == State.TIMED_WAITING)
+                            return makeFiberInfo(s, blocker, null);
+                    }
                 }
             }
         }
@@ -2010,8 +2007,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                     // Switch the type of fiberLocals here to Object[] from ThreadLocalMap, to ease serialisation.
                     // We must switch it back when we are done.
                     f.fiberLocals = realFiberLocals != null ? ThreadAccess.toMap(realFiberLocals).keySet().toArray() : null;
-                    f.inheritableFiberLocals = realInheritableFiberLocals != null ?
-                            ThreadAccess.toMap(realInheritableFiberLocals).keySet().toArray() : null;
+                    f.inheritableFiberLocals = realInheritableFiberLocals != null
+                            ? ThreadAccess.toMap(realInheritableFiberLocals).keySet().toArray() : null;
                     f.stack.resumeStack();
 
                     kryo.writeClass(output, f.getClass());
