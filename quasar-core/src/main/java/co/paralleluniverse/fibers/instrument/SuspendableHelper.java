@@ -76,14 +76,15 @@ public final class SuspendableHelper {
         } else {
             Instrumented i = getAnnotation(m, Instrumented.class);
             if (i != null) {
-                for (int j : i.suspendableCallSites()) {
+                final int[] scs = i.suspendableCallSites();
+                for (int j : scs) {
                     if (j == sourceLine)
-                        return new Pair<>(true, i.suspendableCallSites());
+                        return new Pair<>(true, scs);
                 }
+                return new Pair<>(false, scs);
             }
+            return new Pair<>(false, null);
         }
-
-        return new Pair<>(false, null);
     }
 
     public static boolean isInstrumented(Member m) {
