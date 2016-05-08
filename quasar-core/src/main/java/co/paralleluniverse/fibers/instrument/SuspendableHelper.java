@@ -122,7 +122,8 @@ public final class SuspendableHelper {
                 || className.startsWith("sun.reflect")
                 || className.startsWith("com.sun.proxy")
                 || className.contains("$ByteBuddy$")
-                || (className.equals("co.paralleluniverse.strands.SuspendableUtils$VoidSuspendableCallable") && methodName.equals("run")))
+                || (className.equals("co.paralleluniverse.strands.SuspendableUtils$VoidSuspendableCallable") && methodName.equals("run"))
+                || (className.equals("co.paralleluniverse.strands.dataflow.Var") && methodName.equals("set")))
             return true;
         return waivers.contains(new Pair<>(className, methodName));
     }
