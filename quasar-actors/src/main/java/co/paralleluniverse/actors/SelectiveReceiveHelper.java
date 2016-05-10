@@ -232,7 +232,7 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
 	 * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
 	 * non-selective) retrieves them.
 	 *
-	 * @param <T>     The type of the returned value
+	 * @param <M>     The type of the returned value
 	 * @param timeout the duration to wait for a matching message to arrive.
 	 * @param unit    timeout's time unit.
 	 * @param type    the type of the messages to select
@@ -251,7 +251,7 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
 	 * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
 	 * non-selective) retrieves them.
 	 *
-	 * @param <T>     The type of the returned value
+	 * @param <M>     The type of the returned value
 	 * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
 	 * @param type    the type of the messages to select
 	 * @return The next message of the wanted type, or {@code null} if the timeout expires.
@@ -269,7 +269,7 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
 	 * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
 	 * non-selective) retrieves them.
 	 *
-	 * @param <T>  The type of the returned value
+	 * @param <M>  The type of the returned value
 	 * @param type the type of the messages to select
 	 * @return The next message of the wanted type.
 	 * @throws InterruptedException
@@ -290,7 +290,7 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
 	 * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
 	 * non-selective) retrieves them.
 	 *
-	 * @param <T>  The type of the returned value
+	 * @param <M>  The type of the returned value
 	 * @param type the type of the messages to select
 	 * @return The next message of the wanted type if immediately found; {@code null} otherwise.
 	 */

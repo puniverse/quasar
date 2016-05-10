@@ -15,7 +15,6 @@ package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.*;
 import co.paralleluniverse.common.test.TestUtil;
-import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberFactory;

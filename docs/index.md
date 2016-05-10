@@ -759,8 +759,7 @@ ComplexMessage m = receive(new MessageProcessor<ComplexMessage, ComplexMessage>(
     });
 ~~~
 
-will only return a message whose `type` value is `FOO` or `BAR`, but not `BAZ`. If a message of type `BAZ` is found in the mailbox, it
-will remain there and be skipped, until it is selected by a subsequent call to `receive` (selective or plain).
+will only return a message whose `type` value is `FOO` or `BAR`, but not `BAZ`. If a message of type `BAZ` is found in the mailbox, it will remain there and be skipped, until it is selected by a subsequent call to `receive` (selective or plain).
 
 {:.alert .alert-warn}
 **Note**: Selective receives always defer exit messages produced by [watches](#linking-and-watching-actors) to subsequent plain `receive` calls.
@@ -806,7 +805,7 @@ protected List<Integer> doRun() throws SuspendExecution, InterruptedException {
 If a `FOO` is received first, then the next `BAZ` will be added to the list following the `FOO`, even if a `BAR` is found in the mailbox after the `FOO`, because the nested receive in the `case FOO:` clause selects only a `BAZ` message.
 
 {:.alert .alert-info}
-**Note**: `MessageProcessor` will become much less cumbersome in Java 8 with the introduction of lambda expressions.
+**Note**: `MessageProcessor` is much more compact in Java 8 when using lambda expressions.
 
 {:.alert .alert-info}
 **Note**: A simple, fluent API for selecting messages based on simple criteria is provided by the [`MessageSelector`]({{javadoc}}/actors/behaviors/MessageSelector.html) class (in the `co.paralleluniverse.actors.behaviors`) package.
