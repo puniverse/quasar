@@ -762,6 +762,9 @@ ComplexMessage m = receive(new MessageProcessor<ComplexMessage, ComplexMessage>(
 will only return a message whose `type` value is `FOO` or `BAR`, but not `BAZ`. If a message of type `BAZ` is found in the mailbox, it
 will remain there and be skipped, until it is selected by a subsequent call to `receive` (selective or plain).
 
+{:.alert .alert-warn}
+**Note**: Selective receives always defer exit messages produced by [watches](#linking-and-watching-actors) to subsequent plain `receive` calls.
+
 `MessageProcessor.process` can also process the message inline (rather than have it processed by the caller to `receive`), and even call a nested `receive:
 
 ~~~ java
@@ -923,6 +926,9 @@ You can implement a server actor by subclassing `ServerActor` and overriding the
 or by providing an instance of [`ServerHandler`]({{javadoc}}/actors/behaviors/ServerHandler.html) which implements these methods to the `ServerActor` constructor. Please consult the `ServerActor` [JavaDoc]({{javadoc}}/actors/behaviors/ServerActor.html) for details.
 
 The interface, [`Server`]({{javadoc}}/actors/behaviors/Server.html), adds additional methods to `ActorRef`, such as `call` and `cast`, that allow sending synchronous (a request that waits for a response) or asynchronous (a request that does not wait for a response) requests to the server actor.
+
+{:.alert .alert-warn}
+**Note**: `call` always defer exit messages produced by [watches](#linking-and-watching-actors) to subsequent plain `receive` calls.
 
 #### Proxy Server
 

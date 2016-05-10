@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -151,10 +151,10 @@ public final class RequestReplyHelper {
         final Actor currentActor = tmpActor ? (Actor) ((TempActorRef) m.getFrom()).getImpl() : Actor.currentActor();
         assert currentActor != null;
 
-        final Object watch = currentActor.watch(actor);
+        currentActor.link(actor);
 
         if (m.getId() == null)
-            m.setId(watch);
+            m.setId(new Object());
 
         final Object id = m.getId();
 
@@ -163,7 +163,7 @@ public final class RequestReplyHelper {
             protected void handleLifecycleMessage(LifecycleMessage m) {
                 if (m instanceof ExitMessage) {
                     final ExitMessage exit = (ExitMessage) m;
-                    if (Objects.equals(exit.getActor(), actor) && exit.getWatch() == watch)
+                    if (Objects.equals(exit.getActor(), actor) && exit.getWatch() == null)
                         throw Exceptions.rethrow(exit.getCause());
                 }
                 super.handleLifecycleMessage(m);
@@ -177,7 +177,7 @@ public final class RequestReplyHelper {
                     return (m instanceof ResponseMessage && id.equals(((ResponseMessage) m).getId())) ? m : null;
                 }
             });
-            currentActor.unwatch(actor, watch); // no need to unwatch in case of receiver death, so not done in finally block
+            currentActor.unlink(actor); // no need to unlink in case of receiver death, so not done in finally block
 
             if (response instanceof ErrorResponseMessage)
                 throw Exceptions.rethrow(((ErrorResponseMessage) response).getError());

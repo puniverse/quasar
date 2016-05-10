@@ -20,6 +20,7 @@ import co.paralleluniverse.actors.Actor as JActor
 import java.util.concurrent.TimeoutException
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.actors.ActorRef
+import co.paralleluniverse.actors.ExitMessage
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.strands.SuspendableCallable
 import co.paralleluniverse.strands.queues.QueueIterator
@@ -86,7 +87,8 @@ abstract class Actor : KotlinActorSupport<Any?, Any?>() {
 
                 record(1, "KotlinActor", "receive", "Received %s <- %s", this, m)
                 monitorAddMessage()
-                if (m is LifecycleMessage) {
+                if (m is ExitMessage && m.getWatch() == null) {
+                    // Delay all lifecycle messages except link death signals
                     it.remove()
                     handleLifecycleMessage(m)
                 } else {
