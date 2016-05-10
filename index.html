@@ -873,8 +873,9 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 </span><span id="line-11">        <span class="o">}</span>
 </span><span id="line-12">    <span class="o">});</span>
 </span></code></pre></div>
-<p>will only return a message whose <code>type</code> value is <code>FOO</code> or <code>BAR</code>, but not <code>BAZ</code>. If a message of type <code>BAZ</code> is found in the mailbox,&nbsp;it
-will remain there and be skipped, until it is selected by a subsequent call to <code>receive</code> (selective or&nbsp;plain).</p>
+<p>will only return a message whose <code>type</code> value is <code>FOO</code> or <code>BAR</code>, but not <code>BAZ</code>. If a message of type <code>BAZ</code> is found in the mailbox, it will remain there and be skipped, until it is selected by a subsequent call to <code>receive</code> (selective or&nbsp;plain).</p>
+
+<p class="alert alert-warn"><strong>Note</strong>: Selective receives always defer exit messages produced by <a href="#linking-and-watching-actors">watches</a> to subsequent plain <code>receive</code>&nbsp;calls.</p>
 
 <p><code>MessageProcessor.process</code> can also process the message inline (rather than have it processed by the caller to <code>receive</code>), and even call a nested&nbsp;`receive:</p>
 
@@ -914,7 +915,7 @@ will remain there and be skipped, until it is selected by a subsequent call to <
 </span></code></pre></div>
 <p>If a <code>FOO</code> is received first, then the next <code>BAZ</code> will be added to the list following the <code>FOO</code>, even if a <code>BAR</code> is found in the mailbox after the <code>FOO</code>, because the nested receive in the <code>case FOO:</code> clause selects only a <code>BAZ</code>&nbsp;message.</p>
 
-<p class="alert alert-info"><strong>Note</strong>: <code>MessageProcessor</code> will become much less cumbersome in Java 8 with the introduction of lambda&nbsp;expressions.</p>
+<p class="alert alert-info"><strong>Note</strong>: <code>MessageProcessor</code> is much more compact in Java 8 when using lambda&nbsp;expressions.</p>
 
 <p class="alert alert-info"><strong>Note</strong>: A simple, fluent <span class="caps">API</span> for selecting messages based on simple criteria is provided by the <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/MessageSelector.html"><code>MessageSelector</code></a> class (in the <code>co.paralleluniverse.actors.behaviors</code>)&nbsp;package.</p>
 
@@ -1028,6 +1029,8 @@ will remain there and be skipped, until it is selected by a subsequent call to <
 <p>or by providing an instance of <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/ServerHandler.html"><code>ServerHandler</code></a> which implements these methods to the <code>ServerActor</code> constructor. Please consult the <code>ServerActor</code> <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/ServerActor.html">JavaDoc</a> for&nbsp;details.</p>
 
 <p>The interface, <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/Server.html"><code>Server</code></a>, adds additional methods to <code>ActorRef</code>, such as <code>call</code> and <code>cast</code>, that allow sending synchronous (a request that waits for a response) or asynchronous (a request that does not wait for a response) requests to the server&nbsp;actor.</p>
+
+<p class="alert alert-warn"><strong>Note</strong>: <code>call</code> always defer exit messages produced by <a href="#linking-and-watching-actors">watches</a> to subsequent plain <code>receive</code>&nbsp;calls.</p>
 
 <h4 id="proxy-server">Proxy&nbsp;Server</h4>
 
