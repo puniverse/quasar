@@ -116,7 +116,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 System.err.println("If this exception looks strange, perhaps you've forgotten to instrument a blocking method. Run your program with -Dco.paralleluniverse.fibers.verifyInstrumentation to catch the culprit!");
             System.err.println(e);
             Strand.printStackTrace(threadToFiberStack(e.getStackTrace()), System.err);
-            checkInstrumentation(ExtendedStackTrace.of(e));
+            checkInstrumentation(ExtendedStackTrace.of(e), true);
         }
     };
     private static final AtomicLong idGen = new AtomicLong(10000000L);
@@ -1631,8 +1631,20 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         return checkInstrumentation(ExtendedStackTrace.here());
     }
 
+    private static boolean checkInstrumentation(ExtendedStackTrace of) {
+        return checkInstrumentation(of, false);
+    }
+
     @SuppressWarnings("null")
-    private static boolean checkInstrumentation(ExtendedStackTrace st) {
+    private static boolean checkInstrumentation(ExtendedStackTrace st, boolean fromUncaughtExc) {
+        if (fromUncaughtExc && st.get().length > 0 && st.get()[0] != null) {
+            final ExtendedStackTraceElement first = st.get()[0];
+            if (!first.getDeclaringClass().equals(ClassCastException.class)
+                && !(first.getDeclaringClass().equals(NullPointerException.class) &&
+                     first.getDeclaringClass().getName().startsWith("co.paralleluniverse.fibers")))
+                return true;
+        }
+
         boolean ok = true;
         StringBuilder stackTrace = null;
 
