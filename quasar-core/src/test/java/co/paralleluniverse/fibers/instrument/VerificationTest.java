@@ -150,35 +150,4 @@ public final class VerificationTest {
         }}).start();
         assertEquals(fOk.get(), new Integer(4));
     }
-
-    @Suspendable
-    private void doInstrumentedExc() {
-        try {
-            Fiber.sleep(10);
-            throw new NullPointerException("something is broken");
-        } catch (final InterruptedException ex) {
-            throw new RuntimeException(ex);
-        } catch (final SuspendExecution ex) {
-            throw new AssertionError(ex);
-        }
-    }
-
-    private void doUninstrumentedExc() {
-        doInstrumentedExc();
-    }
-
-    @Test
-    public final void testVerificationExc() throws ExecutionException, InterruptedException {
-        assumeTrue(!SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation"));
-
-        final Fiber<?> f = new Fiber<>(new SuspendableRunnable() { @Override public final void run() throws SuspendExecution, InterruptedException {
-            doUninstrumentedExc(); // **
-            Fiber.sleep(10);
-        }}).start();
-        try {
-            f.join();
-        } catch (final ExecutionException re) {
-            assertTrue(re.getCause().getSuppressed()[0].getMessage().contains(" **"));
-        }
-    }
 }
