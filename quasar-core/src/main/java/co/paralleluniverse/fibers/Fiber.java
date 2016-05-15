@@ -1585,7 +1585,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     /**
      * An action to perform before or after a park (but always before the fiber has woken up)
      */
-    static interface ParkAction {
+    interface ParkAction {
         /**
          * Called by Fiber immediately before or after park.
          * This method may not use any ThreadLocals as they have been rest by the time the method is called.

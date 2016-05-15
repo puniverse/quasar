@@ -105,7 +105,6 @@ public final class Stack implements Serializable {
      * called when nextMethodEntry returns 0
      */
     public final boolean isFirstInStackOrPushed() {
-
         boolean p = pushed;
         pushed = false;
 
