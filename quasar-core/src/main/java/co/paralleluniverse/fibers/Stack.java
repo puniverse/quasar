@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -40,7 +40,6 @@ public final class Stack implements Serializable {
     private static final long serialVersionUID = 12786283751253L;
     private final Fiber fiber;
     private int sp;
-    private transient boolean shouldVerifyInstrumentation;
     private transient boolean pushed;
     private long[] dataLong;        // holds primitives on stack as well as each method's entry point and the stack pointer
     private Object[] dataObject;    // holds refs on stack
@@ -83,8 +82,6 @@ public final class Stack implements Serializable {
      * @return the entry point of this method
      */
     public final int nextMethodEntry() {
-        shouldVerifyInstrumentation = true;
-
         int idx = 0;
         int slots = 0;
         if (sp > 0) {
@@ -124,7 +121,6 @@ public final class Stack implements Serializable {
      * @param numSlots   the number of required stack slots for storing the state of the current method
      */
     public final void pushMethod(int entry, int numSlots) {
-        shouldVerifyInstrumentation = false;
         pushed = true;
 
         int idx = sp - FRAME_RECORD_SIZE;
@@ -148,10 +144,6 @@ public final class Stack implements Serializable {
     }
 
     public final void popMethod() {
-        if (shouldVerifyInstrumentation) {
-            Fiber.verifySuspend(fiber);
-            shouldVerifyInstrumentation = false;
-        }
         pushed = false;
 
         final int oldSP = sp;
