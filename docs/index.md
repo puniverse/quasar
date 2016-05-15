@@ -227,11 +227,7 @@ Clone the repository:
 
     git clone git://github.com/puniverse/quasar.git quasar
 
-and run:
-
-    ./gradlew
-
-Or, if you have gradle installed, run:
+then [install Gradle](https://docs.gradle.org/current/userguide/installation.html) and run:
 
     gradle
 
