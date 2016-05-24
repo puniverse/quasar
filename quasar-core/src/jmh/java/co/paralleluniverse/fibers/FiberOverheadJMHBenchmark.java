@@ -60,7 +60,7 @@ public class FiberOverheadJMHBenchmark {
         res = 0;
         exec(fiber);
         exec(fiber);
-        fiber2.reset();
+        fiber.reset();
         return res;
     }
 
@@ -119,7 +119,7 @@ public class FiberOverheadJMHBenchmark {
         long c = rands[(r << 2) + 3];
         long res;
         if (r > 0)
-            res = recursive1(r - 1);
+            res = recursive2(r - 1);
         else {
             Fiber.park();
             res = rands[(r << 2) + 4];
@@ -133,7 +133,7 @@ public class FiberOverheadJMHBenchmark {
         long c = rands[(r << 2) + 3];
         long res;
         if (r > 0)
-            res = recursive1(r - 1);
+            res = recursive3(r - 1);
         else {
             nopark();
             res = rands[(r << 2) + 4];

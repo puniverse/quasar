@@ -77,6 +77,7 @@ import java.lang.reflect.Member;
  */
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
     static final boolean USE_VAL_FOR_RESULT = true;
+    private static final Object RESET = new Object();
     private static final boolean traceInterrupt = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.traceInterrupt");
     private static final boolean disableAgentWarning = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.disableAgentWarning");
     public static final int DEFAULT_STACK_SIZE = 32;
@@ -702,7 +703,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     boolean exec() {
-        if (future().isDone())
+        if (result != RESET && future().isDone()) // RESET only in overhead benchamrk
             return true;
         if (state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
@@ -811,6 +812,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     void setResult(V res) {
+        if (result == RESET) // only in overhead benchmark
+            return;
         try {
             if (USE_VAL_FOR_RESULT)
                 ((Val<V>) this.result).set(res);
@@ -1753,8 +1756,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         assert task.getState() == FiberTask.RUNNABLE;
     }
 
-    @VisibleForTesting
+    @VisibleForTesting // called _only_ in Fiber overhead benchmark
     void reset() {
+        this.result = RESET;
         stack.resetStack();
     }
 
