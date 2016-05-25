@@ -217,7 +217,7 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
         try {
             int i = 0;
 
-            final long deadline = timed ? System.nanoTime() : 0L;
+            final long deadline = timed ? System.nanoTime() + nanos : 0L;
 
             record("send0", "%s enqueing message %s", this, message);
             while (!queue.enq(message)) {

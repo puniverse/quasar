@@ -14,7 +14,6 @@
 package co.paralleluniverse.strands;
 
 import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FibersMonitor;
