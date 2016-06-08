@@ -90,7 +90,7 @@ public class KotlinClassifier implements SuspendableClassifier {
 
         // Exclude packages known not to suspend
         for (final String s : excludePrefixes) {
-            if (className.startsWith(s))
+            if (className != null && className.startsWith(s))
                 return null;
         }
 
