@@ -44,7 +44,6 @@ import java.lang.reflect.Method;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -78,6 +77,7 @@ import java.lang.reflect.Member;
  */
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
     static final boolean USE_VAL_FOR_RESULT = true;
+    private static final Object RESET = new Object();
     private static final boolean traceInterrupt = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.traceInterrupt");
     private static final boolean disableAgentWarning = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.disableAgentWarning");
     public static final int DEFAULT_STACK_SIZE = 32;
@@ -140,6 +140,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     // private int preemptionCredits;
     private transient Thread runningThread;
     private final SuspendableCallable<V> target;
+    private byte priority;
     private transient ClassLoader contextClassLoader;
     private transient AccessControlContext inheritedAccessControlContext;
     // These are typed as Object because they store JRE-internal ThreadLocalMap objects, which is a package private
@@ -175,6 +176,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         this.task = scheduler != null ? scheduler.newFiberTask(this) : new FiberForkJoinTask(this);
         this.initialStackSize = stackSize;
         this.stack = new Stack(this, stackSize > 0 ? stackSize : DEFAULT_STACK_SIZE);
+        this.priority = (byte)NORM_PRIORITY;
 
         if (Debug.isDebug())
             record(1, "Fiber", "<init>", "Creating fiber name: %s, scheduler: %s, parent: %s, target: %s, task: %s, stackSize: %s", name, scheduler, parent, target, task, stackSize);
@@ -286,6 +288,39 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             throw new IllegalStateException("Fiber name cannot be changed once it has started");
         this.name = name;
         return this;
+    }
+
+    /**
+     * Sets the priority of this fiber.
+     *
+     *
+     * The fiber priority's semantics - or even if it is ignored completely -
+     * is entirely up to the fiber's scheduler.
+     * The default fiber scheduler completely ignores fiber priority.
+     *
+     * @param newPriority priority to set this fiber to
+     *
+     * @exception IllegalArgumentException If the priority is not in the
+     *                                     range {@code MIN_PRIORITY} to {@code MAX_PRIORITY}
+     * @see #getPriority
+     * @see #MAX_PRIORITY
+     * @see #MIN_PRIORITY
+     */
+    @Override
+    public Fiber setPriority(int newPriority) {
+        if (newPriority > MAX_PRIORITY || newPriority < MIN_PRIORITY)
+            throw new IllegalArgumentException();
+        this.priority = (byte) newPriority;
+        return this;
+    }
+
+    /**
+     * Returns this fiber's priority.
+     * @see #setPriority
+     */
+    @Override
+    public int getPriority() {
+        return priority;
     }
 
     @Override
@@ -703,7 +738,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     boolean exec() {
-        if (future().isDone())
+        if (result != RESET && future().isDone()) // RESET only in overhead benchamrk
             return true;
         if (state == State.RUNNING)
             throw new IllegalStateException("Not new or suspended");
@@ -812,6 +847,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     void setResult(V res) {
+        if (result == RESET) // only in overhead benchmark
+            return;
         try {
             if (USE_VAL_FOR_RESULT)
                 ((Val<V>) this.result).set(res);
@@ -1754,8 +1791,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         assert task.getState() == FiberTask.RUNNABLE;
     }
 
-    @VisibleForTesting
+    @VisibleForTesting // called _only_ in Fiber overhead benchmark
     void reset() {
+        this.result = RESET;
         stack.resetStack();
     }
 

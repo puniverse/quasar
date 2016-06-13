@@ -106,6 +106,33 @@ public class FiberTest implements Serializable {
     }
 
     @Test
+    public void testPriority() throws Exception {
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution {
+                
+            }
+        });
+
+        assertThat(fiber.getPriority(), is(Strand.NORM_PRIORITY));
+        
+        fiber.setPriority(3);
+        assertThat(fiber.getPriority(), is(3));
+        
+        try {
+            fiber.setPriority(Strand.MAX_PRIORITY + 1);
+            fail();
+        } catch (IllegalArgumentException e) {
+        }
+
+        try {
+            fiber.setPriority(Strand.MIN_PRIORITY - 1);
+            fail();
+        } catch (IllegalArgumentException e) {
+        }
+    }
+
+    @Test
     public void testTimeout() throws Exception {
         Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
             @Override

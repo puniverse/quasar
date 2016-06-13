@@ -14,7 +14,6 @@
 package co.paralleluniverse.strands;
 
 import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FibersMonitor;
@@ -55,6 +54,21 @@ public abstract class Strand {
     public static Strand of(Fiber fiber) {
         return fiber;
     }
+
+    /**
+     * The minimum priority that a strand can have.
+     */
+    public final static int MIN_PRIORITY = 1;
+
+    /**
+     * The default priority that is assigned to a strand.
+     */
+    public final static int NORM_PRIORITY = 5;
+
+    /**
+     * The maximum priority that a strand can have.
+     */
+    public final static int MAX_PRIORITY = 10;
 
     /**
      * A strand's running state
@@ -113,6 +127,35 @@ public abstract class Strand {
      * @return {@code this}
      */
     public abstract Strand setName(String name);
+
+    /**
+     * Attempts to change the priority of this strand.
+     *
+     * The priority of this thread is set to the smaller of
+     * the specified {@code newPriority} and the maximum permitted
+     * priority of the strand's thread group, if the strand is a thread.
+     * 
+     * The strand priority's semantics - or even if it is ignored completely -
+     * is entirely up to the strand's scheduler, be it the OS kernel in the case of
+     * a thread, or the fiber scheduler, in the case of a fiber.
+     *
+     * @param newPriority priority to set this strand to
+     * 
+     * @exception IllegalArgumentException If the priority is not in the
+     *                                     range {@code MIN_PRIORITY} to {@code MAX_PRIORITY}
+     * @see #getPriority
+     * @see #MAX_PRIORITY
+     * @see #MIN_PRIORITY
+     */
+    public abstract Strand setPriority(int newPriority);
+
+    /**
+     * Returns this strand's priority.
+     *
+     * @return this strand's priority.
+     * @see #setPriority
+     */
+    public abstract int getPriority();
 
     /**
      * Tests whether this strand is alive, namely it has been started but not yet terminated.
@@ -980,6 +1023,17 @@ public abstract class Strand {
         }
 
         @Override
+        public Strand setPriority(int newPriority) {
+            thread.setPriority(newPriority);
+            return this;
+        }
+
+        @Override
+        public int getPriority() {
+            return thread.getPriority();
+        }
+
+        @Override
         public long getId() {
             return thread.getId();
         }
@@ -1140,7 +1194,23 @@ public abstract class Strand {
         public Strand setName(String name) {
             return fiber.setName(name);
         }
-        
+
+        /**
+         * @inheritDoc
+         * 
+         * Note that the default fiber scheduler ignores fiber priority.
+         */
+        @Override
+        public Strand setPriority(int newPriority) {
+            fiber.setPriority(newPriority);
+            return this;
+        }
+
+        @Override
+        public int getPriority() {
+            return fiber.getPriority();
+        }
+
         @Override
         public long getId() {
             return fiber.getId();
