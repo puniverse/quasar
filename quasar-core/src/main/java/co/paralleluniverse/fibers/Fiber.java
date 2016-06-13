@@ -140,6 +140,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     // private int preemptionCredits;
     private transient Thread runningThread;
     private final SuspendableCallable<V> target;
+    private byte priority;
     private transient ClassLoader contextClassLoader;
     private transient AccessControlContext inheritedAccessControlContext;
     // These are typed as Object because they store JRE-internal ThreadLocalMap objects, which is a package private
@@ -175,6 +176,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         this.task = scheduler != null ? scheduler.newFiberTask(this) : new FiberForkJoinTask(this);
         this.initialStackSize = stackSize;
         this.stack = new Stack(this, stackSize > 0 ? stackSize : DEFAULT_STACK_SIZE);
+        this.priority = (byte)NORM_PRIORITY;
 
         if (Debug.isDebug())
             record(1, "Fiber", "<init>", "Creating fiber name: %s, scheduler: %s, parent: %s, target: %s, task: %s, stackSize: %s", name, scheduler, parent, target, task, stackSize);
@@ -286,6 +288,39 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             throw new IllegalStateException("Fiber name cannot be changed once it has started");
         this.name = name;
         return this;
+    }
+
+    /**
+     * Sets the priority of this fiber.
+     *
+     *
+     * The fiber priority's semantics - or even if it is ignored completely -
+     * is entirely up to the fiber's scheduler.
+     * The default fiber scheduler completely ignores fiber priority.
+     *
+     * @param newPriority priority to set this fiber to
+     *
+     * @exception IllegalArgumentException If the priority is not in the
+     *                                     range {@code MIN_PRIORITY} to {@code MAX_PRIORITY}
+     * @see #getPriority
+     * @see #MAX_PRIORITY
+     * @see #MIN_PRIORITY
+     */
+    @Override
+    public Fiber setPriority(int newPriority) {
+        if (newPriority > MAX_PRIORITY || newPriority < MIN_PRIORITY)
+            throw new IllegalArgumentException();
+        this.priority = (byte) newPriority;
+        return this;
+    }
+
+    /**
+     * Returns this fiber's priority.
+     * @see #setPriority
+     */
+    @Override
+    public int getPriority() {
+        return priority;
     }
 
     @Override
