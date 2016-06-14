@@ -56,21 +56,6 @@ public abstract class Strand {
     }
 
     /**
-     * The minimum priority that a strand can have.
-     */
-    public final static int MIN_PRIORITY = 1;
-
-    /**
-     * The default priority that is assigned to a strand.
-     */
-    public final static int NORM_PRIORITY = 5;
-
-    /**
-     * The maximum priority that a strand can have.
-     */
-    public final static int MAX_PRIORITY = 10;
-
-    /**
      * A strand's running state
      */
     public static enum State {
@@ -349,6 +334,36 @@ public abstract class Strand {
             return Fiber.interrupted();
         else
             return Thread.interrupted();
+    }
+
+    /**
+     * The minimum priority that the current strand can have.
+     */
+    public static int MIN_PRIORITY() {
+        if (isCurrentFiber())
+            return Fiber.MIN_PRIORITY;
+        else
+            return Thread.MIN_PRIORITY;
+    }
+
+    /**
+     * The default priority that is assigned to the current strand.
+     */
+    public static int NORM_PRIORITY() {
+        if (isCurrentFiber())
+            return Fiber.NORM_PRIORITY;
+        else
+            return Thread.NORM_PRIORITY;
+    }
+
+    /**
+     * The maximum priority that the current strand can have.
+     */
+    public static int MAX_PRIORITY() {
+        if (isCurrentFiber())
+            return Fiber.MAX_PRIORITY;
+        else
+            return Thread.MAX_PRIORITY;
     }
 
     /**
