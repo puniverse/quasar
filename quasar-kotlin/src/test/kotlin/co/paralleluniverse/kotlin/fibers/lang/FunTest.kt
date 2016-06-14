@@ -70,7 +70,6 @@ class FunTest {
 
     @Test fun testDefaultFunWithoutSomeArgs() {
         assertTrue(Fiber(scheduler, SuspendableCallable<kotlin.Boolean> @Suspendable {
-            // TODO https://youtrack.jetbrains.com/issue/KT-6930
             fDef()
             true
         }).start().get())
@@ -96,8 +95,6 @@ class FunTest {
             true
         }).start().get())
     }
-
-    // TODO https://youtrack.jetbrains.com/issue/KT-6932
 
     @Test fun testFunRefInvoke() {
         assertTrue(Fiber(scheduler, SuspendableCallable<kotlin.Boolean> @Suspendable {

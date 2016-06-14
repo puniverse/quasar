@@ -30,10 +30,6 @@ public class KotlinClassifier implements SuspendableClassifier {
     private static final String[][] supers;
     private static final String[] excludePrefixes;
 
-    private static String[] sa(String... elems) {
-        return elems;
-    }
-
     static {
         final ArrayList<String[]> res = new ArrayList<>();
 
@@ -57,7 +53,7 @@ public class KotlinClassifier implements SuspendableClassifier {
         supers = res.toArray(new String[0][0]);
 
         // Class prefixes that are known not to suspend
-        excludePrefixes = new String[]{
+        excludePrefixes = new String[] {
             // TODO: this specifically is also known to cause a `VerifyError` when instrumented, see #146
             "kotlin/reflect/jvm/internal/impl/descriptors/impl/ModuleDescriptorImpl",
             // Handle the same class, when shaded within kotlin-compiler[-embeddable]
@@ -66,7 +62,7 @@ public class KotlinClassifier implements SuspendableClassifier {
     }
 
     @Override
-    public MethodDatabase.SuspendableType isSuspendable(
+    public MethodDatabase.SuspendableType isSuspendable (
         MethodDatabase db,
         String sourceName, String sourceDebugInfo,
         boolean isInterface, String className, String superClassName, String[] interfaces,
@@ -106,5 +102,9 @@ public class KotlinClassifier implements SuspendableClassifier {
         }
 
         return null;
+    }
+
+    private static String[] sa(String... elems) {
+        return elems;
     }
 }
