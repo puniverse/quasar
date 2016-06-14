@@ -121,13 +121,15 @@ public class FiberTest implements Serializable {
         
         try {
             fiber.setPriority(Fiber.MAX_PRIORITY + 1);
-            fail();
+            if (Fiber.MAX_PRIORITY + 1 != Integer.MIN_VALUE) // Ignore overflow
+                fail();
         } catch (IllegalArgumentException e) {
         }
 
         try {
             fiber.setPriority(Fiber.MIN_PRIORITY - 1);
-            fail();
+            if (Fiber.MIN_PRIORITY - 1 != Integer.MAX_VALUE) // Ignore underflow
+                fail();
         } catch (IllegalArgumentException e) {
         }
     }
