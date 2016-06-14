@@ -18,6 +18,7 @@ import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.FiberAsync
 import co.paralleluniverse.fibers.FiberForkJoinScheduler
 import co.paralleluniverse.fibers.Suspendable
+import co.paralleluniverse.strands.Strand
 import co.paralleluniverse.strands.SuspendableRunnable
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -56,7 +57,7 @@ class FiberAsyncTest {
         override fun registerCallback(callback: MyCallback) {
             executor.submit({
                 try {
-                    Thread.sleep(20)
+                    Strand.sleep(20)
                     callback.call("async result!")
                 } catch (ex: InterruptedException) {
                     throw RuntimeException(ex)
@@ -68,7 +69,7 @@ class FiberAsyncTest {
         override fun registerCallback(callback: MyCallback) {
             executor.submit({
                 try {
-                    Thread.sleep(2000)
+                    Strand.sleep(2000)
                     callback.call("async result!")
                 } catch (ex: InterruptedException) {
                     throw RuntimeException(ex)
@@ -81,7 +82,7 @@ class FiberAsyncTest {
         override fun registerCallback(callback: MyCallback) {
             executor.submit({
                 try {
-                    Thread.sleep(20);
+                    Strand.sleep(20);
                     callback.fail(RuntimeException("async exception!"))
                 } catch (ex: InterruptedException) {
                     throw RuntimeException(ex)
@@ -241,7 +242,7 @@ class FiberAsyncTest {
     fun testRunBlocking() {
         val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
             val res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), CheckedCallable<kotlin.String, java.lang.InterruptedException> @Suspendable {
-                Thread.sleep(300)
+                Strand.sleep(300)
                 "ok"
             })
             assertThat(res, equalTo("ok"))
@@ -255,7 +256,7 @@ class FiberAsyncTest {
         val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
             try {
                 val res = FiberAsync.runBlocking(Executors.newCachedThreadPool(), 400, TimeUnit.MILLISECONDS, CheckedCallable<kotlin.String, java.lang.InterruptedException> @Suspendable {
-                    Thread.sleep(300)
+                    Strand.sleep(300)
                     "ok"
                 })
                 assertThat(res, equalTo("ok"))
@@ -272,7 +273,7 @@ class FiberAsyncTest {
         val fiber = Fiber<Void>(SuspendableRunnable @Suspendable {
             try {
                 FiberAsync.runBlocking(Executors.newCachedThreadPool(), 100, TimeUnit.MILLISECONDS, CheckedCallable<kotlin.String, java.lang.InterruptedException> @Suspendable {
-                    Thread.sleep(300)
+                    Strand.sleep(300)
                     "ok"
                 });
                 fail();
