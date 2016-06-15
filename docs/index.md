@@ -88,7 +88,7 @@ Introductory blog post: [Erlang (and Go) in Clojure (and Java), Lightweight Thre
 
 ### System Requirements
 
-Java 7 is required to run Quasar.
+Quasar runs on Java 7 and higher.
 
 ### Using Maven/Gradle {#maven}
 
