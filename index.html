@@ -241,7 +241,7 @@
 
 <h3 id="system-requirements">System&nbsp;Requirements</h3>
 
-<p>Java 7 and is required to run&nbsp;Quasar.</p>
+<p>Quasar runs on Java 7 and&nbsp;higher.</p>
 
 <h3 id="maven">Using&nbsp;Maven/Gradle</h3>
 
@@ -439,7 +439,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>Fibers are scheduled by a <a href="/quasar/javadoc/co/paralleluniverse/fibers/FiberScheduler.html"><code>FiberScheduler</code></a>. When constructing a fiber, you can specify which scheduler should schedule it. If you don’t a <a href="/quasar/javadoc/co/paralleluniverse/fibers/DefaultFiberScheduler.html">default scheduler</a> is used. You can set the default scheduler’s properties by <a href="/quasar/javadoc/co/paralleluniverse/fibers/DefaultFiberScheduler.html">setting some system properties</a>.</p>
 
-<p>The default scheduler is an instance of <a href="/quasar/javadoc/co/paralleluniverse/fibers/FiberForkJoinScheduler.html"><code>FiberForkJoinScheduler</code></a> which schedules fibers in a <code>ForkJoinPool</code>. This is a high-quality work-stealing scheduler, but sometimes you might want to schedule fibers in a thread pool of your own design (or even on a particular thread (e.g. <span class="caps">AWT</span>/Swing’s <span class="caps">EDT</span>). To that purpose you can use <a href="/quasar/javadoc/co/paralleluniverse/fibers/FiberExecutorScheduler.html"><code>FiberExecutorScheduler</code></a>. See <a href="/quasar/javadoc/co/paralleluniverse/fibers/FiberExecutorScheduler.html">the Javadoc</a> for&nbsp;details.</p>
+<p>The default scheduler is an instance of <a href="/quasar/javadoc/co/paralleluniverse/fibers/FiberForkJoinScheduler.html"><code>FiberForkJoinScheduler</code></a> which schedules fibers in a <code>ForkJoinPool</code>. This is a high-quality work-stealing scheduler, but sometimes you might want to schedule fibers in a thread pool of your own design or even on a particular thread (e.g. <span class="caps">AWT</span>/Swing’s <span class="caps">EDT</span>). To that purpose you can use <a href="/quasar/javadoc/co/paralleluniverse/fibers/FiberExecutorScheduler.html"><code>FiberExecutorScheduler</code></a>. See <a href="/quasar/javadoc/co/paralleluniverse/fibers/FiberExecutorScheduler.html">the Javadoc</a> for&nbsp;details.</p>
 
 <p>Every scheduler creates a <a href="/quasar/javadoc/co/paralleluniverse/fibers/FibersMXBean.html">MXBean</a> that monitors the fibers scheduled by that scheduler. The MXBean’s name is <code>"co.paralleluniverse:type=Fibers,name=SCHEDULER_NAME"</code>, and you can find more details in the <a href="/quasar/javadoc/co/paralleluniverse/fibers/FibersMXBean.html">Javadoc</a>.</p>
 
@@ -656,7 +656,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>The ticker channel is useful when a program component continually broadcasts some information. The size channel’s circular buffer, its “screen” if you like, gives the subscribers some leeway if they occasionally fall behind&nbsp;reading.</p>
 
-<p>A ticker channel is single-consumer, i.e. only one strand is allowed to consume messages from the channel. On the other hand, it is possible, and useful, to create several views of the channel, each used by a different consumer strand. A view (which is of type <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/TickerChannelConsumer.html"><code>TickerChannelConsumer</code></a> is created with the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#newTickerConsumerFor(Channel)"><code>Channels.newTickerConsumerFor</code></a>&nbsp;method.</p>
+<p>A ticker channel is single-consumer, i.e. only one strand is allowed to consume messages from the channel. On the other hand, it is possible, and useful, to create several views of the channel, each used by a different consumer strand. A view (which is of type <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/TickerChannelConsumer.html"><code>TickerChannelConsumer</code></a>) is created with the <a href="/quasar/javadoc/co/paralleluniverse/strands/channels/Channels.html#newTickerConsumerFor(Channel)"><code>Channels.newTickerConsumerFor</code></a>&nbsp;method.</p>
 
 <p>The method returns a <code>ReceivePort</code> that can be used to receive messages from <code>channel</code>. Each ticker-consumer will yield monotonic messages, namely no message will be received more than once, and the messages will be received in the order they’re sent, but if the consumer is too slow, messages could be&nbsp;lost.</p>
 
@@ -873,7 +873,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p class="alert alert-warn"><strong>Note</strong>: Selective receives always defer exit messages produced by <a href="#linking-and-watching-actors">watches</a> to subsequent plain <code>receive</code>&nbsp;calls.</p>
 
-<p><code>MessageProcessor.process</code> can also process the message inline (rather than have it processed by the caller to <code>receive</code>), and even call a nested&nbsp;`receive:</p>
+<p><code>MessageProcessor.process</code> can also process the message inline (rather than have it processed by the caller to <code>receive</code>), and even call a nested&nbsp;<code>receive</code>:</p>
 
 <div class="highlight"><pre><code><span id="line-1"><span class="kd">protected</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="nf">doRun</span><span class="o">()</span> <span class="kd">throws</span> <span class="n">SuspendExecution</span><span class="o">,</span> <span class="n">InterruptedException</span> <span class="o">{</span>
 </span><span id="line-2">    <span class="kd">final</span> <span class="n">List</span><span class="o">&lt;</span><span class="n">Integer</span><span class="o">&gt;</span> <span class="n">list</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ArrayList</span><span class="o">&lt;&gt;();</span>
