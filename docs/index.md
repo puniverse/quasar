@@ -88,7 +88,7 @@ Introductory blog post: [Erlang (and Go) in Clojure (and Java), Lightweight Thre
 
 ### System Requirements
 
-Java 7 and is required to run Quasar.
+Java 7 is required to run Quasar.
 
 ### Using Maven/Gradle {#maven}
 
@@ -288,7 +288,7 @@ fiber @Suspendable {
 
 Fibers are scheduled by a [`FiberScheduler`]({{javadoc}}/fibers/FiberScheduler.html). When constructing a fiber, you can specify which scheduler should schedule it. If you don't a [default scheduler]({{javadoc}}/fibers/DefaultFiberScheduler.html) is used. You can set the default scheduler's properties by [setting some system properties]({{javadoc}}/fibers/DefaultFiberScheduler.html).
 
-The default scheduler is an instance of [`FiberForkJoinScheduler`]({{javadoc}}/fibers/FiberForkJoinScheduler.html) which schedules fibers in a `ForkJoinPool`. This is a high-quality work-stealing scheduler, but sometimes you might want to schedule fibers in a thread pool of your own design (or even on a particular thread (e.g. AWT/Swing's EDT). To that purpose you can use [`FiberExecutorScheduler`]({{javadoc}}/fibers/FiberExecutorScheduler.html). See [the Javadoc]({{javadoc}}/fibers/FiberExecutorScheduler.html) for details.
+The default scheduler is an instance of [`FiberForkJoinScheduler`]({{javadoc}}/fibers/FiberForkJoinScheduler.html) which schedules fibers in a `ForkJoinPool`. This is a high-quality work-stealing scheduler, but sometimes you might want to schedule fibers in a thread pool of your own design or even on a particular thread (e.g. AWT/Swing's EDT). To that purpose you can use [`FiberExecutorScheduler`]({{javadoc}}/fibers/FiberExecutorScheduler.html). See [the Javadoc]({{javadoc}}/fibers/FiberExecutorScheduler.html) for details.
 
 Every scheduler creates a [MXBean]({{javadoc}}/fibers/FibersMXBean.html) that monitors the fibers scheduled by that scheduler. The MXBean's name is `"co.paralleluniverse:type=Fibers,name=SCHEDULER_NAME"`, and you can find more details in the [Javadoc]({{javadoc}}/fibers/FibersMXBean.html).
 
@@ -520,7 +520,7 @@ A channel created with the `DISPLACE` overflow policy is called a *ticker channe
 
 The ticker channel is useful when a program component continually broadcasts some information. The size channel's circular buffer, its "screen" if you like, gives the subscribers some leeway if they occasionally fall behind reading.
 
-A ticker channel is single-consumer, i.e. only one strand is allowed to consume messages from the channel. On the other hand, it is possible, and useful, to create several views of the channel, each used by a different consumer strand. A view (which is of type [`TickerChannelConsumer`]({{javadoc}}/strands/channels/TickerChannelConsumer.html) is created with the [`Channels.newTickerConsumerFor`]({{javadoc}}/strands/channels/Channels.html#newTickerConsumerFor(Channel)) method.
+A ticker channel is single-consumer, i.e. only one strand is allowed to consume messages from the channel. On the other hand, it is possible, and useful, to create several views of the channel, each used by a different consumer strand. A view (which is of type [`TickerChannelConsumer`]({{javadoc}}/strands/channels/TickerChannelConsumer.html)) is created with the [`Channels.newTickerConsumerFor`]({{javadoc}}/strands/channels/Channels.html#newTickerConsumerFor(Channel)) method.
 
 The method returns a `ReceivePort` that can be used to receive messages from `channel`. Each ticker-consumer will yield monotonic messages, namely no message will be received more than once, and the messages will be received in the order they're sent, but if the consumer is too slow, messages could be lost.
 
@@ -760,7 +760,7 @@ will only return a message whose `type` value is `FOO` or `BAR`, but not `BAZ`. 
 {:.alert .alert-warn}
 **Note**: Selective receives always defer exit messages produced by [watches](#linking-and-watching-actors) to subsequent plain `receive` calls.
 
-`MessageProcessor.process` can also process the message inline (rather than have it processed by the caller to `receive`), and even call a nested `receive:
+`MessageProcessor.process` can also process the message inline (rather than have it processed by the caller to `receive`), and even call a nested `receive`:
 
 ~~~ java
 protected List<Integer> doRun() throws SuspendExecution, InterruptedException {
