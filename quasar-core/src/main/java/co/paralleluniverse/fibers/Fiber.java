@@ -176,7 +176,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         this.task = scheduler != null ? scheduler.newFiberTask(this) : new FiberForkJoinTask(this);
         this.initialStackSize = stackSize;
         this.stack = new Stack(this, stackSize > 0 ? stackSize : DEFAULT_STACK_SIZE);
-        this.priority = (byte)NORM_PRIORITY;
+        this.priority = NORM_PRIORITY;
 
         if (Debug.isDebug())
             record(1, "Fiber", "<init>", "Creating fiber name: %s, scheduler: %s, parent: %s, target: %s, task: %s, stackSize: %s", name, scheduler, parent, target, task, stackSize);
