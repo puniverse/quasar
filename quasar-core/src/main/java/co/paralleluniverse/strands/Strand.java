@@ -337,36 +337,6 @@ public abstract class Strand {
     }
 
     /**
-     * The minimum priority that the current strand can have.
-     */
-    public static int MIN_PRIORITY() {
-        if (isCurrentFiber())
-            return Fiber.MIN_PRIORITY;
-        else
-            return Thread.MIN_PRIORITY;
-    }
-
-    /**
-     * The default priority that is assigned to the current strand.
-     */
-    public static int NORM_PRIORITY() {
-        if (isCurrentFiber())
-            return Fiber.NORM_PRIORITY;
-        else
-            return Thread.NORM_PRIORITY;
-    }
-
-    /**
-     * The maximum priority that the current strand can have.
-     */
-    public static int MAX_PRIORITY() {
-        if (isCurrentFiber())
-            return Fiber.MAX_PRIORITY;
-        else
-            return Thread.MAX_PRIORITY;
-    }
-
-    /**
      * Awaits the termination of a given strand.
      * This method blocks until this strand terminates.
      *
