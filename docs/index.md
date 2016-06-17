@@ -485,26 +485,51 @@ The [`unparkSerialized` method]({{javadoc}}/fibers//Fiber.html#unparkSerialized(
 
 ### Troubleshooting {#troubleshooting}
 
-{:.alert .alert-info}
-**Note:** keep the source code at hand in order to correctly understand the troubleshooting information produced by the following diagnostic tools.
+The JVM platform allows fibers to be implemented efficiently without dedicated support, just by virtue its runtime execution model and powerful, general purpose feature set. Specifically, _bytecode instrumentation_ allows Quasar to manage efficiently the user-mode stack of fibers in order to be able to suspend and to resume them.
 
-If you forget to mark a method as suspendable (with `throws SuspendExecution` or `@Suspendable` or the `META-INF/suspendables`/`META-INF/suspendable-supers` resources), you will encounter some strange errors that can take the form of `ClassCastException`s, `NullPointerException`s, `ArrayIndexOutOfBounds` or `SuspendExecution` being thrown from within Quasar or from user code but meaningless (actually they are thrown by instructions added by instrumentation that are not visible in the source code). To troubleshoot those, set the value of the `co.paralleluniverse.fibers.verifyInstrumentation` system property to `true` and run your program. This will verify that all of your suspendable calls in your suspendable methods are instrumented properly, or print a warning to the console letting you know which weren't.
+Quasar instrumentation itself is fairly simple and unobtrusive but there's one limitation at present: it's not possible to build fiber stack frames for the suspending methods when Quasar knows for sure that they _will_ suspend, and that only happens just before suspending; this is the reason why suspendable methods have to be marked as such in advance by analysis tools or by the developer.
+
+{:.alert .alert-info}
+**Note:** work is ongoing with the OpenJDK team that will allow to remove this restriction completely starting with a JDK9 version of Quasar: efficient, automatic runtime instrumentation will be performed at the bytecode level, that is for all code written in any JVM language, without need anymore for annotations nor instrumentation plugins.
+
+Keeping fibers efficient also requires excluding live code that will check for instrumentation errors when running in production; this means that, if you forget to mark a method as suspendable (with `throws SuspendExecution` or `@Suspendable` or the `META-INF/suspendables`/`META-INF/suspendable-supers` resources), you will encounter some strange or nonsensical errors, close to the point where the instrumentation missing, that can take the form of `ClassCastException`s, `NullPointerException`s, `ArrayIndexOutOfBounds` or `SuspendExecution` being thrown from within Quasar or from user code (actually they are thrown by instructions added by instrumentation that are not visible in the source code).
+
+Luckily Quasar also provides a lot of troubleshooting facilities that can be turned on when needed and that will tell precisely where and why instrumentation is incomplete: we're going to cover them in the next few paragraphs.
+
+#### Catching the culprit
+
+Troubleshooting incomplete instrumentation requires two to three things: the source code involved in the instrumentation issue, enabling instrumentation verification and, in few cases, enabling instrumentation traces.
+
+First ensure you have access to the relevant source code, then set the value of the `co.paralleluniverse.fibers.verifyInstrumentation` system property to `true` and run your program. This will verify that all of your suspendable calls in your suspendable methods are instrumented properly, or print a warning to the console letting you know which weren't.
 
 {:.alert .alert-warn}
-**Note:** do not turn on `verifyInstrumentation` in production, as it will slow down your code considerably (a warning will be printed when application starts in order to remind you of that).
+**Note:** do not turn on `verifyInstrumentation` in production, as it will slow down your code considerably (a warning will be printed whe the application starts in order to remind you of that).
 
-Instrumentation usually results from forgetting to mark methods as suspendable but also look for `UnableToInstrumentException` stack traces, they list the methods that Quasar refused to instrument by default because of synchronization or thread-blocking `Thread` calls (see the [sections about `synchronized`](#synchronized) and [the one about blocking `Thread` calls](#thread-blocking) for information about how to override these defaults).
+Instrumentation problems usually result from forgetting to mark methods as suspendable, but also look for `UnableToInstrumentException` stack traces: they list the methods that Quasar refused to instrument by default because of synchronization or thread-blocking `Thread` calls (see the [sections about `synchronized`](#synchronized) and [the one about blocking `Thread` calls](#thread-blocking) for information about how to override these defaults).
 
-If you still don't understand why there are uninstrumented calls or methods, you can also turn on the verbose and debug instrumentation traces, as well as additional checks, by adding respectively the `v`, `d` and `c` arguments to the Java agent (the corresponding [AOT instrumentation](#aot) task options are `verbose`, `debug` and `check`). This will print a complete trace of Quasar's instrumentation process, including which methods calls are (or aren't, and why) considered suspendable, which are (or aren't, and why) instrumented and what instrumentation optimizations are applied (if any).
+If you still don't understand why there are uninstrumented calls or methods, you can also turn on the verbose and debug instrumentation traces, as well as additional checks, by adding respectively the `v`, `d` and `c` arguments to the Java agent (the corresponding [AOT instrumentation](#aot) task options are `verbose`, `debug` and `check`). This will print thoroughly all steps of Quasar's instrumentation process, including which methods calls are considered suspendable (or aren't, and why), which are instrumented (or aren't, and why) and what instrumentation optimizations are applied, if any.
 
 Also consider that, for the sake of efficiency, Quasar will instrument a method marked as suspendable only if it can find at least one suspendable call in its body, so if a marked method is detected as uninstrumented and is not mentioned in an `UnableToInstrumentException`, then it probably means that Quasar couldn't find any suspendable call in it. This can cause several marked methods in a call chain not to be instrumented because of a "chain reaction" but instrumentation verification and instrumentation traces will expose the problem with precision.
 
-Another common reason for difficult-to-troubleshoot instrumentation issues is forgetting to mark abstract, interface or overridden methods as suspendable: if a suspendable-marked method implementation calls the unmarked "super" method, even if all the concrete implementations (or overrides) are correctly marked, Quasar will not be able to see that a potentially suspendable call is being performed. In this case, if the calling method has other instrumented calls but the one appearing in the stack is not instrumented, instrumentation verification will point out the issue as an "uninstrumented call site" (frame marked with `!!`) and will list the source lines of instrumented calls; if the uninstrumented call would have been the only suspendable one in the calling method, then the latter will not be instrumented at all and will be reported by Quasar as fully uninstrumented (frame marked with `**`).
-
-Finally, since Quasar fibers are scheduled on threads and have a stack, they can be debugged just like Java threads and this makes things much easier compared to e.g. async APIs. Sometimes, due to extra calls inserted by instrumentation and not present in the source code, if you step while debugging you could enter `Stack` or other Quasar internal methods: in these cases just add a breakpoint to the next user code line you're interested in and continue execution.
+Another common reason for difficult-to-troubleshoot instrumentation issues is forgetting to mark abstract, interface or overridden methods as suspendable: if a suspendable-marked concrete method calls an unmarked "super" method, even if all its implementations (or overrides) are correctly marked as suspendable, Quasar will not be able to see that a (potentially) suspendable call is being performed. When this happens, if the calling method has other instrumented calls but the one appearing in the stack is not instrumented, instrumentation verification will point out the issue as an "uninstrumented call site" (frame marked with `!!`) and will list the source lines of instrumented calls; if the uninstrumented call would have been the only suspendable one in the calling method, then the latter will not be instrumented at all and will be reported by Quasar as fully uninstrumented (frame marked with `**`).
 
 {:.alert .alert-info}
-**Note:** in the future Quasar will also offer specific debugging support to help further in these circumstances.
+**Note:** Quasar is production-ready, which also means that instrumentation and its diagnostic and debug tools have been battle-tested. It's still possible that you've just found a bug in instrumentation or troubleshooting tools but consider it very unlikely: follow through the above guide and you'll most probably find the issue very quickky. If you don't, read the _Getting Help_ paragraph.
+
+#### Debugging
+
+Since Quasar fibers are scheduled on threads and have a stack, they can be debugged just like Java threads and this makes things much easier compared to, for example, async APIs. Sometimes, due to extra calls inserted during instrumentation and not present in the source code, if you step while debugging you could enter `Stack` methods or other Quasar internal methods: in these cases just add a breakpoint to the next user code line you're interested in and continue execution.
+
+{:.alert .alert-info}
+**Note:** in the future Quasar will also offer specific debugging support to increase debugging ergonomy and comfort in such circumstances.
+
+#### Getting Help
+
+If you're stuck with an instrumentation issue you don't understand, for example there are uninstrumented methods and/or call sites but you can't understand why or you get strange exceptions without any uninstrumented reports, don't hesitate to reach out to the [Quasar/Pulsar user group](https://groups.google.com/forum/#!forum/quasar-pulsar-user) and, if possible, provide a small project including the build and run commands as well as minimal (as much as possible) code that reproduces the problem, together with the instrumentation verification stacktrace(s) (if any) and/or "strange" exception stacktraces. If you can't post the information publicly then consider reaching out to the Quasar team members with a private email.
+
+As a last choice, share only the information you can but consider that this could make finding the problem harder: as we've just seen, effective instrumentation troubleshooting usually requires at least the involved code and instrumentation verification stacktraces.
+
+If you're fairly sure you found a bug then don't hesitate to open a [new GitHub issue](https://github.com/puniverse/quasar/issues/new) but don't forget to first search the user group and [the already open tickets](https://github.com/puniverse/quasar/issues) for problems similar to yours.
 
 ## Channels {#channels}
 
