@@ -90,6 +90,13 @@ Introductory blog post: [Erlang (and Go) in Clojure (and Java), Lightweight Thre
 
 Quasar runs on Java 7 and higher.
 
+Quasar builds are tested during development in Mac OS X and Linux environments against the latest production JDK 7 and JDK 8 builds, as well as with [Travis CI](https://travis-ci.org/puniverse/quasar) using the [Trusty Beta](https://docs.travis-ci.com/user/trusty-ci-environment/) environment with the latest production JDK 7 and JDK 8 builds.
+
+As of June 20, 2016 the Travis CI build runs against Oracle's `1.7.0_80-b15` and `1.8.0_91-b14` and is known to require at least JDK 8 `1.8.0_65`.
+
+{:.alert .alert-warn}
+**Note**: We recommend using recent JDK builds as bugs in older releases can negatively affect your application.
+
 ### Using Maven/Gradle {#maven}
 
 Add the following Maven/Gradle dependencies:
@@ -528,7 +535,7 @@ Another common reason for difficult-to-troubleshoot instrumentation issues is fo
 {:.alert .alert-info}
 **Note:** Quasar is production-ready, which also means that instrumentation and its diagnostic and debug tools have been battle-tested. It's still possible that you've just found a bug in instrumentation or troubleshooting tools but consider it very unlikely: follow through the above guide and you'll most probably find the issue very quickky. If you don't, read the _Getting Help_ paragraph.
 
-### Troubleshooting: hands-on {#troubleshooting-hands-on}
+### Troubleshooting Crash Course {#troubleshooting-crash-course}
 
 Let's consider the following short program:
 

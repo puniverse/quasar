@@ -43,7 +43,11 @@ When running code that uses Quasar, the instrumentation agent must be run by add
 
 ## Getting help
 
+Please make sure to double-check the [System Requirements](http://docs.paralleluniverse.co/quasar/#system-requirements) and [Troubleshooting](http://docs.paralleluniverse.co/quasar/#troubleshooting) sections of the docs, as well as at [currently open issues](https://github.com/puniverse/quasar/issues).
+
 Questions and suggestions are welcome at this [forum/mailing list](https://groups.google.com/forum/?fromgroups#!forum/quasar-pulsar-user).
+
+You can also open a [new GitHub issue](https://github.com/puniverse/quasar/issues/new) especially for bug reports and feature requests but if you're not sure please first get in touch with the community through the forum/mailing list.
 
 ## License
 
