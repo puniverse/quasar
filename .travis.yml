@@ -1,6 +1,9 @@
 language: java
 sudo: required
 dist: trusty
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install --only-upgrade oracle-java8-installer
 install: GRADLE_OPTS="-XX:MaxPermSize=512m" gradle -q assemble
 script: GRADLE_OPTS="-XX:MaxPermSize=512m" gradle -i check
 jdk:
