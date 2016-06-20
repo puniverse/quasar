@@ -2,13 +2,11 @@ language: java
 sudo: required
 dist: trusty
 before_install:
-  - sudo apt-get remove --purge oracle-java7-installer*
-  - sudo apt-get remove --purge oracle-java8-installer*
-  - sudo apt-get update
-  - sudo apt-get upgrade
+  - sudo apt-get -y update
+  - sudo apt-get -y upgrade
+  - sudo apt-get -y remove --purge oracle-java8-installer*
   - ls -al /usr/lib/jvm
-  - sudo apt-get install oracle-java7-installer # Upgrade JDK7
-  - sudo apt-get install oracle-java8-installer # Upgrade JDK8
+  - sudo apt-get -y install oracle-java8-installer # Upgrade JDK8
   - ls -al /usr/lib/jvm
   - export JAVA_VER=$(java -version 2>&1 | sed 's/java version "\(.*\)\.\(.*\)\..*"/\1\2/; 1q')
   - if [[ ${JAVA_VER} == "18" ]]; then jdk_switcher use oraclejdk8; else jdk_switcher use oraclejdk7; fi # Use latest java version
