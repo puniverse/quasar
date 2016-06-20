@@ -141,7 +141,7 @@
 <li><a href="#auto-detection">Auto Suspendables Detection</a></li>
 <li><a href="#fiber-serialization">Fiber Serialization</a></li>
 <li><a href="#troubleshooting">Troubleshooting</a></li>
-<li><a href="#troubleshooting-hands-on">Troubleshooting: hands-on</a></li>
+<li><a href="#troubleshooting-crash-course">Troubleshooting Crash Course</a></li>
 </ul>
 </li>
 <li><a href="#channels" class="cat-link">Channels</a></li>
@@ -262,6 +262,12 @@
 <h3 id="system-requirements">System&nbsp;Requirements</h3>
 
 <p>Quasar runs on Java 7 and&nbsp;higher.</p>
+
+<p>Quasar builds are tested during development in Mac <span class="caps">OS</span> X and Linux environments against the latest production <span class="caps">JDK</span> 7 and <span class="caps">JDK</span> 8 builds, as well as with <a href="https://travis-ci.org/puniverse/quasar">Travis <span class="caps">CI</span></a> using the <a href="https://docs.travis-ci.com/user/trusty-ci-environment/">Trusty Beta</a> environment with the latest production <span class="caps">JDK</span> 7 and <span class="caps">JDK</span> 8&nbsp;builds.</p>
+
+<p>As of June 20, 2016 the Travis <span class="caps">CI</span> build runs against Oracle’s <code>1.7.0_80-b15</code> and <code>1.8.0_91-b14</code> and is known to require at least <span class="caps">JDK</span> 8&nbsp;<code>1.8.0_65</code>.</p>
+
+<p class="alert alert-warn"><strong>Note</strong>: We recommend using recent <span class="caps">JDK</span> builds as bugs in older releases can negatively affect your&nbsp;application.</p>
 
 <h3 id="maven">Using&nbsp;Maven/Gradle</h3>
 
@@ -679,7 +685,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p class="alert alert-info"><strong>Note:</strong> Quasar is production-ready, which also means that instrumentation and its diagnostic and debug tools have been battle-tested. It’s still possible that you’ve just found a bug in instrumentation or troubleshooting tools but consider it very unlikely: follow through the above guide and you’ll most probably find the issue very quickky. If you don’t, read the <em>Getting Help</em>&nbsp;paragraph.</p>
 
-<h3 id="troubleshooting-hands-on">Troubleshooting:&nbsp;hands-on</h3>
+<h3 id="troubleshooting-crash-course">Troubleshooting Crash&nbsp;Course</h3>
 
 <p>Let’s consider the following short&nbsp;program:</p>
 
