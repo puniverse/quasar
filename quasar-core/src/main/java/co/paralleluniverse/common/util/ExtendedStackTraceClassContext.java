@@ -51,8 +51,12 @@ class ExtendedStackTraceClassContext extends ExtendedStackTrace {
                                 clazz = null;
                             } else
                                 clazz = classContext[k];
-                            est[i - 1] = new BasicExtendedStackTraceElement(ste, clazz);
-                            // System.out.println(">>>> " + k + ": " + (clazz != null ? clazz.getName() : null) + " :: " + i + ": " + ste);
+                            if(clazz != null && !ste.getClassName().equals(clazz.getName())) {
+                                i--;
+                            } else {
+                                est[i - 1] = new BasicExtendedStackTraceElement(ste, clazz);
+                                // System.out.println(">>>> " + k + ": " + (clazz != null ? clazz.getName() : null) + " :: " + i + ": " + ste);
+                            }
                         }
                     }
                 }
