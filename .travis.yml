@@ -2,6 +2,8 @@ language: java
 sudo: required
 dist: trusty
 before_install:
+  - export JAVA_VER=$(java -version 2>&1 | sed 's/java version "\(.*\)\.\(.*\)\..*"/\1\2/; 1q')
+  - echo $JAVA_VER
   - ls -al /usr/lib/jvm
   - sudo apt-get -y remove --purge oracle-java8-installer*
   - sudo rm -rf /usr/lib/jvm/jdk1.8.0* /usr/lib/jvm/java-8-oracle* /usr/lib/jvm/.java-8-oracle* /usr/lib/jvm/default-java
@@ -9,8 +11,8 @@ before_install:
   - sudo apt-get -y update
   - sudo apt-get -y install oracle-java8-installer
   - ls -al /usr/lib/jvm
-  - export JAVA_VER=$(java -version 2>&1 | sed 's/java version "\(.*\)\.\(.*\)\..*"/\1\2/; 1q')
   - if [[ ${JAVA_VER} == "18" ]]; then jdk_switcher use oraclejdk8; else jdk_switcher use oraclejdk7; fi # Use latest java version
+  - if [[ ${JAVA_VER} == "18" ]]; then export JAVA_HOME=/usr/lib/jvm/java-8-oracle; else export JAVA_HOME=/usr/lib/jvm/java-7-oracle; fi # Use latest java version
   - java -version # Check
 install: GRADLE_OPTS="-XX:MaxPermSize=512m" gradle -q assemble
 script: GRADLE_OPTS="-XX:MaxPermSize=512m" gradle -i check
