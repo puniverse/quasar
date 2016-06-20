@@ -13,7 +13,7 @@ if [[ ${JAVA_VER} == "18" ]]; then
     sudo apt-get -y install oracle-java8-installer
     ls -al /usr/lib/jvm
     sudo ln -s /usr/lib/jvm/java-8-oracle /usr/lib/jvm/default-java
-    sudo jdk_switcher use oraclejdk8
+    jdk_switcher use oraclejdk8
     export JAVA_HOME=/usr/lib/jvm/java-8-oracle
     echo ${JAVA_HOME}
     java -version
