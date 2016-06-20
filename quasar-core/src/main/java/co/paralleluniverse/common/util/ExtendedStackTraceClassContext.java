@@ -34,35 +34,32 @@ class ExtendedStackTraceClassContext extends ExtendedStackTrace {
     }
 
     @Override
-    public ExtendedStackTraceElement[] get() {
-        synchronized (this) {
-            if (est == null) {
-                final StackTraceElement[] st = t.getStackTrace();
-                if (st != null) {
-                    est = new ExtendedStackTraceElement[st.length - 1];
-                    for (int i = 1, k = 2; i < st.length; i++, k++) {
-                        if (skipCTX(classContext[k]))
-                            i--;
-                        else {
-                            final StackTraceElement ste = st[i];
-                            final Class<?> clazz;
-                            if (skipSTE(st[i])) {
-                                k--;
-                                clazz = null;
-                            } else
-                                clazz = classContext[k];
-                            if(clazz != null && !ste.getClassName().equals(clazz.getName())) {
-                                i--;
-                            } else {
-                                est[i - 1] = new BasicExtendedStackTraceElement(ste, clazz);
-                                // System.out.println(">>>> " + k + ": " + (clazz != null ? clazz.getName() : null) + " :: " + i + ": " + ste);
-                            }
+    public synchronized ExtendedStackTraceElement[] get() {
+        if (est == null) {
+            final StackTraceElement[] st = t.getStackTrace();
+            if (st != null) {
+                est = new ExtendedStackTraceElement[st.length - 1];
+                for (int i = 1, k = 2; i < st.length; i++, k++) {
+                    if (skipCTX(classContext[k])) {
+                        i--;
+                    } else {
+                        final StackTraceElement ste = st[i];
+                        final Class<?> clazz;
+
+                        if (skipSTE(st[i])) {
+                            k--;
+                            clazz = null;
+                        } else {
+                            clazz = classContext[k];
                         }
+
+                        est[i - 1] = new BasicExtendedStackTraceElement(ste, clazz);
+                        // System.out.println(">>>> " + k + ": " + (clazz != null ? clazz.getName() : null) + " :: " + i + ": " + ste);
                     }
                 }
             }
-            return est;
         }
+        return est;
     }
 
     static boolean skipSTE(StackTraceElement ste) {
@@ -72,7 +69,10 @@ class ExtendedStackTraceClassContext extends ExtendedStackTrace {
     }
 
     private static boolean skipCTX(Class c) {
-        return c.getName().startsWith("java.lang.invoke.");
+        return (c.getName().startsWith("java.lang.invoke.")
+                // candrews PR#207: next one needed since after 8u60, see http://bugs.java.com/view_bug.do?bug_id=802563;
+                //                  reported @ http://bugreport.java.com/, Review ID: JI-9040355
+                || c.getName().contains("$$Lambda$"));
     }
 
     private static class ClassContext extends SecurityManager {
