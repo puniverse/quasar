@@ -2,9 +2,8 @@ language: java
 sudo: required
 dist: trusty
 before_install:
-  - sudo apt-get -y update
-  - sudo apt-get -y upgrade
   - sudo apt-get -y remove --purge oracle-java8-installer*
+  - sudo apt-get -y update
   - ls -al /usr/lib/jvm
   - sudo apt-get -y install oracle-java8-installer # Upgrade JDK8
   - ls -al /usr/lib/jvm
