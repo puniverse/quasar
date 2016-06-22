@@ -140,6 +140,7 @@
 <li><a href="#suspendable">“@Suspendable”</a></li>
 <li><a href="#auto-detection">Auto Suspendables Detection</a></li>
 <li><a href="#fiber-serialization">Fiber Serialization</a></li>
+<li><a href="#suspendable-libreries">Suspendables in Libraries</a></li>
 <li><a href="#troubleshooting">Troubleshooting Intro</a></li>
 <li><a href="#troubleshooting-crash-course">Troubleshooting Crash Course</a></li>
 <li><a href="#troubleshooting-manual">Manual troubleshooting</a></li>
@@ -486,9 +487,11 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <h3 id="throws-suspend">“throws&nbsp;SuspendExecution”</h3>
 
-<p>The <code>run</code> method in <code>Fiber</code>, <code>SuspendableRunnable</code> and <code>SuspendableCallable</code> declares that it may throw a <code>SuspendExecution</code> exception. This is not a real exception, but part of the inner working of fibers. Any method that may run in a fiber and may block, declares to throw this exception or is annotated with the <code>@Suspendable</code> annotation. Such a method is called a <em>suspendable method</em>. When a method you write calls a suspendable method, it, too, is a suspendable method, and must therefore declare to throw <code>SuspendExecution</code> (if you cannot add this exception to your method’s <code>throws</code> clause, say, because you’re implementing an interface that does not throw it, you can annotate your method with the <code>@Suspendable</code> annotation, but this requires extra consideration; please see the <a href="#advanced-fibers">Advanced Fiber Usage</a> section). Adding <code>SuspendExecution</code> to the <code>throws</code> clause is convenient because it makes the compiler force you to add the exception to any method that calls your method, which you&nbsp;should.</p>
+<p>The <code>run</code> methods in <code>Fiber</code>, <code>SuspendableRunnable</code> and <code>SuspendableCallable</code> declare that they may throw a <code>SuspendExecution</code> exception. This is not a real exception, but part of the inner working of fibers. Any method that may run in a fiber and may block, declares to throw this exception and is called a <em>suspendable method</em>. Transitively, when a method you write calls a suspendable method, it, too, becomes a suspendable method and must therefore declare to throw <code>SuspendExecution</code>. Adding <code>SuspendExecution</code> to the <code>throws</code> clause is convenient because it makes the compiler force you to add the exception to any method that calls your method, which you&nbsp;should.</p>
 
-<p class="alert alert-warn"><strong>Note</strong>: Other than a few methods in the <code>Fiber</code> class that are usually only used internally, whenever you encounter a method that declares to throw <code>SuspendExecution</code>, it is safe to call by fibers as well as by regular threads. If used in a thread, it will never actually throw a <code>SuspendExecution</code> exception, so it is best to declare a <code>catch(SuspendExecution e)</code> block when called on a regular thread, and just throw an <code>AssertionError</code>, as it should never&nbsp;happen.</p>
+<p class="alert alert-info"><strong>Note</strong>: Sometimes a suspendable method can’t throw <code>SuspendExecution</code> and needs to be marked suspendable in other ways (for example if you’re overriding a method that doesn’t declare that exception) but this needs extra consideration. See <a href="#advanced-fibers">Advanced Fibers</a> for more information, including the parts about the <a href="#suspendable"><code>@Suspendable</code></a> annotation and <a href="#suspendable-libreries">suspendable libraries</a>.</p>
+
+<p class="alert alert-info"><strong>Note</strong>: Other than a few methods in the <code>Fiber</code> class that are usually only used internally, whenever you encounter a method that declares to throw <code>SuspendExecution</code>, it is safe to call by fibers as well as by regular threads. If used in a thread, it will never actually throw a <code>SuspendExecution</code> exception, so it is best to declare a <code>catch(SuspendExecution e)</code> block when called on a regular thread, and just throw an <code>AssertionError</code>, as it should never&nbsp;happen.</p>
 
 <h3 id="suspendables-special-cases">Suspendables: special&nbsp;cases</h3>
 
@@ -498,7 +501,9 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>Java 8 lambdas too are always considered suspendable. This is because they can’t declare checked exceptions, they are ultimately linked (via <a href="http://docs.oracle.com/javase/7/docs/technotes/guides/vm/multiple-language-support.html#invokedynamic"><code>invokedynamic</code></a>) to synthethic static methods that can’t be annotated and it is difficult to tell at instrumentation time if lambdas implement a suspendable&nbsp;interface.</p>
 
-<p>Finally, Quasar will reject with an error any attempt to mark <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-2.html#jvms-2.9">special methods</a> (that is, constructors and class initializers) as suspendable. This is because suspending in an initializer could expose objects or classes before they’re fully initialized and this is an error-prone, difficult-to-troubleshoot situation that can always (and must) be&nbsp;avoided.</p>
+<p>Quasar will reject with an error any attempt to mark <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-2.html#jvms-2.9">special methods</a> (that is, constructors and class initializers) as suspendable. This is because suspending in an initializer could expose objects or classes before they’re fully initialized and this is an error-prone, difficult-to-troubleshoot situation that can always (and must) be&nbsp;avoided.</p>
+
+<p>If you want to know more about marking methods in libraries and in the <span class="caps">JDK</span> as suspendable, please refer to the <a href="#suspendable-libraries">suspendable libraries</a> advanced&nbsp;section.</p>
 
 <h3 id="synchronized">“synchronized” in&nbsp;Fibers</h3>
 
@@ -577,7 +582,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <h3 id="suspendable">“@Suspendable”</h3>
 
-<p>So far, our way to specify a suspendable method is by declaring it throws <code>SuspendExecution</code>. This is convenient because <code>SuspendExecution</code> is a checked exception, so if <code>f</code> calls <code>g</code> and <code>g</code> is suspendable, the Java compiler will force us to declare that <code>f</code> is suspendable (and it must be because it calls <code>g</code> and <code>g</code> might be&nbsp;suspended).</p>
+<p>So far, our way to specify a suspendable method is by declaring <code>throws SuspendExecution</code>. This is convenient because <code>SuspendExecution</code> is a checked exception, so if <code>f</code> calls <code>g</code> and <code>g</code> is suspendable, the Java compiler will force us to declare that <code>f</code> is suspendable (and it must be because it calls <code>g</code> and <code>g</code> might be&nbsp;suspended).</p>
 
 <p>Sometimes, however, we cannot declare <code>f</code> to throw <code>SuspendExecution</code>. One example is that <code>f</code> is an implementation of an interface method, and we cannot (or don’t want to) change the interface so that it throws <code>SuspendExecution</code>. It is also possible that we want <code>f</code> to be run in regular threads as well as&nbsp;fibers.</p>
 
@@ -610,14 +615,14 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 </span></code></pre></div>
 <p>First, if we want to run <code>h</code> in a fiber, then it must be suspendable because it calls <code>f</code> which is suspendable. We could designate <code>h</code> as suspendable either by annotating it with <code>@Suspendable</code> or by declaring <code>throws SuspendExecution</code> (even though <code>f</code> is not declared to throw&nbsp;<code>SuspendExecution</code>).</p>
 
-<p>When <code>h</code> is encountered by the instrumentation module, it will be instrumented because it’s marked suspendable, but in order for the instrumentation to work, it needs to know of <code>h</code>’s calls to other instrumented methods. <code>h</code> calls <code>f</code>, which is suspendable, but through its interface <code>I</code>, while we’ve only annotated <code>f</code>’s <em>implementation</em> in class C. The instrumenter doeKotls not know that <code>I.f</code> has an implementation that might&nbsp;suspend.</p>
+<p>When <code>h</code> is encountered by the instrumentation module, it will be instrumented because it’s marked suspendable, but in order for the instrumentation to work, it needs to know of <code>h</code>’s calls to other instrumented methods. <code>h</code> calls <code>f</code>, which is suspendable, but through its interface <code>I</code>, while we’ve only annotated <code>f</code>’s <em>implementation</em> in class C. The instrumenter does not know that <code>I.f</code> has an implementation that might&nbsp;suspend.</p>
 
-<p>Therefore, if you’d like to use the <code>@Suspendable</code> annotation, there’s a step you need to add to your build step, after compilation and before creating the jar file: running the <code>co.paralleluniverse.fibers.instrument.SuspendablesScanner</code> Ant task. In Gradle it looks like&nbsp;this:</p>
+<p>Therefore, if you’d like to use the <code>@Suspendable</code> annotation, there’s a step to be added to your build step, after compilation and before creating the jar file: running the <code>co.paralleluniverse.fibers.instrument.SuspendablesScanner</code> Ant task. In Gradle it looks like&nbsp;this:</p>
 
 <div class="highlight"><pre><code><span id="line-1"><span class="n">ant</span><span class="o">.</span><span class="na">taskdef</span><span class="o">(</span><span class="nl">name:</span><span class="s1">&#39;scanSuspendables&#39;</span><span class="o">,</span> <span class="nl">classname:</span><span class="s1">&#39;co.paralleluniverse.fibers.instrument.SuspendablesScanner&#39;</span><span class="o">,</span>
 </span><span id="line-2">    <span class="nl">classpath:</span> <span class="s2">&quot;build/classes/main:build/resources/main:${configurations.runtime.asPath}&quot;</span><span class="o">)</span>
 </span><span id="line-3"><span class="n">ant</span><span class="o">.</span><span class="na">scanSuspendables</span><span class="o">(</span>
-</span><span id="line-4">    <span class="nl">auto:</span><span class="kc">false</span><span class="o">,</span>
+</span><span id="line-4">    <span class="nl">auto:</span> <span class="kc">false</span><span class="o">,</span>
 </span><span id="line-5">    <span class="nl">suspendablesFile:</span> <span class="s2">&quot;$sourceSets.main.output.resourcesDir/META-INF/suspendables&quot;</span><span class="o">,</span>
 </span><span id="line-6">    <span class="nl">supersFile:</span> <span class="s2">&quot;$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers&quot;</span><span class="o">)</span> <span class="o">{</span>
 </span><span id="line-7">    <span class="n">fileset</span><span class="o">(</span><span class="nl">dir:</span> <span class="n">sourceSets</span><span class="o">.</span><span class="na">main</span><span class="o">.</span><span class="na">output</span><span class="o">.</span><span class="na">classesDir</span><span class="o">)</span>
@@ -631,6 +636,8 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>When using <a href="#aot"><span class="caps">AOT</span> instrumentation</a>, <code>InstrumentationTask</code> must be able to find <code>META-INF/suspendable-supers</code> in its&nbsp;classpath.</p>
 
+<p>Of course if you don’t want to use <code>SuspendablesScanner</code> you can also add entries to <code>META-INF/suspendable-supers</code>&nbsp;manually.</p>
+
 <h3 id="auto-detection">Auto Suspendables&nbsp;Detection</h3>
 
 <p>Quasar supports automatic detection of suspendable methods, without manually marking them at all. The build-time <code>SuspendableScanner</code> ant task can be configured to automatically find suspendable methods by analyzing the call&nbsp;graph:</p>
@@ -638,7 +645,7 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 <div class="highlight"><pre><code><span id="line-1"><span class="n">ant</span><span class="o">.</span><span class="na">taskdef</span><span class="o">(</span><span class="nl">name:</span><span class="s1">&#39;scanSuspendables&#39;</span><span class="o">,</span> <span class="nl">classname:</span><span class="s1">&#39;co.paralleluniverse.fibers.instrument.SuspendablesScanner&#39;</span><span class="o">,</span>
 </span><span id="line-2">    <span class="nl">classpath:</span> <span class="s2">&quot;build/classes/main:build/resources/main:${configurations.runtime.asPath}&quot;</span><span class="o">)</span>
 </span><span id="line-3"><span class="n">ant</span><span class="o">.</span><span class="na">scanSuspendables</span><span class="o">(</span>
-</span><span id="line-4">    <span class="nl">auto:</span><span class="kc">true</span><span class="o">,</span>
+</span><span id="line-4">    <span class="nl">auto:</span> <span class="kc">true</span><span class="o">,</span>
 </span><span id="line-5">    <span class="nl">suspendablesFile:</span> <span class="s2">&quot;$sourceSets.main.output.resourcesDir/META-INF/suspendables&quot;</span><span class="o">,</span>
 </span><span id="line-6">    <span class="nl">supersFile:</span> <span class="s2">&quot;$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers&quot;</span><span class="o">)</span> <span class="o">{</span>
 </span><span id="line-7">    <span class="n">fileset</span><span class="o">(</span><span class="nl">dir:</span> <span class="n">sourceSets</span><span class="o">.</span><span class="na">main</span><span class="o">.</span><span class="na">output</span><span class="o">.</span><span class="na">classesDir</span><span class="o">)</span>
@@ -648,13 +655,25 @@ Fibers provide functionality similar to threads, and a similar <span class="caps
 
 <p>When using <a href="#aot"><span class="caps">AOT</span> instrumentation</a>, <code>InstrumentationTask</code> must be able to find <code>META-INF/suspendables</code> and <code>META-INF/suspendable-supers</code> in its&nbsp;classpath.</p>
 
-<p>Automatic detection of suspendable methods is an experimental&nbsp;feature.</p>
+<p>Automatic detection of suspendable methods is currently a build-time static analysis tool, which means it must reason conservatively and so it could end up instrumenting more than necessary: for example, think of all call sites to <code>Runnable.run</code> being instrumented only because there’s one suspendable implementation out of 20 that are&nbsp;not.</p>
 
 <h3 id="fiber-serialization">Fiber&nbsp;Serialization</h3>
 
 <p>Fibers can be serialized while parked, and then deserialized an unparked to continue where they left off. The <a href="/quasar/javadoc/co/paralleluniverse/fibers/Fiber.html#parkAndSerialize(co.paralleluniverse.fibers.FiberWriter)"><code>parkAndSerialize</code> method</a> parks the currently running fiber, and then calls the passed callback, which can serialize the fiber (or any object graph containing the fiber) into a byte array using the supplied&nbsp;serializer.</p>
 
 <p>The <a href="/quasar/javadoc/co/paralleluniverse/fibers//Fiber.html#unparkSerialized(byte[], co.paralleluniverse.fibers.FiberScheduler)"><code>unparkSerialized</code> method</a> deserializes the serialized representation of the fiber, and unparks it. You can deserialize the byte array using the serializer returned from the <a href="/quasar/javadoc/co/paralleluniverse/fibers/Fiber.html#getFiberSerializer()"><code>getFiberSerializer</code> method</a>, and pass the (uninitialized, unparked) deserialized fiber to the <a href="/quasar/javadoc/co/paralleluniverse/fibers/Fiber.html#unparkDeserialized(co.paralleluniverse.fibers.Fiber, co.paralleluniverse.fibers.FiberScheduler)"><code>unparkDeserialized</code> method</a>. The latter approach is necessary if the serialized fiber is part of a bigger object graph serialized in the byte&nbsp;array.</p>
+
+<h3 id="suspendable-libreries">Suspendables in&nbsp;Libraries</h3>
+
+<p>Sometimes you want to use library methods that will end up calling your suspendable code, so they too must be marked suspendable and&nbsp;instrumented.</p>
+
+<p>If you don’t own/control them or annotating them with <code>throws SuspendExecution</code> / <code>@Suspendable</code> is just impractical, you can instead list them, one method per line, in two text resources: concrete suspendable methods should appear in <code>META-INF/suspendables</code> and non-suspendable methods that could have suspendable overrides (be they concrete but non-final, interface or abstract) should appear instead in&nbsp;<code>META-INF/suspendable-supers</code>.</p>
+
+<p>All entries should have the form “full.class.name.methodName” and <code>*</code> glob patterns can be used for the method part, as well as full <span class="caps">JVM</span> signatures (if you want to specify that only some overrides must be&nbsp;instrumented).</p>
+
+<p><code>SuspendablesScanner</code> will automatically add your entries to its&nbsp;output.</p>
+
+<p>Methods in the <code>java.lang</code> package are dealt with by Quasar internals and it’s not possible to mark them as suspendable in any way. Other <span class="caps">JDK</span> methods can be made explicitly suspendable by listing them in the <code>META-INF/suspendables</code> and <code>META-INF/suspendable-supers</code> resources <em>and</em> by setting the <code>co.paralleluniverse.fibers.allowJdkInstrumentation</code> system property to <code>true</code> but there should rarely be, if ever, a need to do so. If you think you need it we suggest you first <a href="#getting-help">get in touch</a> and discuss your&nbsp;case.</p>
 
 <h3 id="troubleshooting">Troubleshooting&nbsp;Intro</h3>
 
@@ -823,7 +842,9 @@ co.paralleluniverse.fibers.instrument.UnableToInstrumentException:
 
 <h3 id="troubleshooting-manual">Manual&nbsp;troubleshooting</h3>
 
-<p>Enabling instrumentation verification should work in almost all cases but there are some <a href="https://github.com/puniverse/quasar/issues/193">known limitations</a>. If you run into one such situation you should verify manually by checking the code mentioned in the stack trace of the “strange” exception, proceeding from top to bottom, possibly with the help of instrumentation traces. If your program gets stuck instead, try to figure out with a <a href="#debugging">debugger</a> where there’s a restarting method and use that stack as a reference. If you can’t find the culprit then consider <a href="#getting-help">asking for help</a>.</p>
+<p>Enabling instrumentation verification should work in almost all cases but there are some <a href="https://github.com/puniverse/quasar/issues/193">known limitations</a>. If you run into one such situation and you own/control the code, even simply splitting a line containing multiple suspendable method invocations might do the trick and allow verification to help&nbsp;you.</p>
+
+<p>If you don’t own/control the code however, you can still verify manually by checking the code mentioned in the stack trace of the “strange” exception, proceeding from top to bottom, possibly with the help of instrumentation traces. If your program gets stuck instead, try to figure out with a <a href="#debugging">debugger</a> where there’s a restarting method and use that stack as a reference. If you can’t find the culprit then consider <a href="#getting-help">asking for help</a>.</p>
 
 <h3 id="debugging">Debugging</h3>
 
