@@ -313,9 +313,12 @@ Using `ThreadLocal`s in a fiber works as you'd expect – the values are local t
 
 ### "throws SuspendExecution" {#throws-suspend}
 
-The `run` method in `Fiber`, `SuspendableRunnable` and `SuspendableCallable` declares that it may throw a `SuspendExecution` exception. This is not a real exception, but part of the inner working of fibers. Any method that may run in a fiber and may block, declares to throw this exception or is annotated with the `@Suspendable` annotation. Such a method is called a *suspendable method*. When a method you write calls a suspendable method, it, too, is a suspendable method, and must therefore declare to throw `SuspendExecution` (if you cannot add this exception to your method's `throws` clause, say, because you're implementing an interface that does not throw it, you can annotate your method with the `@Suspendable` annotation, but this requires extra consideration; please see the [Advanced Fiber Usage](#advanced-fibers) section). Adding `SuspendExecution` to the `throws` clause is convenient because it makes the compiler force you to add the exception to any method that calls your method, which you should.
+The `run` methods in `Fiber`, `SuspendableRunnable` and `SuspendableCallable` declare that they may throw a `SuspendExecution` exception. This is not a real exception, but part of the inner working of fibers. Any method that may run in a fiber and may block, declares to throw this exception and is called a *suspendable method*. Transitively, when a method you write calls a suspendable method, it, too, becomes a suspendable method and must therefore declare to throw `SuspendExecution`. Adding `SuspendExecution` to the `throws` clause is convenient because it makes the compiler force you to add the exception to any method that calls your method, which you should.
 
-{:.alert .alert-warn}
+{:.alert .alert-info}
+**Note**: Sometimes a suspendable method can't throw `SuspendExecution` and needs to be marked suspendable in other ways (for example if you're overriding a method that doesn't declare that exception) but this needs extra consideration. See [Advanced Fibers](#advanced-fibers) for more information, including the parts about the [`@Suspendable`](#suspendable) annotation and [suspendable libraries](#suspendable-libreries).
+
+{:.alert .alert-info}
 **Note**: Other than a few methods in the `Fiber` class that are usually only used internally, whenever you encounter a method that declares to throw `SuspendExecution`, it is safe to call by fibers as well as by regular threads. If used in a thread, it will never actually throw a `SuspendExecution` exception, so it is best to declare a `catch(SuspendExecution e)` block when called on a regular thread, and just throw an `AssertionError`, as it should never happen.
 
 ### Suspendables: special cases {#suspendables-special-cases}
@@ -326,7 +329,9 @@ Reflective calls are always considered suspendable. This is because the target m
 
 Java 8 lambdas too are always considered suspendable. This is because they can't declare checked exceptions, they are ultimately linked (via [`invokedynamic`](http://docs.oracle.com/javase/7/docs/technotes/guides/vm/multiple-language-support.html#invokedynamic)) to synthethic static methods that can't be annotated and it is difficult to tell at instrumentation time if lambdas implement a suspendable interface.
 
-Finally, Quasar will reject with an error any attempt to mark [special methods](https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-2.html#jvms-2.9) (that is, constructors and class initializers) as suspendable. This is because suspending in an initializer could expose objects or classes before they're fully initialized and this is an error-prone, difficult-to-troubleshoot situation that can always (and must) be avoided.
+Quasar will reject with an error any attempt to mark [special methods](https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-2.html#jvms-2.9) (that is, constructors and class initializers) as suspendable. This is because suspending in an initializer could expose objects or classes before they're fully initialized and this is an error-prone, difficult-to-troubleshoot situation that can always (and must) be avoided.
+
+If you want to know more about marking methods in libraries and in the JDK as suspendable, please refer to the [suspendable libraries](#suspendable-libraries) advanced section.
 
 ### "synchronized" in Fibers {#synchronized}
 
@@ -413,7 +418,7 @@ This process sounds complicated, but its incurs a performance overhead of no mor
 
 ### "@Suspendable" {#suspendable}
 
-So far, our way to specify a suspendable method is by declaring it throws `SuspendExecution`. This is convenient because `SuspendExecution` is a checked exception, so if `f` calls `g` and `g` is suspendable, the Java compiler will force us to declare that `f` is suspendable (and it must be because it calls `g` and `g` might be suspended).
+So far, our way to specify a suspendable method is by declaring `throws SuspendExecution`. This is convenient because `SuspendExecution` is a checked exception, so if `f` calls `g` and `g` is suspendable, the Java compiler will force us to declare that `f` is suspendable (and it must be because it calls `g` and `g` might be suspended).
 
 Sometimes, however, we cannot declare `f` to throw `SuspendExecution`. One example is that `f` is an implementation of an interface method, and we cannot (or don't want to) change the interface so that it throws `SuspendExecution`. It is also possible that we want `f` to be run in regular threads as well as fibers.
 
@@ -450,15 +455,15 @@ public void h(I x) {
 
 First, if we want to run `h` in a fiber, then it must be suspendable because it calls `f` which is suspendable. We could designate `h` as suspendable either by annotating it with `@Suspendable` or by declaring `throws SuspendExecution` (even though `f` is not declared to throw `SuspendExecution`).
 
-When `h` is encountered by the instrumentation module, it will be instrumented because it's marked suspendable, but in order for the instrumentation to work, it needs to know of `h`'s calls to other instrumented methods. `h` calls `f`, which is suspendable, but through its interface `I`, while we've only annotated `f`'s *implementation* in class C. The instrumenter doeKotls not know that `I.f` has an implementation that might suspend.
+When `h` is encountered by the instrumentation module, it will be instrumented because it's marked suspendable, but in order for the instrumentation to work, it needs to know of `h`'s calls to other instrumented methods. `h` calls `f`, which is suspendable, but through its interface `I`, while we've only annotated `f`'s *implementation* in class C. The instrumenter does not know that `I.f` has an implementation that might suspend.
 
-Therefore, if you'd like to use the `@Suspendable` annotation, there's a step you need to add to your build step, after compilation and before creating the jar file: running the `co.paralleluniverse.fibers.instrument.SuspendablesScanner` Ant task. In Gradle it looks like this:
+Therefore, if you'd like to use the `@Suspendable` annotation, there's a step to be added to your build step, after compilation and before creating the jar file: running the `co.paralleluniverse.fibers.instrument.SuspendablesScanner` Ant task. In Gradle it looks like this:
 
 ~~~ groovy
 ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
     classpath: "build/classes/main:build/resources/main:${configurations.runtime.asPath}")
 ant.scanSuspendables(
-    auto:false,
+    auto: false,
     suspendablesFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendables",
     supersFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
     fileset(dir: sourceSets.main.output.classesDir)
@@ -473,6 +478,8 @@ Note that this has no effect on other calls to `I.f`. The instrumentation module
 
 When using [AOT instrumentation](#aot), `InstrumentationTask` must be able to find `META-INF/suspendable-supers` in its classpath.
 
+Of course if you don't want to use `SuspendablesScanner` you can also add entries to `META-INF/suspendable-supers` manually.
+
 ### Auto Suspendables Detection {#auto-detection}
 
 Quasar supports automatic detection of suspendable methods, without manually marking them at all. The build-time `SuspendableScanner` ant task can be configured to automatically find suspendable methods by analyzing the call graph:
@@ -481,7 +488,7 @@ Quasar supports automatic detection of suspendable methods, without manually mar
 ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
     classpath: "build/classes/main:build/resources/main:${configurations.runtime.asPath}")
 ant.scanSuspendables(
-    auto:true,
+    auto: true,
     suspendablesFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendables",
     supersFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
     fileset(dir: sourceSets.main.output.classesDir)
@@ -492,13 +499,25 @@ This will create a `META-INF/suspendables` file containing the names of the susp
 
 When using [AOT instrumentation](#aot), `InstrumentationTask` must be able to find `META-INF/suspendables` and `META-INF/suspendable-supers` in its classpath.
 
-Automatic detection of suspendable methods is an experimental feature.
+Automatic detection of suspendable methods is currently a build-time static analysis tool, which means it must reason conservatively and so it could end up instrumenting more than necessary: for example, think of all call sites to `Runnable.run` being instrumented only because there's one suspendable implementation out of 20 that are not.
 
 ### Fiber Serialization {#fiber-serialization}
 
 Fibers can be serialized while parked, and then deserialized an unparked to continue where they left off. The [`parkAndSerialize` method]({{javadoc}}/fibers/Fiber.html#parkAndSerialize(co.paralleluniverse.fibers.FiberWriter)) parks the currently running fiber, and then calls the passed callback, which can serialize the fiber (or any object graph containing the fiber) into a byte array using the supplied serializer.
 
 The [`unparkSerialized` method]({{javadoc}}/fibers//Fiber.html#unparkSerialized(byte[], co.paralleluniverse.fibers.FiberScheduler)) deserializes the serialized representation of the fiber, and unparks it. You can deserialize the byte array using the serializer returned from the [`getFiberSerializer` method]({{javadoc}}/fibers/Fiber.html#getFiberSerializer()), and pass the (uninitialized, unparked) deserialized fiber to the [`unparkDeserialized` method]({{javadoc}}/fibers/Fiber.html#unparkDeserialized(co.paralleluniverse.fibers.Fiber, co.paralleluniverse.fibers.FiberScheduler)). The latter approach is necessary if the serialized fiber is part of a bigger object graph serialized in the byte array.
+
+### Suspendables in Libraries {#suspendable-libreries}
+
+Sometimes you want to use library methods that will end up calling your suspendable code, so they too must be marked suspendable and instrumented.
+
+If you don't own/control them or annotating them with `throws SuspendExecution` / `@Suspendable` is just impractical, you can instead list them, one method per line, in two text resources: concrete suspendable methods should appear in `META-INF/suspendables` and non-suspendable methods that could have suspendable overrides (be they concrete but non-final, interface or abstract) should appear instead in `META-INF/suspendable-supers`.
+
+All entries should have the form "full.class.name.methodName" and `*` glob patterns can be used for the method part, as well as full JVM signatures (if you want to specify that only some overrides must be instrumented).
+
+`SuspendablesScanner` will automatically add your entries to its output.
+
+Methods in the `java.lang` package are dealt with by Quasar internals and it's not possible to mark them as suspendable in any way. Other JDK methods can be made explicitly suspendable by listing them in the `META-INF/suspendables` and `META-INF/suspendable-supers` resources _and_ by setting the `co.paralleluniverse.fibers.allowJdkInstrumentation` system property to `true` but there should rarely be, if ever, a need to do so. If you think you need it we suggest you first [get in touch](#getting-help) and discuss your case.
 
 ### Troubleshooting Intro {#troubleshooting}
 
@@ -681,7 +700,9 @@ We're going to fix that by adding `@Suspendable` to `MyUnmarkedInterface.myUnmar
 
 ### Manual troubleshooting {#troubleshooting-manual}
 
-Enabling instrumentation verification should work in almost all cases but there are some [known limitations](https://github.com/puniverse/quasar/issues/193). If you run into one such situation you should verify manually by checking the code mentioned in the stack trace of the "strange" exception, proceeding from top to bottom, possibly with the help of instrumentation traces. If your program gets stuck instead, try to figure out with a [debugger](#debugging) where there's a restarting method and use that stack as a reference. If you can't find the culprit then consider [asking for help](#getting-help).
+Enabling instrumentation verification should work in almost all cases but there are some [known limitations](https://github.com/puniverse/quasar/issues/193). If you run into one such situation and you own/control the code, even simply splitting a line containing multiple suspendable method invocations might do the trick and allow verification to help you.
+
+If you don't own/control the code however, you can still verify manually by checking the code mentioned in the stack trace of the "strange" exception, proceeding from top to bottom, possibly with the help of instrumentation traces. If your program gets stuck instead, try to figure out with a [debugger](#debugging) where there's a restarting method and use that stack as a reference. If you can't find the culprit then consider [asking for help](#getting-help).
 
 ### Debugging {#debugging}
 
@@ -1391,7 +1412,6 @@ For examples of using Quasar, you can take a look at Quasar's test suite.
 * [EventSource tests](https://github.com/puniverse/quasar/blob/master/quasar-actors/src/test/java/co/paralleluniverse/actors/behaviors/EventSourceTest.java)
 * [Supervisor tests](https://github.com/puniverse/quasar/blob/master/quasar-actors/src/test/java/co/paralleluniverse/actors/behaviors/SupervisorTest.java)
 * [Reactive Streams tests](https://github.com/puniverse/quasar/blob/master/quasar-reactive-streams/src/test/java/co/paralleluniverse/strands/channels/reactivestreams/TwoSidedTest.java)
-
 
 ### Distributed Examples
 
