@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -166,9 +166,13 @@ public class ExtendedStackTraceElement {
 
     @Override
     public String toString() {
+        return toString(method);
+    }
+
+    public String toString(Member m) {
         final StringBuilder sb = new StringBuilder();
-        if (method != null)
-            sb.append(toString(method));
+        if (m != null)
+            sb.append(asString(m));
         else
             sb.append(getClassName()).append('.').append(methodName);
         sb.append(' ');
@@ -189,16 +193,21 @@ public class ExtendedStackTraceElement {
         return sb.toString();
     }
 
-    private static String toString(Member method) {
+    private static String asString(Member method) {
         final StringBuilder sb = new StringBuilder();
         sb.append(getTypeName(method.getDeclaringClass())) // .getTypeName()
                 .append('.')
                 .append(method.getName());
         sb.append('(');
-        for (Class<?> type : getParameterTypes(method))
+        boolean hasParams = false;
+        for (final Class<?> type : getParameterTypes(method)) {
             sb.append(getTypeName(type)).append(','); //.getTypeName()
-        sb.delete(sb.length() - 1, sb.length());
-        sb.append(')');
+            hasParams = true;
+        }
+        if (hasParams)
+            sb.delete(sb.length() - 1, sb.length()); // Remove last ','
+        sb.append("): ");
+        sb.append(getTypeName(getReturnType(method)));
 
         return sb.toString();
     }
@@ -208,6 +217,13 @@ public class ExtendedStackTraceElement {
             return ((Constructor<?>) m).getParameterTypes();
         else
             return ((Method) m).getParameterTypes();
+    }
+
+    private static Class<?> getReturnType(Member m) {
+        if (m instanceof Constructor)
+            return ((Constructor<?>) m).getDeclaringClass();
+        else
+            return ((Method) m).getReturnType();
     }
 
     // In Java 8, replaced by Class.getTypeName()
