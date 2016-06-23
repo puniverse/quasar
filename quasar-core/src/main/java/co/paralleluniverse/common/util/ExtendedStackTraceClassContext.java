@@ -72,7 +72,7 @@ class ExtendedStackTraceClassContext extends ExtendedStackTrace {
         return (c.getName().startsWith("java.lang.invoke.")
                 // candrews PR#207: next one needed since after 8u60, see http://bugs.java.com/view_bug.do?bug_id=802563;
                 //                  reported @ http://bugreport.java.com/, Review ID: JI-9040355
-                || c.getName().contains("$$Lambda$"));
+                /*|| c.getName().contains("$$Lambda$")*/); // Commenting out for tests on pre-8u60
     }
 
     private static class ClassContext extends SecurityManager {
