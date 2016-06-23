@@ -482,8 +482,10 @@ public class MethodDatabase implements Log {
     }
 
     public static boolean isJDK(String className) {
-        return className.startsWith("java/") || className.startsWith("javax/")
-                || className.startsWith("sun/") || (className.startsWith("com/sun/") && !className.startsWith("com/sun/jersey"));
+        return className.startsWith("java/")
+                || className.startsWith("javax/")
+                || className.startsWith("sun/")
+                || (className.startsWith("com/sun/") && !className.startsWith("com/sun/jersey"));
     }
 
     public static boolean isProblematicClass(String className) {

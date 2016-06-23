@@ -33,7 +33,8 @@ import java.util.Set;
  */
 public final class SuspendableHelper {
     static boolean javaAgent;
-    static final Set<Pair<String, String>> waivers = Collections.newSetFromMap(MapUtil.<Pair<String, String>, Boolean>newConcurrentHashMap());
+
+    private static final Set<Pair<String, String>> waivers = Collections.newSetFromMap(MapUtil.<Pair<String, String>, Boolean>newConcurrentHashMap());
 
     public static boolean isJavaAgentActive() {
         return javaAgent;
