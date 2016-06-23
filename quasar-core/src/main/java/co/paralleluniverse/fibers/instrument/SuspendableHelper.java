@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -50,7 +50,7 @@ public final class SuspendableHelper {
         if (ste.getMethod() != null)
             return ste.getMethod();
 
-        for (Method m : ste.getDeclaringClass().getDeclaredMethods()) {
+        for (final Method m : ste.getDeclaringClass().getDeclaredMethods()) {
             if (m.getName().equals(ste.getMethodName())) {
                 final Instrumented i = getAnnotation(m, Instrumented.class);
                 if (m.isSynthetic() || isWaiver(m.getDeclaringClass().getName(), m.getName()) || i != null && ste.getLineNumber() >= i.methodStart() && ste.getLineNumber() <= i.methodEnd())
@@ -90,7 +90,8 @@ public final class SuspendableHelper {
     public static boolean isInstrumented(Member m) {
         return m != null && (isSyntheticAndNotLambda(m) || getAnnotation(m, Instrumented.class) != null);
     }
-    
+
+    @SuppressWarnings("WeakerAccess")
     public static boolean isSyntheticAndNotLambda(Member m) {
         return m.isSynthetic() && !m.getName().startsWith(Classes.LAMBDA_METHOD_PREFIX);
     }
@@ -113,19 +114,22 @@ public final class SuspendableHelper {
             return ((Method)m).getAnnotation(annotationClass);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public static void addWaiver(String className, String methodName) {
         waivers.add(new Pair<>(className, methodName));
     }
 
     public static boolean isWaiver(String className, String methodName) {
-        if (className.startsWith("java.lang.reflect")
-                || className.startsWith("sun.reflect")
-                || className.startsWith("com.sun.proxy")
-                || className.contains("$ByteBuddy$")
-                || (className.equals("co.paralleluniverse.strands.SuspendableUtils$VoidSuspendableCallable") && methodName.equals("run"))
-                || (className.equals("co.paralleluniverse.strands.dataflow.Var") && methodName.equals("set")))
-            return true;
-        return waivers.contains(new Pair<>(className, methodName));
+        return
+            className.startsWith("java.lang.reflect") ||
+            className.startsWith("sun.reflect") ||
+            className.startsWith("com.sun.proxy") ||
+            className.contains("$ByteBuddy$") ||
+            (className.equals("co.paralleluniverse.strands.SuspendableUtils$VoidSuspendableCallable") &&
+                methodName.equals("run")) ||
+            (className.equals("co.paralleluniverse.strands.dataflow.Var") &&
+                methodName.equals("set")) ||
+            waivers.contains(new Pair<>(className, methodName));
     }
 
     private SuspendableHelper() {

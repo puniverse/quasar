@@ -284,6 +284,7 @@ public class MethodDatabase implements Log {
         return ce;
     }
 
+/*
     public synchronized Map<String, ClassEntry> getInnerClassesEntries(String className) {
         Map<String, ClassEntry> tailMap = classes.tailMap(className, true);
         HashMap<String, ClassEntry> map = new HashMap<>();
@@ -293,6 +294,7 @@ public class MethodDatabase implements Log {
         }
         return Collections.unmodifiableMap(map);
     }
+*/
 
     void recordSuspendableMethods(String className, ClassEntry entry) {
         ClassEntry oldEntry;
