@@ -1704,7 +1704,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 final /*Executable*/ Member m = SuspendableHelper.lookupMethod(ste);
                 if (m != null) {
                     boolean methodInstrumented = SuspendableHelper.isInstrumented(m);
-                    Pair<Boolean, int[]> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), stes, i);
+                    Pair<Boolean, Instrumented> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), ste.getBytecodeIndex(), stes, i);
                     if (!classInstrumented || !methodInstrumented || !callSiteInstrumented.getFirst()) {
                         if (ok)
                             stackTrace = initTrace(i, stes);
@@ -1713,7 +1713,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                             stackTrace.append(" **");
                         else if (!callSiteInstrumented.getFirst())
                             stackTrace.append(" !! (instrumented suspendable calls at: ")
-                                    .append(callSiteInstrumented.getSecond() == null ? "[]" : Arrays.toString(callSiteInstrumented.getSecond()))
+                                    .append(callSitesString(callSiteInstrumented.getSecond()))
                                     .append(")");
                         ok = false;
                     }
@@ -1735,6 +1735,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             }
         }
         throw new IllegalStateException("Not run through Fiber.exec(). (trace: " + Arrays.toString(stes) + ")");
+    }
+
+    private static String callSitesString(Instrumented i) {
+        if (i == null)
+            return "N/A";
+
+        return
+            "BCIs " + Arrays.toString(i.suspendableCallSitesOffsetsAfterInstr()) +
+            ", lines " + Arrays.toString(i.suspendableCallSites());
     }
 
     private static StringBuilder initTrace(int i, ExtendedStackTraceElement[] stes) {

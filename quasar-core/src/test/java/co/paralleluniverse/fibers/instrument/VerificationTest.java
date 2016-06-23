@@ -43,6 +43,13 @@ public final class VerificationTest {
         protected abstract void doItAbstr();
     }
 
+    private static abstract class A2 {
+        protected abstract void doItAbstr1();
+        @Suspendable
+        protected abstract void doItAbstr2();
+    }
+
+
     private static final class C1 extends A1 implements I1, I2 {
         @Override
         @Suspendable
@@ -57,6 +64,38 @@ public final class VerificationTest {
         @Override
         @Suspendable
         protected final void doItAbstr() {
+            try {
+                Fiber.sleep(10);
+            } catch (final InterruptedException | SuspendExecution e) {
+                throw new AssertionError(e);
+            }
+        }
+    }
+
+    private static final class C2 extends A2 implements I1, I2 {
+        @Override
+        @Suspendable
+        public final void doIt() {
+            try {
+                Fiber.sleep(10);
+            } catch (final InterruptedException | SuspendExecution e) {
+                throw new AssertionError(e);
+            }
+        }
+
+        @Override
+        @Suspendable
+        protected final void doItAbstr1() {
+            try {
+                Fiber.sleep(10);
+            } catch (final InterruptedException | SuspendExecution e) {
+                throw new AssertionError(e);
+            }
+        }
+
+        @Override
+        @Suspendable
+        protected final void doItAbstr2() {
             try {
                 Fiber.sleep(10);
             } catch (final InterruptedException | SuspendExecution e) {
@@ -154,6 +193,31 @@ public final class VerificationTest {
         }}).start();
         try {
             fUninstrumentedCallSite2.join();
+        } catch (final ExecutionException re) {
+            t = re.getCause();
+            t.printStackTrace();
+        }
+        assertTrue(t instanceof VerifyInstrumentationException && t.getMessage().contains(" !! ("));
+    }
+
+    @Test
+    public final void testVerifyUninstrumentedCallSiteSameSourceLine() throws ExecutionException, InterruptedException {
+        assumeTrue(SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation"));
+
+        final A2 a2 = new C2();
+
+        Throwable t = null;
+
+        final Fiber<?> fUninstrumentedCallSite3 = new Fiber<>(new SuspendableRunnable() { @Override public final void run() throws SuspendExecution, InterruptedException {
+            try {
+                Fiber.sleep(10);
+                a2.doItAbstr1(); a2.doItAbstr2(); // !!
+            } finally {
+                a2.doItAbstr1(); a2.doItAbstr2();
+            }
+        }}).start();
+        try {
+            fUninstrumentedCallSite3.join();
         } catch (final ExecutionException re) {
             t = re.getCause();
             t.printStackTrace();

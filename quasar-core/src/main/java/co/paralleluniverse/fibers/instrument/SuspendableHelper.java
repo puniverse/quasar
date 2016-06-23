@@ -60,29 +60,38 @@ public final class SuspendableHelper {
         return null;
     }
 
-    public static Pair<Boolean, int[]> isCallSiteInstrumented(/*Executable*/ Member m, int sourceLine, ExtendedStackTraceElement[] stes, int currentSteIdx) {
+    public static Pair<Boolean, Instrumented> isCallSiteInstrumented(/*Executable*/ Member m, int sourceLine, int bci, ExtendedStackTraceElement[] stes, int currentSteIdx) {
         if (m == null)
             return new Pair<>(false, null);
 
         if (isSyntheticAndNotLambda(m))
             return new Pair<>(true, null);
 
-        ExtendedStackTraceElement ste = stes[currentSteIdx];
         if (currentSteIdx - 1 >= 0
                 // `verifySuspend` and `popMethod` calls are not suspendable call sites, not verifying them.
                 && ((stes[currentSteIdx - 1].getClassName().equals(Fiber.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("verifySuspend"))
                 || (stes[currentSteIdx - 1].getClassName().equals(Stack.class.getName()) && stes[currentSteIdx - 1].getMethodName().equals("popMethod")))) {
             return new Pair<>(true, null);
         } else {
-            Instrumented i = getAnnotation(m, Instrumented.class);
+            final Instrumented i = getAnnotation(m, Instrumented.class);
             if (i != null) {
-                final int[] scs = i.suspendableCallSites();
-                for (int j : scs) {
-                    if (j == sourceLine)
-                        return new Pair<>(true, scs);
+                if (bci >= 0) { // Prefer BCI matching as it's unambiguous
+                    final int[] scs = i.suspendableCallSitesOffsetsAfterInstr();
+                    for (int j : scs) {
+                        if (j == bci)
+                            return new Pair<>(true, i);
+                    }
+                } else if (sourceLine >= 0){
+                    final int[] scs = i.suspendableCallSites();
+                    for (int j : scs) {
+                        if (j == sourceLine)
+                            return new Pair<>(true, i);
+                    }
                 }
-                return new Pair<>(false, scs);
+
+                return new Pair<>(false, i);
             }
+
             return new Pair<>(false, null);
         }
     }
