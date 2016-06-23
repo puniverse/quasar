@@ -16,8 +16,8 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.common.reflection.ClassLoaderUtil;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;
-import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_ANNOTATION_DESC;
+import static co.paralleluniverse.fibers.instrument.Classes.SUSPENDABLE_DESC;
+import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import com.google.common.base.Function;
@@ -320,7 +320,7 @@ public class SuspendablesScanner extends Task {
         @Override
         public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
             final AnnotationVisitor av = super.visitAnnotation(adesc, visible);
-            if (adesc.equals(ANNOTATION_DESC))
+            if (adesc.equals(SUSPENDABLE_DESC))
                 suspendableClass = true;
             return av;
         }
@@ -348,14 +348,10 @@ public class SuspendablesScanner extends Task {
                 public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
                     final AnnotationVisitor av = super.visitAnnotation(desc, visible);
 
-                    switch (adesc) {
-                        case ANNOTATION_DESC:
-                            susp = noImpl ? SuspendableType.SUSPENDABLE_SUPER : SuspendableType.SUSPENDABLE;
-                            break;
-                        case DONT_INSTRUMENT_ANNOTATION_DESC:
-                            susp = SuspendableType.NON_SUSPENDABLE;
-                            break;
-                    }
+                    if (SUSPENDABLE_DESC.equals(adesc))
+                        susp = noImpl ? SuspendableType.SUSPENDABLE_SUPER : SuspendableType.SUSPENDABLE;
+                    else if (DONT_INSTRUMENT_DESC.equals(adesc))
+                        susp = SuspendableType.NON_SUSPENDABLE;
 
                     return av;
                 }

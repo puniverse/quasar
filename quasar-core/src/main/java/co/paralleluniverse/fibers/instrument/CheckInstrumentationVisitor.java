@@ -42,8 +42,8 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.SuspendExecution;
-import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
+import static co.paralleluniverse.fibers.instrument.Classes.INSTRUMENTED_DESC;
+import static co.paralleluniverse.fibers.instrument.Classes.SUSPENDABLE_DESC;
 import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
@@ -112,9 +112,9 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-        if (desc.equals(ALREADY_INSTRUMENTED_DESC))
+        if (desc.equals(INSTRUMENTED_DESC))
             this.alreadyInstrumented = true;
-        else if (isInterface && desc.equals(ANNOTATION_DESC))
+        else if (isInterface && desc.equals(SUSPENDABLE_DESC))
             this.suspendableInterface = true;
         return null;
     }
@@ -145,7 +145,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
 
                 @Override
                 public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
-                    if (adesc.equals(ANNOTATION_DESC))
+                    if (adesc.equals(SUSPENDABLE_DESC))
                         susp = true;
                     return null;
                 }

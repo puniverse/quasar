@@ -42,8 +42,9 @@
 package co.paralleluniverse.fibers.instrument;
 
 // import co.paralleluniverse.common.util.SystemProperties;
+import co.paralleluniverse.fibers.Instrumented;
 import co.paralleluniverse.fibers.Stack;
-import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
+import static co.paralleluniverse.fibers.instrument.Classes.INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.THROWABLE_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.RUNTIME_EXCEPTION_NAME;
@@ -93,35 +94,47 @@ import org.objectweb.asm.tree.analysis.Value;
 class InstrumentMethod {
     private static final boolean optimizationDisabled = false; // SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.disableInstrumentationOptimization");
     private static final boolean HANDLE_PROXY_INVOCATIONS = true;
-    // private final boolean verifyInstrumentation; // 
-    private static final int PREEMPTION_BACKBRANCH = 0;
-    private static final int PREEMPTION_CALL = 1;
-//  private static final String INTERRUPTED_EXCEPTION_NAME = Type.getInternalName(InterruptedException.class);
-//  private static final boolean DUAL = true; // true if suspendable methods can be called from regular threads in addition to fibers
-    private final MethodDatabase db;
-    private final String sourceName;
-    private final String className;
-    private final MethodNode mn;
-    private final Frame[] frames;
+
+    // private final boolean verifyInstrumentation; //
+    // private static final int PREEMPTION_BACKBRANCH = 0;
+    // private static final int PREEMPTION_CALL = 1;
+
     private static final int NUM_LOCALS = 3; // = 3 + (verifyInstrumentation ? 1 : 0); // lvarStack, lvarResumed, lvarInvocationReturnValue
     private static final int ADD_OPERANDS = 6; // 4;
+
+    // private static final String INTERRUPTED_EXCEPTION_NAME = Type.getInternalName(InterruptedException.class);
+    // private static final boolean DUAL = true; // true if suspendable methods can be called from regular threads in addition to fibers
+    private final MethodDatabase db;
+
+    private final String sourceName;
+    private final String className;
+
+    private final MethodNode mn;
+    private final Frame[] frames;
+
     private final int lvarStack; // ref to Stack
     private final int lvarResumed; // boolean indicating if we've been resumed
     private final int lvarInvocationReturnValue;
     // private final int lvarSuspendableCalled; // true iff we've called another suspendable method (used when VERIFY_INSTRUMENTATION)
+
     private final int firstLocal;
+
     private FrameInfo[] codeBlocks = new FrameInfo[32];
     private int numCodeBlocks;
+
     private int additionalLocals;
+
     private boolean warnedAboutMonitors;
     private int warnedAboutBlocking;
+
     private boolean callsSuspendableSupers;
+
     private int startSourceLine = -1;
     private int endSourceLine = -1;
     private int[] suspCallsSourceLines = new int[8];
     private int[] suspCallsBcis = null;
 
-    public InstrumentMethod(MethodDatabase db, String sourceName, String className, MethodNode mn) throws AnalyzerException {
+    InstrumentMethod(MethodDatabase db, String sourceName, String className, MethodNode mn) throws AnalyzerException {
         this.db = db;
         this.sourceName = sourceName;
         this.className = className;
@@ -140,7 +153,7 @@ class InstrumentMethod {
         }
     }
 
-    public boolean callsSuspendables() {
+    boolean callsSuspendables() {
         if (suspCallsBcis == null) {
             suspCallsBcis = new int[8];
             final int numIns = mn.instructions.size();
@@ -230,12 +243,12 @@ class InstrumentMethod {
                             db.log(LogLevel.DEBUG, "InvocationHandler invocation at instruction %d is assumed suspendable", i);
                         else {
                             SuspendableType st = db.isMethodSuspendable(min.owner, min.name, min.desc, opcode);
-                            if (st == SuspendableType.NON_SUSPENDABLE)
+                            if (st == SuspendableType.NON_SUSPENDABLE) {
                                 susp = false;
-                            else if (st == null) {
-                                db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s (at %s#%s)", min.owner, min.name, min.desc, className, mn.name);
+                            } else if (st == null) {
+                                db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s (at %s:%s#%s)", min.owner, min.name, min.desc, sourceName, className, mn.name);
                                 susp = true;
-                            } else if (susp && st != SuspendableType.SUSPENDABLE_SUPER) {
+                            } else if (st != SuspendableType.SUSPENDABLE_SUPER) {
                                 db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is suspendable", i, min.owner, min.name, min.desc);
                             }
                             if (st == SuspendableType.SUSPENDABLE_SUPER) {
@@ -259,6 +272,7 @@ class InstrumentMethod {
                         splitTryCatch(fi);
                     } else {
                         if (in.getType() == AbstractInsnNode.METHOD_INSN) {// not invokedynamic
+                            //noinspection ConstantConditions
                             final MethodInsnNode min = (MethodInsnNode) in;
                             db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
                             possiblyWarnAboutBlocking(min);
@@ -280,21 +294,21 @@ class InstrumentMethod {
                     throw new UnableToInstrumentException("blocking call to " + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
                 } else if ((warnedAboutBlocking & mask) == 0) {
                     warnedAboutBlocking |= mask;
-                    db.log(LogLevel.WARNING, "Method %s#%s%s contains potentially blocking call to " + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
+                    db.log(LogLevel.WARNING, "Method %s:%s#%s%s contains potentially blocking call to " + min.owner + "#" + min.name + min.desc, sourceName, className, mn.name, mn.desc);
                 }
             }
         }
     }
 
     public void accept(MethodVisitor mv, boolean hasAnnotation) {
-        db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
+        db.log(LogLevel.INFO, "Instrumenting method %s:%s#%s%s", sourceName, className, mn.name, mn.desc);
 
         final boolean skipInstrumentation = canInstrumentationBeSkipped(suspCallsBcis);
 
         emitInstrumentedAnn(mv, skipInstrumentation);
 
         if (skipInstrumentation) {
-            db.log(LogLevel.INFO, "[OPTIMIZE] Skipping instrumentation for method %s#%s%s", className, mn.name, mn.desc);
+            db.log(LogLevel.INFO, "[OPTIMIZE] Skipping instrumentation for method %s:%s#%s%s", sourceName, className, mn.name, mn.desc);
             mn.accept(mv); // Dump
             return;
         }
@@ -302,6 +316,7 @@ class InstrumentMethod {
         // Else instrument
         collectCodeBlocks(); // Must be called first, sets flags & state used below
 
+        //noinspection ConstantConditions
         final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS && callsSuspendableSupers;
 
         mv.visitCode();
@@ -352,7 +367,7 @@ class InstrumentMethod {
         }
 
         // Output try-catch blocks
-        for (Object o : mn.tryCatchBlocks) {
+        for (final Object o : mn.tryCatchBlocks) {
             final TryCatchBlockNode tcb = (TryCatchBlockNode) o;
 
             if (SUSPEND_EXECUTION_NAME.equals(tcb.type) && !hasAnnotation && !mn.name.startsWith(Classes.LAMBDA_METHOD_PREFIX)) // we allow catch of SuspendExecution only in methods annotated with @Suspendable and in lambda-generated ones.
@@ -416,7 +431,7 @@ class InstrumentMethod {
 
         // Blocks leading to suspendable calls
         for (int i = 1; i < numCodeBlocks; i++) {
-            FrameInfo fi = codeBlocks[i];
+            final FrameInfo fi = codeBlocks[i];
 
             // Emit instrumented call
             final AbstractInsnNode min = mn.instructions.get(fi.endInstruction);
@@ -533,11 +548,11 @@ class InstrumentMethod {
 
     private boolean canInstrumentationBeSkipped(int[] susCallsIndexes) {
         if (optimizationDisabled) {
-            db.log(LogLevel.DEBUG, "[OPTIMIZE] Optimization disabled, not examining method %s#%s%s with susCallsIndexes=%s", className, mn.name, mn.desc, Arrays.toString(susCallsIndexes));
+            db.log(LogLevel.DEBUG, "[OPTIMIZE] Optimization disabled, not examining method %s:%s#%s%s with susCallsIndexes=%s", sourceName, className, mn.name, mn.desc, Arrays.toString(susCallsIndexes));
             return false;
         }
 
-        db.log(LogLevel.DEBUG, "[OPTIMIZE] Examining method %s#%s%s with susCallsIndexes=%s", className, mn.name, mn.desc, Arrays.toString(susCallsIndexes));
+        db.log(LogLevel.DEBUG, "[OPTIMIZE] Examining method %s:%s#%s%s with susCallsIndexes=%s", sourceName, className, mn.name, mn.desc, Arrays.toString(susCallsIndexes));
         return isForwardingToSuspendable(susCallsIndexes); // Fully instrumentation-transparent methods
     }
 
@@ -585,7 +600,8 @@ class InstrumentMethod {
     }
 
     private boolean hasSuspendableTryCatchBlocksAround(int bci) {
-        for (TryCatchBlockNode tcb : (List<TryCatchBlockNode>) mn.tryCatchBlocks) {
+        //noinspection unchecked
+        for (final TryCatchBlockNode tcb : (List<TryCatchBlockNode>) mn.tryCatchBlocks) {
             if (mn.instructions.indexOf(tcb.start) <= bci && mn.instructions.indexOf(tcb.end) >= bci
                     && (THROWABLE_NAME.equals(tcb.type)
                     || EXCEPTION_NAME.equals(tcb.type)
@@ -599,7 +615,7 @@ class InstrumentMethod {
 
     private void emitInstrumentedAnn(MethodVisitor mv, boolean skip) {
         final StringBuilder sb = new StringBuilder();
-        final AnnotationVisitor instrumentedAV = mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
+        final AnnotationVisitor instrumentedAV = mv.visitAnnotation(INSTRUMENTED_DESC, true);
         sb.append("@Instrumented(");
         final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallSites");
 
@@ -628,9 +644,11 @@ class InstrumentMethod {
         db.log(LogLevel.DEBUG, "Annotating method %s#%s%s with %s", className, mn.name, mn.desc, sb);
     }
 
+/*
     private void dumpStack(MethodVisitor mv) {
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "dumpStack", "()V", false);
     }
+*/
 
     private FrameInfo addCodeBlock(Frame f, int end) {
         if (++numCodeBlocks == codeBlocks.length) {
@@ -769,9 +787,11 @@ class InstrumentMethod {
             mv.visitLdcInsn(value);
     }
 
+/*
     private static void emitConst(MethodVisitor mv, String value) {
         mv.visitLdcInsn(value);
     }
+*/
 
     private void emitNewAndDup(MethodVisitor mv, Frame frame, int stackIndex, MethodInsnNode min) {
         /*
@@ -889,7 +909,7 @@ class InstrumentMethod {
         }
     }
 
-    private void emitRestoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsPreserved) {
+    private void emitRestoreState(MethodVisitor mv, @SuppressWarnings("UnusedParameters") int idx, FrameInfo fi, int numArgsPreserved) {
         Frame f = frames[fi.endInstruction];
 
         // restore local vars
@@ -928,6 +948,7 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "postRestore", "()V", false);
     }
 
+/*
     private void emitPreemptionPoint(MethodVisitor mv, int type) {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         switch (type) {
@@ -948,8 +969,9 @@ class InstrumentMethod {
         }
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "preemptionPoint", "(I)V", false);
     }
+*/
 
-    private void emitStoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx, int lvar) throws InternalError, IndexOutOfBoundsException {
+    private void emitStoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx, @SuppressWarnings("UnusedParameters") int lvar) throws InternalError, IndexOutOfBoundsException {
         String desc;
 
         switch (v.getType().getSort()) {
@@ -984,7 +1006,7 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "push", desc, false);
     }
 
-    private void emitRestoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx, int lvar) {
+    private void emitRestoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx, @SuppressWarnings("UnusedParameters") int lvar) {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         emitConst(mv, idx);
 
@@ -1030,21 +1052,17 @@ class InstrumentMethod {
         }
     }
 
-    static boolean isNullType(BasicValue v) {
+    private static boolean isNullType(BasicValue v) {
         return (v == BasicValue.UNINITIALIZED_VALUE)
                 || (v.isReference() && v.getType().getInternalName().equals("null"));
     }
 
-    static boolean isOmitted(BasicValue v) {
-        if (v instanceof NewValue)
-            return ((NewValue) v).omitted;
-        return false;
+    private static boolean isOmitted(BasicValue v) {
+        return v instanceof NewValue && ((NewValue) v).omitted;
     }
 
-    static boolean isNewValue(Value v, boolean dupped) {
-        if (v instanceof NewValue)
-            return ((NewValue) v).isDupped == dupped;
-        return false;
+    private static boolean isNewValue(Value v, boolean dupped) {
+        return v instanceof NewValue && ((NewValue) v).isDupped == dupped;
     }
 
     private static String getMethodOwner(AbstractInsnNode min) {
@@ -1066,7 +1084,7 @@ class InstrumentMethod {
     private static class OmittedInstruction extends AbstractInsnNode {
         private final AbstractInsnNode orgInsn;
 
-        public OmittedInstruction(AbstractInsnNode orgInsn) {
+        OmittedInstruction(AbstractInsnNode orgInsn) {
             super(orgInsn.getOpcode());
             this.orgInsn = orgInsn;
         }
@@ -1086,7 +1104,7 @@ class InstrumentMethod {
         }
     }
 
-    static class BlockLabelNode extends LabelNode {
+    private static class BlockLabelNode extends LabelNode {
         final int idx;
 
         BlockLabelNode(int idx) {
@@ -1094,7 +1112,7 @@ class InstrumentMethod {
         }
     }
 
-    static class FrameInfo {
+    private static class FrameInfo {
         static final FrameInfo FIRST = new FrameInfo(null, 0, 0, null, null);
         final int endInstruction;
         final int numSlots;
@@ -1156,19 +1174,20 @@ class InstrumentMethod {
             numObjSlots = idxObj;
         }
 
-        public LabelNode createBeforeLabel() {
+        LabelNode createBeforeLabel() {
             if (lBefore == null)
                 lBefore = new BlockLabelNode(endInstruction);
             return lBefore;
         }
 
-        public LabelNode createAfterLabel() {
+        LabelNode createAfterLabel() {
             if (lAfter == null)
                 lAfter = new BlockLabelNode(endInstruction);
             return lAfter;
         }
     }
 
+/*
     // prints a local var
     private void println(MethodVisitor mv, String prefix, int refVar) {
         mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "err", "Ljava/io/PrintStream;");
@@ -1213,4 +1232,5 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false); // PrintStream S1
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false); // S1
     }
+*/
 }
