@@ -60,8 +60,16 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Instrumented {
     // Relevant only for methods
+    String FIELD_NAME_SUSPENDABLE_CALL_SITES = "suspendableCallSites";
     int[] suspendableCallSites() default {};
+    String FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_BEFORE_INSTR = "suspendableCallSitesOffsetsBeforeInstr";
+    int[] suspendableCallSitesOffsetsBeforeInstr() default {};
+    String FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR = "suspendableCallSitesOffsetsAfterInstr";
+    int[] suspendableCallSitesOffsetsAfterInstr() default {};
+    String FIELD_NAME_METHOD_START = "methodStart";
     int methodStart() default -1;
+    String FIELD_NAME_METHOD_END = "methodEnd";
     int methodEnd() default -1;
+    String FIELD_NAME_METHOD_OPTIMIZED = "methodOptimized";
     boolean methodOptimized() default false;
 }

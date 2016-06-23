@@ -16,11 +16,9 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.fibers.*;
 
 import java.lang.reflect.UndeclaredThrowableException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
-import co.paralleluniverse.fibers.SuspendableCalls;
+import co.paralleluniverse.fibers.Stack;
 import co.paralleluniverse.strands.Strand;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -53,6 +51,7 @@ public final class Classes {
     static final String SUSPENDABLE_DESC = Type.getDescriptor(Suspendable.class);
     static final String DONT_INSTRUMENT_DESC = Type.getDescriptor(DontInstrument.class);
     static final String INSTRUMENTED_DESC = Type.getDescriptor(Instrumented.class);
+    static final String SUSPENDABLE_CALLS_DESC = Type.getDescriptor(SuspendableCalls.class);
     static final String LAMBDA_METHOD_PREFIX = "lambda$";
 
     private static final Set<String> yieldMethods = new HashSet<>(Arrays.asList(new String[] {
@@ -97,6 +96,26 @@ public final class Classes {
             }
             return false;
         }
+    }
+
+    static int[] toIntArray(List<Integer> suspOffsetsAfterInstrL) {
+        if (suspOffsetsAfterInstrL == null)
+            return null;
+
+        final List<Integer> suspOffsetsAfterInstrLFiltered = new ArrayList<>(suspOffsetsAfterInstrL.size());
+        for (final Integer i : suspOffsetsAfterInstrL) {
+            if (i != null)
+                suspOffsetsAfterInstrLFiltered.add(i);
+        }
+
+        final int[] ret = new int[suspOffsetsAfterInstrLFiltered.size()];
+        int j = 0;
+        for (final Integer i : suspOffsetsAfterInstrLFiltered) {
+            ret[j] = i;
+            j++;
+        }
+
+        return ret;
     }
 
     private Classes() {

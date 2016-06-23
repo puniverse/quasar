@@ -171,7 +171,7 @@ class InstrumentMethod {
                         if (endSourceLine == -1 || currSourceLine > endSourceLine)
                             endSourceLine = currSourceLine;
                     } else if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
-                        if (isSuspendableCall(in)) {
+                        if (isSuspendableCall(db, in)) {
                             if (count >= suspCallsBcis.length)
                                 suspCallsBcis = Arrays.copyOf(suspCallsBcis, suspCallsBcis.length * 2);
                             if (count >= suspCallsSourceLines.length)
@@ -195,24 +195,43 @@ class InstrumentMethod {
         return suspCallsBcis.length > 0;
     }
 
-    private boolean isSuspendableCall(AbstractInsnNode in) {
+    private static boolean isSuspendableCall(MethodDatabase db, AbstractInsnNode in) {
+        final int type = in.getType();
+        String owner;
+        String name;
+        String desc;
+        if (type == AbstractInsnNode.METHOD_INSN) {
+            final MethodInsnNode min = (MethodInsnNode) in;
+            owner = min.owner;
+            name = min.name;
+            desc = min.desc;
+        } else if (type == AbstractInsnNode.INVOKE_DYNAMIC_INSN) { // invoke dynamic
+            final InvokeDynamicInsnNode idd = (InvokeDynamicInsnNode) in;
+            owner = idd.bsm.getOwner();
+            name = idd.name;
+            desc = idd.desc;
+        } else {
+            throw new RuntimeException("Not a call: " + in);
+        }
+
+        return isSuspendableCall(db, type, in.getOpcode(), owner, name, desc);
+    }
+
+    static boolean isSuspendableCall(MethodDatabase db, int type, int opcode, String owner, String name, String desc) {
         boolean susp = true;
 
-        if (in.getType() == AbstractInsnNode.METHOD_INSN) {
-            final MethodInsnNode min = (MethodInsnNode) in;
-
-            if (!isSyntheticAccess(min.owner, min.name)
-                    && !isReflectInvocation(min.owner, min.name)
-                    && !isMethodHandleInvocation(min.owner, min.name)
-                    && !isInvocationHandlerInvocation(min.owner, min.name)) {
-                SuspendableType st = db.isMethodSuspendable(min.owner, min.name, min.desc, min.getOpcode());
+        if (type == AbstractInsnNode.METHOD_INSN) {
+            if (!isSyntheticAccess(owner, name)
+                    && !isReflectInvocation(owner, name)
+                    && !isMethodHandleInvocation(owner, name)
+                    && !isInvocationHandlerInvocation(owner, name)) {
+                SuspendableType st = db.isMethodSuspendable(owner, name, desc, opcode);
 
                 if (st == SuspendableType.NON_SUSPENDABLE)
                     susp = false;
             }
-        } else if (in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) { // invoke dynamic
-            final InvokeDynamicInsnNode idin = (InvokeDynamicInsnNode) in;
-            if (idin.bsm.getOwner().equals("java/lang/invoke/LambdaMetafactory")) // lambda
+        } else if (type == AbstractInsnNode.INVOKE_DYNAMIC_INSN) { // invoke dynamic
+            if (owner.equals("java/lang/invoke/LambdaMetafactory")) // lambda
                 susp = false;
         } else
             susp = false;
@@ -305,7 +324,7 @@ class InstrumentMethod {
 
         final boolean skipInstrumentation = canInstrumentationBeSkipped(suspCallsBcis);
 
-        emitInstrumentedAnn(mv, skipInstrumentation);
+        emitInstrumentedAnn(db, mv, mn, sourceName, className, skipInstrumentation, startSourceLine, endSourceLine, suspCallsSourceLines, null, null);
 
         if (skipInstrumentation) {
             db.log(LogLevel.INFO, "[OPTIMIZE] Skipping instrumentation for method %s:%s#%s%s", sourceName, className, mn.name, mn.desc);
@@ -563,7 +582,7 @@ class InstrumentMethod {
         final int susCallBci = susCallsBcis[0];
 
         final AbstractInsnNode susCall = mn.instructions.get(susCallBci);
-        assert isSuspendableCall(susCall);
+        assert isSuspendableCall(db, susCall);
         if (isYieldMethod(getMethodOwner(susCall), getMethodName(susCall)))
             return false; // yield calls require instrumentation (to skip the call when resuming)
         if (isReflectInvocation(getMethodOwner(susCall), getMethodName(susCall)))
@@ -613,35 +632,78 @@ class InstrumentMethod {
         return false;
     }
 
-    private void emitInstrumentedAnn(MethodVisitor mv, boolean skip) {
+    static void emitInstrumentedAnn (
+            MethodDatabase db, MethodVisitor mv, MethodNode mn, String sourceName, String className,
+            boolean skip, int startSourceLine, int endSourceLine,
+            int[] suspCallsSourceLines, int[] preInstrOffsets, int[] postInstrOffsets
+    ) {
         final StringBuilder sb = new StringBuilder();
         final AnnotationVisitor instrumentedAV = mv.visitAnnotation(INSTRUMENTED_DESC, true);
-        sb.append("@Instrumented(");
-        final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallSites");
+        sb.append("@").append(Instrumented.class.getSimpleName()).append("(");
 
-        sb.append("suspendableCallSites=[");
-        for (int i = 0; i < suspCallsSourceLines.length; i++) {
-            if (i != 0)
-                sb.append(", ");
+        if (suspCallsSourceLines != null) {
+            final AnnotationVisitor linesAV = instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES);
+            sb.append(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES + "=[");
+            for (int i = 0; i < suspCallsSourceLines.length; i++) {
+                if (i != 0)
+                    sb.append(", ");
 
-            final int l = suspCallsSourceLines[i];
-            linesAV.visit("", l);
+                final int l = suspCallsSourceLines[i];
+                linesAV.visit("", l);
 
-            sb.append(l);
+                sb.append(l);
+            }
+            linesAV.visitEnd();
+            sb.append("],");
         }
-        linesAV.visitEnd();
-        sb.append("],");
 
-        instrumentedAV.visit("methodStart", startSourceLine);
-        instrumentedAV.visit("methodEnd", endSourceLine);
-        instrumentedAV.visit("methodOptimized", skip);
+        if (preInstrOffsets != null) {
+            final AnnotationVisitor preInstrOffsetsAV =
+                    instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_BEFORE_INSTR);
+            sb.append(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_BEFORE_INSTR + "=[");
+            for (int i = 0; i < preInstrOffsets.length; i++) {
+                if (i != 0)
+                    sb.append(", ");
+
+                final int l = preInstrOffsets[i];
+                preInstrOffsetsAV.visit("", l);
+
+                sb.append(l);
+            }
+            preInstrOffsetsAV.visitEnd();
+            sb.append("],");
+        }
+
+        if (postInstrOffsets != null) {
+            final AnnotationVisitor postInstrOffsetsAV =
+                    instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR);
+            sb.append(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR + "=[");
+            for (int i = 0; i < postInstrOffsets.length; i++) {
+                if (i != 0)
+                    sb.append(", ");
+
+                final int l = postInstrOffsets[i];
+                postInstrOffsetsAV.visit("", l);
+
+                sb.append(l);
+            }
+            postInstrOffsetsAV.visitEnd();
+            sb.append("],");
+        }
+
+        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_START, startSourceLine);
+        sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(startSourceLine).append(",");
+
+        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_END, endSourceLine);
+        sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(endSourceLine).append(",");
+
+        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_OPTIMIZED, skip);
+        sb.append(Instrumented.FIELD_NAME_METHOD_OPTIMIZED + "=").append(skip);
+
         instrumentedAV.visitEnd();
-
-        sb.append("methodStart=").append(startSourceLine).append(",");
-        sb.append("methodEnd=").append(endSourceLine).append(",");
-        sb.append("methodOptimized=").append(skip);
         sb.append(")");
-        db.log(LogLevel.DEBUG, "Annotating method %s#%s%s with %s", className, mn.name, mn.desc, sb);
+
+        db.log(LogLevel.DEBUG, "Annotating method %s:%s#%s%s with %s", sourceName, className, mn.name, mn.desc, sb);
     }
 
 /*

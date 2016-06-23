@@ -199,7 +199,7 @@ class InstrumentClass extends ClassVisitor {
                     commited = true;
 
                     if (db.isDebug())
-                        db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, setSuspendable);
+                        db.log(LogLevel.INFO, "Method %s#%s%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, desc, susp, susp, setSuspendable);
                     classEntry.set(name, desc, susp);
 
                     if (susp == SuspendableType.SUSPENDABLE && checkAccessForMethodInstrumentation(access)) {
