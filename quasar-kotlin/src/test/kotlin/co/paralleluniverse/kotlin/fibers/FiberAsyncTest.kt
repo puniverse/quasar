@@ -57,7 +57,7 @@ class FiberAsyncTest {
         override fun registerCallback(callback: MyCallback) {
             executor.submit({
                 try {
-                    Strand.sleep(20)
+                    Strand.sleep(50)
                     callback.call("async result!")
                 } catch (ex: InterruptedException) {
                     throw RuntimeException(ex)
@@ -189,7 +189,7 @@ class FiberAsyncTest {
     fun testTimedAsyncCallbackNoTimeout() {
         val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
             try {
-                val res = callService(asyncService, 50, TimeUnit.MILLISECONDS)
+                val res = callService(asyncService, 100, TimeUnit.MILLISECONDS)
                 assertThat(res, equalTo("async result!"))
             } catch (e: TimeoutException) {
                 throw RuntimeException()
