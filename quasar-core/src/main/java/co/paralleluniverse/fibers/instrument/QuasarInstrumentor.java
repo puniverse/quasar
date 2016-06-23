@@ -75,7 +75,7 @@ public final class QuasarInstrumentor {
                 return false;
             if (className.startsWith("org/netbeans/lib/"))
                 return false;
-            if (className.startsWith("java/lang/") || (!allowJdkInstrumentation && MethodDatabase.isJavaCore(className)))
+            if (className.startsWith("java/lang/") || (!allowJdkInstrumentation && MethodDatabase.isJDK(className)))
                 return false;
         }
         return true;
