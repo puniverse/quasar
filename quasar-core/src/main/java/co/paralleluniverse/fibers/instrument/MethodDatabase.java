@@ -385,7 +385,7 @@ public class MethodDatabase implements Log {
                 ClassReader r = new ClassReader(is);
 
                 CheckInstrumentationVisitor civ = new CheckInstrumentationVisitor(this);
-                r.accept(civ, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES | ClassReader.SKIP_CODE);
+                r.accept(civ, ClassReader.SKIP_FRAMES | ClassReader.SKIP_CODE);
 
                 return civ;
             } finally {
