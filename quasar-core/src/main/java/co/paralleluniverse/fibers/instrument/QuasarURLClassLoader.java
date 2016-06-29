@@ -13,26 +13,17 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import com.google.common.io.ByteStreams;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.net.URLStreamHandlerFactory;
-import java.nio.ByteBuffer;
-import java.security.AccessControlContext;
-import java.security.AccessController;
-import java.security.CodeSigner;
-import java.security.PrivilegedExceptionAction;
+import com.google.common.io.*;
+import sun.misc.*;
+
+import java.io.*;
+import java.lang.reflect.*;
+import java.net.*;
+import java.nio.*;
+import java.security.*;
 import java.security.cert.Certificate;
-import java.util.Arrays;
-import java.util.jar.Manifest;
-import sun.misc.Resource;
-import sun.misc.URLClassPath;
+import java.util.*;
+import java.util.jar.*;
 
 /**
  *
@@ -107,7 +98,7 @@ public class QuasarURLClassLoader extends URLClassLoader {
         if (is != null && name.endsWith(".class")) {
             try {
                 byte[] bytes = ByteStreams.toByteArray(is);
-                byte[] instrumented = instrumentor.instrumentClass(name.substring(0, name.length() - ".class".length()), bytes);
+                byte[] instrumented = instrumentor.instrumentClass(this, name.substring(0, name.length() - ".class".length()), bytes);
                 return new ByteArrayInputStream(instrumented);
             } catch (final IOException e) {
                 return new InputStream() {
@@ -122,6 +113,7 @@ public class QuasarURLClassLoader extends URLClassLoader {
     }
 
     private Resource instrument(final String className, final Resource res) {
+        final ClassLoader parent = this;
         return new Resource() {
             private byte[] instrumented;
 
@@ -138,7 +130,7 @@ public class QuasarURLClassLoader extends URLClassLoader {
                         bytes = res.getBytes();
 
                     try {
-                        this.instrumented = instrumentor.instrumentClass(className, bytes);
+                        this.instrumented = instrumentor.instrumentClass(parent, className, bytes);
                     } catch (Exception ex) {
                         if (MethodDatabase.isProblematicClass(className))
                             instrumentor.log(LogLevel.INFO, "Skipping problematic class instrumentation %s - %s %s", className, ex, Arrays.toString(ex.getStackTrace()));

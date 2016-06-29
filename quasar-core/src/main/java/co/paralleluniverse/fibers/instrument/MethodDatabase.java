@@ -41,20 +41,13 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.TreeMap;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.*;
+
+import java.io.*;
+import java.lang.ref.*;
+import java.util.*;
+
+import static co.paralleluniverse.fibers.instrument.Classes.*;
 
 /**
  * <p>
@@ -67,7 +60,7 @@ import org.objectweb.asm.Opcodes;
  */
 public class MethodDatabase implements Log {
     private static final int ASMAPI = Opcodes.ASM5;
-    private final ClassLoader cl;
+    private final WeakReference<ClassLoader> clRef;
     private final SuspendableClassifier classifier;
     private final NavigableMap<String, ClassEntry> classes;
     private final HashMap<String, String> superClasses;
@@ -83,7 +76,7 @@ public class MethodDatabase implements Log {
         if (classloader == null)
             throw new NullPointerException("classloader");
 
-        this.cl = classloader;
+        this.clRef = new WeakReference<>(classloader);
         this.classifier = classifier;
 
         classes = new TreeMap<>();
@@ -349,6 +342,7 @@ public class MethodDatabase implements Log {
     }
 
     protected ClassEntry checkClass(String className) {
+        ClassLoader cl = clRef.get();
         if (cl == null) {
             log(LogLevel.INFO, "Can't check class: %s", className);
             return null;
@@ -400,6 +394,10 @@ public class MethodDatabase implements Log {
     }
 
     private String extractSuperClass(String className) {
+        ClassLoader cl = clRef.get();
+        if (cl == null) {
+            return null;
+        }
         final InputStream is = cl.getResourceAsStream(className + ".class");
         if (is != null) {
             try {
