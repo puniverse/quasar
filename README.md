@@ -49,6 +49,10 @@ Questions and suggestions are welcome at this [forum/mailing list](https://group
 
 You can also open a [new GitHub issue](https://github.com/puniverse/quasar/issues/new) especially for bug reports and feature requests but if you're not sure please first get in touch with the community through the forum/mailing list.
 
+## Contributions (including Pull Requests)
+
+Please have a look at some brief [information for contributors](https://github.com/puniverse/quasar/blob/master/CONTRIBUTING.md).
+
 ## License
 
 Quasar is free software published under the following license:
