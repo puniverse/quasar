@@ -3,8 +3,6 @@ package com.proxy4o.fiber.udp;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import com.proxy4o.utils.FiberExecutors;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -12,13 +10,12 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.util.concurrent.*;
 
 /**
  * Created by linkerlin on 6/5/16.
  */
 public class FiberDatagramSocketChannel implements Closeable {
-    public static Logger log = LogManager.getLogger(FiberUDP.class.getName());
-
     private DatagramSocket ds;
 
     public FiberDatagramSocketChannel() {
@@ -36,24 +33,30 @@ public class FiberDatagramSocketChannel implements Closeable {
     }
 
     @Suspendable
-    public DatagramPacket send(DatagramPacket dp) throws InterruptedException, SuspendExecution, IOException {
-        return FiberExecutors.fiberSubmit(() -> {
-            synchronized (ds) {
-                ds.send(dp);
+    public DatagramPacket send(final DatagramPacket dp) throws InterruptedException, SuspendExecution, IOException {
+        return FiberExecutors.fiberSubmit(new Callable<DatagramPacket>() {
+            @Override
+            public DatagramPacket call() throws IOException {
+                synchronized (ds) {
+                    ds.send(dp);
+                }
+                return dp;
             }
-            return dp;
         }, IOException.class);
     }
 
 
     @Suspendable
     public DatagramPacket receive() throws InterruptedException, SuspendExecution, IOException {
-        return FiberExecutors.fiberSubmit(() -> {
-            synchronized (ds) {
-                byte[] b = new byte[1500];// for most erthnets
-                DatagramPacket dp = new DatagramPacket(b, b.length);
-                ds.receive(dp);
-                return dp;
+        return FiberExecutors.fiberSubmit(new Callable<DatagramPacket>() {
+            @Override
+            public DatagramPacket call() throws IOException {
+                synchronized (ds) {
+                    byte[] b = new byte[1500];
+                    DatagramPacket dp = new DatagramPacket(b, b.length);
+                    ds.receive(dp);
+                    return dp;
+                }
             }
         }, IOException.class);
     }

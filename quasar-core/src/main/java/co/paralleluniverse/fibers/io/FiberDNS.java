@@ -17,8 +17,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FiberDNS  {
 
     @Suspendable
-    public static InetAddress doResolve(String domain) throws SuspendExecution, InterruptedException, UnknownHostException {
-        return FiberExecutors.fiberSubmit(()-> InetAddress.getByName(domain), UnknownHostException.class);
+    public static InetAddress doResolve(final String domain) throws SuspendExecution, InterruptedException, UnknownHostException {
+        return FiberExecutors.fiberSubmit(new Callable<InetAddress>() {
+            @Override
+            public InetAddress call() throws UnknownHostException {
+
+                InetAddress ret = InetAddress.getByName(domain);
+                return ret;
+            }
+        }, UnknownHostException.class);
     }
 
 
