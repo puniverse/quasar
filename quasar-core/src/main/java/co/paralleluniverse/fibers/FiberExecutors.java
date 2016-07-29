@@ -51,7 +51,7 @@ public class FiberExecutors<T extends Object, E extends Exception> extends Fiber
     protected void requestAsync() {
         es.submit(new Callable<Object>() {
             @Override
-            public Object call() throws UnknownHostException {
+            public Object call() throws E {
                 try {
                     success(callable.call());
                 } catch (Exception e) {
