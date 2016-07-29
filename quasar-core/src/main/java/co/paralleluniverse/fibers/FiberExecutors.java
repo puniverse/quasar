@@ -32,10 +32,10 @@ public class FiberExecutors<T extends Object, E extends Exception> extends Fiber
 
     @Suspendable
     public static <T extends Object, E extends Exception> T fiberSubmit(final Callable<T> callable, Class<E> throwE, final long timeout, final TimeUnit unit)
-            throws E, TimeoutException, InterruptedException, SuspendExecution {
+            throws E, ExecutionException, TimeoutException, InterruptedException, SuspendExecution {
         return (new FiberExecutors<T,E>(new Callable<T>() {
             @Override
-            public T call() throws E, TimeoutException, ExecutionException, InterruptedException {
+            public T call() throws E, ExecutionException, TimeoutException, ExecutionException, InterruptedException {
                 return es.submit(new Callable<T>() {
                     @Override
                     public T call() throws Exception {
