@@ -361,6 +361,9 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
             closed = isSendClosed(); // must be read BEFORE queue.poll()
             if ((m = queue.poll()) != null)
                 break;
+            
+            // i can be > 0 if task state is LEASED
+            
             if (closed) {
                 setReceiveClosed();
                 return closeValue();
