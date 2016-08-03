@@ -43,15 +43,19 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
                 if (get(t, i) == null) {
                     if (compareAndSetElement(t, i, null, item))
                         return true;
-                    backoff();
+                    // backoff();
                 }
             }
 
-            if (n == null)
+            if (n == null) {
                 n = newNode();
+                set(n, 0, item);
+            }
             n.prev = t;
-            if (compareAndSetTail(t, n))
+            if (compareAndSetTail(t, n)) {
                 t.next = n;
+                return true;
+            }
             else
                 backoff();
         }
@@ -112,6 +116,10 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
 
     private static Object get(Node n, int i) {
         return UNSAFE.getObjectVolatile(((ObjectNode) n).array, byteOffset(i));
+    }
+    
+    private static void set(Node n, int i, Object x) {
+        ((ObjectNode) n).array[i] = x;
     }
 
     private static long byteOffset(int i) {
