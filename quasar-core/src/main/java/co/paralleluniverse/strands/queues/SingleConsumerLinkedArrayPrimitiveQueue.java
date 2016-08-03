@@ -36,7 +36,7 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
                     index = i;
                     break;
                 }
-                backoff();
+                // backoff();
             } else {
                 if (nn == null)
                     nn = newNode();

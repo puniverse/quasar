@@ -43,7 +43,7 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
                 if (get(t, i) == null) {
                     if (compareAndSetElement(t, i, null, item))
                         return true;
-                    backoff();
+                    // backoff();
                 }
             }
 
