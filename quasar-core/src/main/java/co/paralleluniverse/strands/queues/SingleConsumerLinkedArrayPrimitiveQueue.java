@@ -53,11 +53,11 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
         if (true) {
             final PrimitiveNode n = (PrimitiveNode) node;
             while (n.maxReadIndex != index)
-            ;
+                ;
             n.maxReadIndex = index + 1;
         } else {
             while (!compareAndSetMaxReadIndex(node, index, index + 1))
-            ;
+                ;
         }
         return true;
     }
