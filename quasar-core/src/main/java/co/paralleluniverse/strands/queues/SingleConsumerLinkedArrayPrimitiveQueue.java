@@ -41,9 +41,10 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
                 if (nn == null)
                     nn = newNode();
                 nn.prev = t;
-                if (compareAndSetTail(t, nn))
+                if (compareAndSetTail(t, nn)) {
                     t.next = nn;
-                else
+                    nn = null;
+                } else
                     backoff();
             }
         }
