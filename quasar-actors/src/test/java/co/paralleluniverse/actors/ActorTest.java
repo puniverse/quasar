@@ -297,12 +297,39 @@ public class ActorTest {
     }
 
     @Test
+    public void testNestedSelectiveWithEqualMessage() throws Exception {
+        Actor<String, String> actor = spawnActor(new BasicActor<String, String>(mailboxConfig) {
+            @Override
+            protected String doRun() throws SuspendExecution, InterruptedException {
+                // return receive(a -> a + receive(b -> b));
+                return receive(new MessageProcessor<String, String>() {
+                    @Override
+                    public String process(String m1) throws SuspendExecution, InterruptedException {
+                        return m1 + receive(new MessageProcessor<String, String>() {
+                            @Override
+                            public String process(String m2) throws SuspendExecution, InterruptedException {
+                                return m2;
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        String msg = "a";
+        actor.ref().send(msg);
+        actor.ref().send(msg);
+
+        assertThat(actor.get(), equalTo("aa"));
+    }
+
+    @Test
     public void whenLinkedActorDiesDuringSelectiveReceiveThenReceiverDies() throws Exception {
         final Actor<Message, Void> a = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 //noinspection InfiniteLoopStatement
-                for(;;)
+                for (;;)
                     System.out.println(receive());
             }
         });
@@ -313,7 +340,7 @@ public class ActorTest {
                 link(a.ref());
                 receive(MessageSelector.select().ofType(String.class));
                 //noinspection StatementWithEmptyBody
-                for (;receive(100, TimeUnit.MILLISECONDS) instanceof Integer;);
+                for (; receive(100, TimeUnit.MILLISECONDS) instanceof Integer;);
                 return null;
             }
         });
@@ -344,7 +371,7 @@ public class ActorTest {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 //noinspection InfiniteLoopStatement
-                for(;;)
+                for (;;)
                     System.out.println(receive());
             }
         });
@@ -359,8 +386,8 @@ public class ActorTest {
                 final String msg = receive(MessageSelector.select().ofType(String.class));
                 Object o;
                 //noinspection StatementWithEmptyBody
-                for(;(o = receive(100, TimeUnit.MILLISECONDS)) instanceof Integer;);
-                return new Object[] { watch, msg, o };
+                for (; (o = receive(100, TimeUnit.MILLISECONDS)) instanceof Integer;);
+                return new Object[]{watch, msg, o};
             }
 
             @Override

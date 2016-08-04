@@ -25,7 +25,7 @@ import java.util.concurrent.TimeoutException;
  */
 public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
     private transient Actor<Message, ?> actor;
-    private Message currentMessage; // this works because channel is single-consumer
+    private int currentMessageIndex = -1; // this works because channel is single-consumer
 
     /**
      * Creates a {@code SelectiveReceiveHelper} to add selective receive to an actor
@@ -109,8 +109,10 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
                 } finally {
                     mailbox.unlock();
                 }
-                if (m == currentMessage) {
+                if (i == currentMessageIndex) {
                     it.remove();
+                    i--;
+                    currentMessageIndex = -1;
                     continue;
                 }
 
@@ -121,24 +123,25 @@ public class SelectiveReceiveHelper<Message> implements java.io.Serializable {
                     if (em.getWatch() == null) {
                         // Delay all lifecycle messages except link death signals
                         it.remove();
+                        i--;
                         handleLifecycleMessage((LifecycleMessage) m);
                     }
                 } else {
                     final Message msg = (Message) m;
-                    currentMessage = msg;
+                    currentMessageIndex = i;
                     try {
                         T res = proc.process(msg);
                         if (res != null) {
-                            if (it.value() == msg) // another call to receive from within the processor may have deleted msg
+                            if (currentMessageIndex == i) // another call to receive from within the processor may have deleted msg
                                 it.remove();
                             return res;
                         }
                     } catch (Exception e) {
-                        if (it.value() == msg) // another call to receive from within the processor may have deleted msg
+                        if (currentMessageIndex == i) // another call to receive from within the processor may have deleted msg
                             it.remove();
                         throw e;
                     } finally {
-                        currentMessage = null;
+                        currentMessageIndex = -1;
                     }
                     actor.record(1, "SelctiveReceiveHelper", "receive", "%s skipped %s", this, m);
                     actor.monitorSkippedMessage();
