@@ -41,19 +41,12 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.List;
-import org.apache.tools.ant.BuildException;
-import org.apache.tools.ant.DirectoryScanner;
-import org.apache.tools.ant.Project;
-import org.apache.tools.ant.Task;
-import org.apache.tools.ant.types.FileSet;
+import org.apache.tools.ant.*;
+import org.apache.tools.ant.types.*;
+
+import java.io.*;
+import java.net.*;
+import java.util.*;
 
 /**
  * <p>
@@ -174,7 +167,7 @@ public class InstrumentationTask extends Task {
             instrumentor.log(LogLevel.INFO, "Instrumenting " + instrumentor.getWorkList().size() + " classes");
 
             for (MethodDatabase.WorkListEntry f : instrumentor.getWorkList())
-                instrumentClass(instrumentor, f);
+                instrumentClass(cl, instrumentor, f);
 
         } catch (Exception ex) {
             log(ex.getMessage());
@@ -182,12 +175,12 @@ public class InstrumentationTask extends Task {
         }
     }
 
-    private void instrumentClass(QuasarInstrumentor instrumentor, MethodDatabase.WorkListEntry entry) {
+    private void instrumentClass(ClassLoader cl, QuasarInstrumentor instrumentor, MethodDatabase.WorkListEntry entry) {
         if (!instrumentor.shouldInstrument(entry.name))
             return;
         try {
             try (FileInputStream fis = new FileInputStream(entry.file)) {
-                final byte[] newClass = instrumentor.instrumentClass(entry.name, fis);
+                final byte[] newClass = instrumentor.instrumentClass(cl, entry.name, fis);
 
                 if (writeClasses) {
                     try (FileOutputStream fos = new FileOutputStream(entry.file)) {

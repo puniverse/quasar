@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.WeakHashMap;
 
 /**
  * @author pron
@@ -40,13 +41,17 @@ public final class QuasarInstrumentor {
     public static final int ASMAPI = Opcodes.ASM5;
     private final static String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClassesStartingWith");
     private static final boolean allowJdkInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.allowJdkInstrumentation");
-    private final MethodDatabase db;
+    private WeakHashMap<ClassLoader, MethodDatabase> dbForClassloader = new WeakHashMap<>();
+    private final MethodDatabase defaultDB;
+    private final SuspendableClassifier classifier;
     private boolean check;
     private final boolean aot;
 
     public QuasarInstrumentor(boolean aot, ClassLoader classLoader, SuspendableClassifier classifier) {
-        this.db = new MethodDatabase(classLoader, classifier);
+        defaultDB = new MethodDatabase(classLoader, classifier);
+        dbForClassloader.put(classLoader, defaultDB);
         this.aot = aot;
+        this.classifier = classifier;
     }
 
     public QuasarInstrumentor(ClassLoader classLoader, SuspendableClassifier classifier) {
@@ -84,20 +89,22 @@ public final class QuasarInstrumentor {
         return true;
     }
 
-    public byte[] instrumentClass(String className, byte[] data) {
-        return shouldInstrument(className) ? instrumentClass(className, new ClassReader(data), false) : data;
+    public byte[] instrumentClass(ClassLoader loader, String className, byte[] data) {
+        return shouldInstrument(className) ? instrumentClass(loader, className, new ClassReader(data), false) : data;
     }
 
-    public byte[] instrumentClass(String className, InputStream is) throws IOException {
-        return instrumentClass(className, new ClassReader(is), false);
+    public byte[] instrumentClass(ClassLoader loader, String className, InputStream is) throws IOException {
+        return instrumentClass(loader, className, new ClassReader(is), false);
     }
 
-    byte[] instrumentClass(String className, InputStream is, boolean forceInstrumentation) throws IOException {
-        return instrumentClass(className, new ClassReader(is), forceInstrumentation);
+    byte[] instrumentClass(ClassLoader loader, String className, InputStream is, boolean forceInstrumentation) throws IOException {
+        return instrumentClass(loader, className, new ClassReader(is), forceInstrumentation);
     }
 
-    private byte[] instrumentClass(String className, ClassReader r, boolean forceInstrumentation) {
+    private byte[] instrumentClass(ClassLoader loader, String className, ClassReader r, boolean forceInstrumentation) {
         className = className != null ? className.replace('.', '/') : null;
+
+        MethodDatabase db = getMethodDatabase(loader);
 
         if (className != null) {
             log(LogLevel.INFO, "TRANSFORM: %s %s", className,
@@ -144,8 +151,21 @@ public final class QuasarInstrumentor {
         return transformed;
     }
 
-    public MethodDatabase getMethodDatabase() {
-        return db;
+    public synchronized MethodDatabase getMethodDatabase(ClassLoader loader) {
+        if (loader == null) {
+            return defaultDB;
+        }
+        if (!dbForClassloader.containsKey(loader)) {
+            MethodDatabase newDb = new MethodDatabase(loader, new DefaultSuspendableClassifier(loader));
+            newDb.setDebug(defaultDB.isDebug());
+            newDb.setVerbose(defaultDB.isVerbose());
+            newDb.setAllowMonitors(defaultDB.isAllowMonitors());
+            newDb.setAllowBlocking(defaultDB.isAllowBlocking());
+            newDb.setLog(defaultDB.getLog());
+            dbForClassloader.put(loader, newDb);
+            return newDb;
+        }
+        return dbForClassloader.get(loader);
     }
 
     public QuasarInstrumentor setCheck(boolean check) {
@@ -153,45 +173,55 @@ public final class QuasarInstrumentor {
         return this;
     }
 
-    public QuasarInstrumentor setAllowMonitors(boolean allowMonitors) {
-        db.setAllowMonitors(allowMonitors);
+    public synchronized QuasarInstrumentor setAllowMonitors(boolean allowMonitors) {
+        for (MethodDatabase db : dbForClassloader.values()) {
+            db.setAllowMonitors(allowMonitors);
+        }
         return this;
     }
 
-    public QuasarInstrumentor setAllowBlocking(boolean allowBlocking) {
-        db.setAllowBlocking(allowBlocking);
+    public synchronized QuasarInstrumentor setAllowBlocking(boolean allowBlocking) {
+        for (MethodDatabase db : dbForClassloader.values()) {
+            db.setAllowBlocking(allowBlocking);
+        }
         return this;
     }
 
-    public QuasarInstrumentor setLog(Log log) {
-        db.setLog(log);
+    public synchronized QuasarInstrumentor setLog(Log log) {
+        for (MethodDatabase db : dbForClassloader.values()) {
+            db.setLog(log);
+        }
         return this;
     }
 
-    public QuasarInstrumentor setVerbose(boolean verbose) {
-        db.setVerbose(verbose);
+    public synchronized QuasarInstrumentor setVerbose(boolean verbose) {
+        for (MethodDatabase db : dbForClassloader.values()) {
+            db.setVerbose(verbose);
+        }
         return this;
     }
 
-    public QuasarInstrumentor setDebug(boolean debug) {
-        db.setDebug(debug);
+    public synchronized QuasarInstrumentor setDebug(boolean debug) {
+        for (MethodDatabase db : dbForClassloader.values()) {
+            db.setDebug(debug);
+        }
         return this;
     }
 
     public void log(LogLevel level, String msg, Object... args) {
-        db.log(level, msg, args);
+        defaultDB.log(level, msg, args);
     }
 
     public void error(String msg, Throwable ex) {
-        db.error(msg, ex);
+        defaultDB.error(msg, ex);
     }
 
     public ArrayList<WorkListEntry> getWorkList() {
-        return db.getWorkList();
+        return defaultDB.getWorkList();
     }
 
     public void checkClass(File f) {
-        db.checkClass(f);
+        defaultDB.checkClass(f);
     }
 
     private static void writeToFile(String name, byte[] data) {

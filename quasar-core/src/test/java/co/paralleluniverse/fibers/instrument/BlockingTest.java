@@ -28,14 +28,13 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.fibers.Instrumented;
-import co.paralleluniverse.fibers.SuspendExecution;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.HashSet;
-import java.util.Locale;
+import co.paralleluniverse.fibers.*;
+import org.junit.*;
+
+import java.io.*;
+import java.util.*;
+
 import static org.junit.Assert.*;
-import org.junit.Test;
 
 /**
  * Test to check blocking call detection
@@ -57,7 +56,7 @@ public class BlockingTest {
         msgs.add("Method " + className + "#t_join3(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(JI)V");
 
         final QuasarInstrumentor instrumentor = new QuasarInstrumentor(BlockingTest.class.getClassLoader());
-        final MethodDatabase db = instrumentor.getMethodDatabase();
+        final MethodDatabase db = instrumentor.getMethodDatabase(BlockingTest.class.getClassLoader());
         db.setAllowBlocking(true);
         db.setLog(new Log() {
             @Override
@@ -75,7 +74,7 @@ public class BlockingTest {
         });
 
         try (InputStream in = BlockingTest.class.getResourceAsStream("BlockingTest.class")) {
-            instrumentor.instrumentClass(BlockingTest.class.getName(), in, true);
+            instrumentor.instrumentClass(BlockingTest.class.getClassLoader(), BlockingTest.class.getName(), in, true);
         }
 
         assertTrue("Expected messages not generated: " + msgs.toString(), msgs.isEmpty());

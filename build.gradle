@@ -426,6 +426,15 @@ project (':quasar-core') {
             compileClasspath += jdk8.output + jdk8test.compileClasspath + jdk8test.output
             runtimeClasspath += compileClasspath + jdk8test.runtimeClasspath
         }
+
+        classloadertest {
+            java {
+                srcDir 'src/classloadertest/java'
+            }
+
+            compileClasspath += jdk7.output + test.compileClasspath
+            runtimeClasspath += compileClasspath + test.runtimeClasspath
+        }
     }
 
     configurations {
@@ -498,7 +507,7 @@ project (':quasar-core') {
             }
         }
 
-        def testTask = task("${set.name}Test", type: Test, dependsOn: shadowJarTask) {
+        def testTask = task("${set.name}Test", type: Test, dependsOn: [shadowJarTask, compileClassloadertestJava]) {
             testClassesDir = project.sourceSets["${set.name}test"].output.classesDir
             classpath = project.sourceSets["${set.name}test"].runtimeClasspath
 
