@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-/*
+ /*
  * Copyright (c) 2008-2013, Matthias Mann
  * All rights reserved.
  *
@@ -41,12 +41,19 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import org.apache.tools.ant.*;
-import org.apache.tools.ant.types.*;
-
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.tools.ant.BuildException;
+import org.apache.tools.ant.DirectoryScanner;
+import org.apache.tools.ant.Project;
+import org.apache.tools.ant.Task;
+import org.apache.tools.ant.types.FileSet;
 
 /**
  * <p>
@@ -80,6 +87,7 @@ public class InstrumentationTask extends Task {
     private boolean allowBlocking;
     private boolean debug;
     private boolean writeClasses = true;
+    private final ArrayList<WorkListEntry> workList = new ArrayList<>();
 
     public void addFileSet(FileSet fs) {
         filesets.add(fs);
@@ -116,7 +124,7 @@ public class InstrumentationTask extends Task {
             for (FileSet fs : filesets)
                 urls.add(fs.getDir().toURI().toURL());
             final ClassLoader cl = new URLClassLoader(urls.toArray(new URL[0]), getClass().getClassLoader());
-            final QuasarInstrumentor instrumentor = new QuasarInstrumentor(true, cl, new DefaultSuspendableClassifier(cl));
+            final QuasarInstrumentor instrumentor = new QuasarInstrumentor(true);
 
             instrumentor.setCheck(check);
             instrumentor.setVerbose(verbose);
@@ -156,17 +164,18 @@ public class InstrumentationTask extends Task {
                 for (String filename : includedFiles) {
                     if (filename.endsWith(".class")) {
                         File file = new File(fs.getDir(), filename);
-                        if (file.isFile())
-                            instrumentor.checkClass(file);
-                        else
+                        if (file.isFile()) {
+                            final String className = instrumentor.checkClass(cl, file);
+                            workList.add(new WorkListEntry(className, file));
+                        } else
                             log("File not found: " + filename);
                     }
                 }
             }
 
-            instrumentor.log(LogLevel.INFO, "Instrumenting " + instrumentor.getWorkList().size() + " classes");
+            instrumentor.log(LogLevel.INFO, "Instrumenting " + workList.size() + " classes");
 
-            for (MethodDatabase.WorkListEntry f : instrumentor.getWorkList())
+            for (WorkListEntry f : workList)
                 instrumentClass(cl, instrumentor, f);
 
         } catch (Exception ex) {
@@ -175,7 +184,7 @@ public class InstrumentationTask extends Task {
         }
     }
 
-    private void instrumentClass(ClassLoader cl, QuasarInstrumentor instrumentor, MethodDatabase.WorkListEntry entry) {
+    private void instrumentClass(ClassLoader cl, QuasarInstrumentor instrumentor, WorkListEntry entry) {
         if (!instrumentor.shouldInstrument(entry.name))
             return;
         try {
@@ -190,6 +199,16 @@ public class InstrumentationTask extends Task {
             }
         } catch (IOException ex) {
             throw new BuildException("Instrumenting file " + entry.file, ex);
+        }
+    }
+
+    public static class WorkListEntry {
+        public final String name;
+        public final File file;
+
+        public WorkListEntry(String name, File file) {
+            this.name = name;
+            this.file = file;
         }
     }
 }

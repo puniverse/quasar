@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-/*
+ /*
  * Copyright (c) 2008-2013, Matthias Mann
  * All rights reserved.
  *
@@ -41,13 +41,21 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import org.objectweb.asm.*;
-
-import java.io.*;
-import java.lang.ref.*;
-import java.util.*;
-
-import static co.paralleluniverse.fibers.instrument.Classes.*;
+import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
 
 /**
  * <p>
@@ -58,21 +66,16 @@ import static co.paralleluniverse.fibers.instrument.Classes.*;
  * @author Matthias Mann
  * @author pron
  */
-public class MethodDatabase implements Log {
+public class MethodDatabase {
     private static final int ASMAPI = Opcodes.ASM5;
     private final WeakReference<ClassLoader> clRef;
     private final SuspendableClassifier classifier;
     private final NavigableMap<String, ClassEntry> classes;
     private final HashMap<String, String> superClasses;
-    private final ArrayList<WorkListEntry> workList;
-    private Log log;
-    private boolean verbose;
-    private boolean debug;
-    private boolean allowMonitors;
-    private boolean allowBlocking;
-    private int logLevelMask;
+    private final QuasarInstrumentor instrumentor;
 
-    public MethodDatabase(ClassLoader classloader, SuspendableClassifier classifier) {
+    public MethodDatabase(QuasarInstrumentor instrumentor, ClassLoader classloader, SuspendableClassifier classifier) {
+        this.instrumentor = instrumentor;
         if (classloader == null)
             throw new NullPointerException("classloader");
 
@@ -81,80 +84,41 @@ public class MethodDatabase implements Log {
 
         classes = new TreeMap<>();
         superClasses = new HashMap<>();
-        workList = new ArrayList<>();
-
-        setLogLevelMask();
     }
 
-    public boolean isAllowMonitors() {
-        return allowMonitors;
+    boolean isAllowMonitors() {
+        return instrumentor.isAllowMonitors();
     }
 
-    public void setAllowMonitors(boolean allowMonitors) {
-        this.allowMonitors = allowMonitors;
-    }
-
-    public boolean isAllowBlocking() {
-        return allowBlocking;
-    }
-
-    public void setAllowBlocking(boolean allowBlocking) {
-        this.allowBlocking = allowBlocking;
+    boolean isAllowBlocking() {
+        return instrumentor.isAllowBlocking();
     }
 
     public SuspendableClassifier getClassifier() {
         return classifier;
     }
 
-    public Log getLog() {
-        return log;
+    public void log(LogLevel level, String msg, Object... args) {
+        instrumentor.log(level, msg, args);
     }
 
-    public void setLog(Log log) {
-        this.log = log;
-    }
-
-    public boolean isVerbose() {
-        return verbose;
-    }
-
-    public void setVerbose(boolean verbose) {
-        this.verbose = verbose;
-        setLogLevelMask();
+    public void error(String msg, Throwable ex) {
+        instrumentor.error(msg, ex);
     }
 
     public boolean isDebug() {
-        return debug;
+        return instrumentor.isDebug();
     }
 
-    public void setDebug(boolean debug) {
-        this.debug = debug;
-        setLogLevelMask();
+    public boolean isVerbose() {
+        return instrumentor.isVerbose();
+    }
+    
+    public Log getLog() {
+        return instrumentor.getLog();
     }
 
-    private void setLogLevelMask() {
-        logLevelMask = (1 << LogLevel.WARNING.ordinal());
-        if (verbose || debug) {
-            logLevelMask |= (1 << LogLevel.INFO.ordinal());
-        }
-        if (debug) {
-            logLevelMask |= (1 << LogLevel.DEBUG.ordinal());
-        }
-    }
-
-    @Override
-    public void log(LogLevel level, String msg, Object... args) {
-        if (log != null && (logLevelMask & (1 << level.ordinal())) != 0)
-            log.log(level, msg, args);
-    }
-
-    @Override
-    public void error(String msg, Throwable ex) {
-        if (log != null)
-            log.error(msg, ex);
-    }
-
-    public void checkClass(File f) {
+    public String checkClass(File f) {
         try {
             FileInputStream fis = new FileInputStream(f);
             CheckInstrumentationVisitor civ = checkFileAndClose(fis, f.getPath());
@@ -169,15 +133,16 @@ public class MethodDatabase implements Log {
                             throw new AssertionError();
                     } else {
                         log(LogLevel.INFO, "Found class: %s", f.getPath());
-                        if (!JavaAgent.isActive())
-                            workList.add(new WorkListEntry(civ.getName(), f));
+                        return civ.getName();
                     }
                 }
             }
+            return null;
         } catch (UnableToInstrumentException ex) {
             throw ex;
         } catch (Exception ex) {
             error(f.getPath(), ex);
+            return null;
         }
     }
     private static final int UNKNOWN = 0;
@@ -337,17 +302,13 @@ public class MethodDatabase implements Log {
         }
     }
 
-    public ArrayList<WorkListEntry> getWorkList() {
-        return workList;
-    }
-
     protected ClassEntry checkClass(String className) {
         ClassLoader cl = clRef.get();
         if (cl == null) {
             log(LogLevel.INFO, "Can't check class: %s", className);
             return null;
         }
-        
+
         log(LogLevel.INFO, "Reading class: %s", className);
         final InputStream is = cl.getResourceAsStream(className + ".class");
         if (is == null) {
@@ -395,9 +356,9 @@ public class MethodDatabase implements Log {
 
     private String extractSuperClass(String className) {
         ClassLoader cl = clRef.get();
-        if (cl == null) {
+        if (cl == null)
             return null;
-        }
+
         final InputStream is = cl.getResourceAsStream(className + ".class");
         if (is != null) {
             try {
@@ -476,15 +437,15 @@ public class MethodDatabase implements Log {
 
     public static boolean isJavaCore(String className) {
         return className.startsWith("java/") || className.startsWith("javax/")
-                || className.startsWith("sun/") || (className.startsWith("com/sun/") && !className.startsWith("com/sun/jersey"));
+               || className.startsWith("sun/") || (className.startsWith("com/sun/") && !className.startsWith("com/sun/jersey"));
     }
 
     public static boolean isProblematicClass(String className) {
         return className.startsWith("org/gradle/")
-                || className.startsWith("javax/jms/")
-                || className.startsWith("ch/qos/logback/")
-                || className.startsWith("org/apache/logging/log4j/")
-                || className.startsWith("org/apache/log4j/");
+               || className.startsWith("javax/jms/")
+               || className.startsWith("ch/qos/logback/")
+               || className.startsWith("org/apache/logging/log4j/")
+               || className.startsWith("org/apache/log4j/");
     }
 
     private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>");
@@ -613,16 +574,6 @@ public class MethodDatabase implements Log {
         @Override
         public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
             this.superClass = superName;
-        }
-    }
-
-    public static class WorkListEntry {
-        public final String name;
-        public final File file;
-
-        public WorkListEntry(String name, File file) {
-            this.name = name;
-            this.file = file;
         }
     }
 }

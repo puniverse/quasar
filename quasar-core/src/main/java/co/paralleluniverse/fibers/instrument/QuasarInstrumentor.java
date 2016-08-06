@@ -16,7 +16,6 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.common.reflection.ReflectionUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.SystemProperties;
-import co.paralleluniverse.fibers.instrument.MethodDatabase.WorkListEntry;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -31,7 +30,6 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.WeakHashMap;
 
 /**
@@ -42,28 +40,22 @@ public final class QuasarInstrumentor {
     private final static String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClassesStartingWith");
     private static final boolean allowJdkInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.allowJdkInstrumentation");
     private WeakHashMap<ClassLoader, MethodDatabase> dbForClassloader = new WeakHashMap<>();
-    private final MethodDatabase defaultDB;
-    private final SuspendableClassifier classifier;
     private boolean check;
     private final boolean aot;
+    private boolean allowMonitors;
+    private boolean allowBlocking;
+    private Log log;
+    private boolean verbose;
+    private boolean debug;
+    private int logLevelMask;
 
-    public QuasarInstrumentor(boolean aot, ClassLoader classLoader, SuspendableClassifier classifier) {
-        defaultDB = new MethodDatabase(classLoader, classifier);
-        dbForClassloader.put(classLoader, defaultDB);
+    public QuasarInstrumentor() {
+        this(false);
+    }
+
+    public QuasarInstrumentor(boolean aot) {
         this.aot = aot;
-        this.classifier = classifier;
-    }
-
-    public QuasarInstrumentor(ClassLoader classLoader, SuspendableClassifier classifier) {
-        this(false, classLoader, classifier);
-    }
-
-    public QuasarInstrumentor(boolean aot, ClassLoader classLoader) {
-        this(aot, classLoader, new DefaultSuspendableClassifier(classLoader));
-    }
-
-    public QuasarInstrumentor(ClassLoader classLoader) {
-        this(false, classLoader, new DefaultSuspendableClassifier(classLoader));
+        setLogLevelMask();
     }
 
     public boolean isAOT() {
@@ -106,12 +98,11 @@ public final class QuasarInstrumentor {
 
         MethodDatabase db = getMethodDatabase(loader);
 
-        if (className != null) {
+        if (className != null)
             log(LogLevel.INFO, "TRANSFORM: %s %s", className,
                     (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
-        } else {
+        else
             log(LogLevel.INFO, "TRANSFORM: null className");
-        }
 
         final ClassWriter cw = new DBClassWriter(db, r);
         final ClassVisitor cv = (check && EXAMINED_CLASS == null) ? new CheckClassAdapter(cw) : cw;
@@ -152,20 +143,14 @@ public final class QuasarInstrumentor {
     }
 
     public synchronized MethodDatabase getMethodDatabase(ClassLoader loader) {
-        if (loader == null) {
-            return defaultDB;
-        }
+        if (loader == null)
+            throw new IllegalArgumentException();
         if (!dbForClassloader.containsKey(loader)) {
-            MethodDatabase newDb = new MethodDatabase(loader, new DefaultSuspendableClassifier(loader));
-            newDb.setDebug(defaultDB.isDebug());
-            newDb.setVerbose(defaultDB.isVerbose());
-            newDb.setAllowMonitors(defaultDB.isAllowMonitors());
-            newDb.setAllowBlocking(defaultDB.isAllowBlocking());
-            newDb.setLog(defaultDB.getLog());
+            MethodDatabase newDb = new MethodDatabase(this, loader, new DefaultSuspendableClassifier(loader));
             dbForClassloader.put(loader, newDb);
             return newDb;
-        }
-        return dbForClassloader.get(loader);
+        } else
+            return dbForClassloader.get(loader);
     }
 
     public QuasarInstrumentor setCheck(boolean check) {
@@ -173,55 +158,74 @@ public final class QuasarInstrumentor {
         return this;
     }
 
+    public synchronized boolean isAllowMonitors() {
+        return allowMonitors;
+    }
+
     public synchronized QuasarInstrumentor setAllowMonitors(boolean allowMonitors) {
-        for (MethodDatabase db : dbForClassloader.values()) {
-            db.setAllowMonitors(allowMonitors);
-        }
+        this.allowMonitors = allowMonitors;
         return this;
     }
 
+    public synchronized boolean isAllowBlocking() {
+        return allowBlocking;
+    }
+
     public synchronized QuasarInstrumentor setAllowBlocking(boolean allowBlocking) {
-        for (MethodDatabase db : dbForClassloader.values()) {
-            db.setAllowBlocking(allowBlocking);
-        }
+        this.allowBlocking = allowBlocking;
         return this;
     }
 
     public synchronized QuasarInstrumentor setLog(Log log) {
-        for (MethodDatabase db : dbForClassloader.values()) {
-            db.setLog(log);
-        }
+        this.log = log;
+//        for (MethodDatabase db : dbForClassloader.values()) {
+//            db.setLog(log);
+//        }
         return this;
     }
 
-    public synchronized QuasarInstrumentor setVerbose(boolean verbose) {
-        for (MethodDatabase db : dbForClassloader.values()) {
-            db.setVerbose(verbose);
-        }
-        return this;
+    public Log getLog() {
+        return log;
     }
 
-    public synchronized QuasarInstrumentor setDebug(boolean debug) {
-        for (MethodDatabase db : dbForClassloader.values()) {
-            db.setDebug(debug);
-        }
-        return this;
+    public synchronized boolean isVerbose() {
+        return verbose;
+    }
+
+    public synchronized void setVerbose(boolean verbose) {
+        this.verbose = verbose;
+        setLogLevelMask();
+    }
+
+    public synchronized boolean isDebug() {
+        return debug;
+    }
+
+    public synchronized void setDebug(boolean debug) {
+        this.debug = debug;
+        setLogLevelMask();
+    }
+
+    private synchronized void setLogLevelMask() {
+        logLevelMask = (1 << LogLevel.WARNING.ordinal());
+        if (verbose || debug)
+            logLevelMask |= (1 << LogLevel.INFO.ordinal());
+        if (debug)
+            logLevelMask |= (1 << LogLevel.DEBUG.ordinal());
     }
 
     public void log(LogLevel level, String msg, Object... args) {
-        defaultDB.log(level, msg, args);
+        if (log != null && (logLevelMask & (1 << level.ordinal())) != 0)
+            log.log(level, msg, args);
     }
 
     public void error(String msg, Throwable ex) {
-        defaultDB.error(msg, ex);
+        if (log != null)
+            log.error(msg, ex);
     }
 
-    public ArrayList<WorkListEntry> getWorkList() {
-        return defaultDB.getWorkList();
-    }
-
-    public void checkClass(File f) {
-        defaultDB.checkClass(f);
+    public String checkClass(ClassLoader cl, File f) {
+        return getMethodDatabase(cl).checkClass(f);
     }
 
     private static void writeToFile(String name, byte[] data) {

@@ -13,17 +13,27 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import com.google.common.io.*;
-import sun.misc.*;
 
-import java.io.*;
-import java.lang.reflect.*;
-import java.net.*;
-import java.nio.*;
-import java.security.*;
+import com.google.common.io.ByteStreams;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.net.URLStreamHandlerFactory;
+import java.nio.ByteBuffer;
+import java.security.AccessControlContext;
+import java.security.AccessController;
+import java.security.CodeSigner;
+import java.security.PrivilegedExceptionAction;
 import java.security.cert.Certificate;
-import java.util.*;
-import java.util.jar.*;
+import java.util.Arrays;
+import java.util.jar.Manifest;
+import sun.misc.Resource;
+import sun.misc.URLClassPath;
 
 /**
  *
@@ -48,7 +58,7 @@ public class QuasarURLClassLoader extends URLClassLoader {
     }
 
     private QuasarInstrumentor newInstrumentor() {
-        QuasarInstrumentor inst = new QuasarInstrumentor(false, this);
+        QuasarInstrumentor inst = new QuasarInstrumentor(false);
         inst.setLog(new Log() {
             @Override
             public void log(LogLevel level, String msg, Object... args) {

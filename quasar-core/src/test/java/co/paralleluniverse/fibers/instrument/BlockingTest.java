@@ -28,12 +28,13 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.fibers.*;
-import org.junit.*;
-
-import java.io.*;
-import java.util.*;
-
+import co.paralleluniverse.fibers.Instrumented;
+import co.paralleluniverse.fibers.SuspendExecution;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashSet;
+import java.util.Locale;
+import org.junit.Test;
 import static org.junit.Assert.*;
 
 /**
@@ -55,10 +56,10 @@ public class BlockingTest {
         msgs.add("Method " + className + "#t_join2(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(J)V");
         msgs.add("Method " + className + "#t_join3(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(JI)V");
 
-        final QuasarInstrumentor instrumentor = new QuasarInstrumentor(BlockingTest.class.getClassLoader());
+        final QuasarInstrumentor instrumentor = new QuasarInstrumentor(false);
         final MethodDatabase db = instrumentor.getMethodDatabase(BlockingTest.class.getClassLoader());
-        db.setAllowBlocking(true);
-        db.setLog(new Log() {
+        instrumentor.setAllowBlocking(true);
+        instrumentor.setLog(new Log() {
             @Override
             public void log(LogLevel level, String msg, Object... args) {
                 if (level == LogLevel.WARNING) {
