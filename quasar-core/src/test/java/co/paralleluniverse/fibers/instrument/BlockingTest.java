@@ -34,8 +34,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Locale;
-import static org.junit.Assert.*;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
  * Test to check blocking call detection
@@ -56,10 +56,10 @@ public class BlockingTest {
         msgs.add("Method " + className + "#t_join2(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(J)V");
         msgs.add("Method " + className + "#t_join3(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(JI)V");
 
-        final QuasarInstrumentor instrumentor = new QuasarInstrumentor(BlockingTest.class.getClassLoader());
-        final MethodDatabase db = instrumentor.getMethodDatabase();
-        db.setAllowBlocking(true);
-        db.setLog(new Log() {
+        final QuasarInstrumentor instrumentor = new QuasarInstrumentor(false);
+        final MethodDatabase db = instrumentor.getMethodDatabase(BlockingTest.class.getClassLoader());
+        instrumentor.setAllowBlocking(true);
+        instrumentor.setLog(new Log() {
             @Override
             public void log(LogLevel level, String msg, Object... args) {
                 if (level == LogLevel.WARNING) {
@@ -75,7 +75,7 @@ public class BlockingTest {
         });
 
         try (InputStream in = BlockingTest.class.getResourceAsStream("BlockingTest.class")) {
-            instrumentor.instrumentClass(BlockingTest.class.getName(), in, true);
+            instrumentor.instrumentClass(BlockingTest.class.getClassLoader(), BlockingTest.class.getName(), in, true);
         }
 
         assertTrue("Expected messages not generated: " + msgs.toString(), msgs.isEmpty());
