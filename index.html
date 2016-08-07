@@ -89,6 +89,7 @@
 </ul></li>
 <li>
 <a href="#news" class="cat-link">News</a><ul>
+<li><a href="#august-7-2016">August 7, 2016</a></li>
 <li><a href="#may-2-2016">May 2, 2016</a></li>
 <li><a href="#january-18-2016">January 18, 2016</a></li>
 <li><a href="#august-28-2015">August 28, 2015</a></li>
@@ -207,6 +208,10 @@
 
 <h2 id="news">News</h2>
 
+<h3 id="august-7-2016">August 7,&nbsp;2016</h3>
+
+<p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.7.6"><span class="caps">0.7.6</span></a> has been&nbsp;released.</p>
+
 <h3 id="may-2-2016">May 2,&nbsp;2016</h3>
 
 <p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.7.5"><span class="caps">0.7.5</span></a> has been&nbsp;released.</p>
@@ -287,23 +292,23 @@
   <tbody>
     <tr>
       <td>Core (required)</td>
-      <td><code>co.paralleluniverse:quasar-core:0.7.5[:jdk8]</code> (for <span class="caps">JDK</span> 8 optionally add the <code>jdk8</code> classifier)</td>
+      <td><code>co.paralleluniverse:quasar-core:0.7.6[:jdk8]</code> (for <span class="caps">JDK</span> 8 optionally add the <code>jdk8</code> classifier)</td>
     </tr>
     <tr>
       <td>Actors</td>
-      <td><code>co.paralleluniverse:quasar-actors:0.7.5</code></td>
+      <td><code>co.paralleluniverse:quasar-actors:0.7.6</code></td>
     </tr>
     <tr>
       <td>Clustering</td>
-      <td><code>co.paralleluniverse:quasar-galaxy:0.7.5</code></td>
+      <td><code>co.paralleluniverse:quasar-galaxy:0.7.6</code></td>
     </tr>
     <tr>
       <td>Reactive Streams</td>
-      <td><code>co.paralleluniverse:quasar-reactive-streams:0.7.5</code></td>
+      <td><code>co.paralleluniverse:quasar-reactive-streams:0.7.6</code></td>
     </tr>
     <tr>
       <td>Kotlin</td>
-      <td><code>co.paralleluniverse:quasar-kotlin:0.7.5</code></td>
+      <td><code>co.paralleluniverse:quasar-kotlin:0.7.6</code></td>
     </tr>
   </tbody>
 </table>
@@ -396,7 +401,7 @@
 
 <div class="highlight"><pre><code><span id="line-1"><span class="n">dependencies</span> <span class="o">{</span>
 </span><span id="line-2">    <span class="c1">// ....</span>
-</span><span id="line-3">    <span class="n">quasar</span>  <span class="s2">&quot;co.paralleluniverse:quasar-core:0.7.5&quot;</span>
+</span><span id="line-3">    <span class="n">quasar</span>  <span class="s2">&quot;co.paralleluniverse:quasar-core:0.7.6&quot;</span>
 </span><span id="line-4"><span class="o">}</span>
 </span></code></pre></div>
 <p>Finally, in your <code>run</code> task (or any task of type <code>JavaExec</code> or <code>Test</code>), add the system&nbsp;property:</p>
@@ -796,7 +801,7 @@ co.paralleluniverse.fibers.instrument.UnableToInstrumentException:
 <p>Now an interesting verification stacktrace is getting printed over and over (which also tells us that a fiber can’t resume correctly after suspending, and instead some uninstrumented method is being restarted). This is the verification&nbsp;stacktrace:</p>
 
 <pre><code>[quasar] WARNING: Uninstrumented methods (marked '**') or call-sites (marked '!!')
-         detected on the call stack: 
+         detected on the call stack:
       at co.paralleluniverse.common.util.ExtendedStackTrace.here
               (ExtendedStackTrace.java:44 bci: 8)
       at co.paralleluniverse.fibers.Fiber.checkInstrumentation (Fiber.java:1668 bci: 0)
@@ -1322,7 +1327,7 @@ co.paralleluniverse.fibers.instrument.UnableToInstrumentException:
 
 <p>The finite-state-machine behavior is an actor that switches among a set of states and behaves differently in&nbsp;each.</p>
 
-<p>To create a finite state machine actor, simply construct an instance of&nbsp;the 
+<p>To create a finite state machine actor, simply construct an instance of&nbsp;the
 <a href="/quasar/javadoc/co/paralleluniverse/actors/behaviors/FiniteStateMachineActor.html"><code>FiniteStateMachineActor</code></a> class. Each of the actor’s states is represented by a <code>SuspendableCallable</code> implementation returning the next state, or the special <code>FiniteStateMachineActor.TERMINATE</code> state to terminate the actor. You need to override the <code>initialState</code> method so that it returns the actor’s initial state. This class is best enjoyed using Java 8 lambda syntax, as in the following&nbsp;example:</p>
 
 <div class="highlight"><pre><code><span id="line-1"><span class="k">new</span> <span class="nf">FiniteStateMachineActor</span><span class="o">()</span> <span class="o">{</span>
