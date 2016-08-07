@@ -30,6 +30,10 @@ A core component of Quasar, bytecode instrumentation, is a fork of the wonderful
 
 ## News
 
+### August 7, 2016
+
+Quasar [0.7.6](https://github.com/puniverse/quasar/releases/tag/v0.7.6) has been released.
+
 ### May 2, 2016
 
 Quasar [0.7.5](https://github.com/puniverse/quasar/releases/tag/v0.7.5) has been released.
@@ -651,7 +655,7 @@ Now an interesting verification stacktrace is getting printed over and over (whi
 
 ~~~
 [quasar] WARNING: Uninstrumented methods (marked '**') or call-sites (marked '!!')
-         detected on the call stack: 
+         detected on the call stack:
       at co.paralleluniverse.common.util.ExtendedStackTrace.here
               (ExtendedStackTrace.java:44 bci: 8)
       at co.paralleluniverse.fibers.Fiber.checkInstrumentation (Fiber.java:1668 bci: 0)
@@ -1221,7 +1225,7 @@ Event handlers are called synchronously on the same strand as the actor's and _s
 
 The finite-state-machine behavior is an actor that switches among a set of states and behaves differently in each.
 
-To create a finite state machine actor, simply construct an instance of the 
+To create a finite state machine actor, simply construct an instance of the
 [`FiniteStateMachineActor`]({{javadoc}}/actors/behaviors/FiniteStateMachineActor.html) class. Each of the actor's states is represented by a `SuspendableCallable` implementation returning the next state, or the special `FiniteStateMachineActor.TERMINATE` state to terminate the actor. You need to override the `initialState` method so that it returns the actor's initial state. This class is best enjoyed using Java 8 lambda syntax, as in the following example:
 
 ~~~ Java
