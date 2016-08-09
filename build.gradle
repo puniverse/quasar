@@ -20,7 +20,7 @@ subprojects {
     [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
     group               = "co.paralleluniverse"
-    version             = "0.7.6"
+    version             = "0.7.7-SNAPSHOT"
     status              = "integration"
     description         = "Fibers, Channels and Actors for the JVM"
     ext.url             = "http://puniverse.github.com/quasar"
@@ -146,9 +146,10 @@ subprojects {
         // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
 
         // systemProperty "java.util.logging.config.file", "jul.properties"
-        if (System.getenv("TRAVIS") != 'true') {
-            systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
-        }
+
+        // Uncomment for logging
+        // systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
+
         // systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
 
         // systemProperty 'co.paralleluniverse.debugMode', 'true'
