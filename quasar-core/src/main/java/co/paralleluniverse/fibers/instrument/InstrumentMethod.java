@@ -324,7 +324,7 @@ class InstrumentMethod {
 
         final boolean skipInstrumentation = canInstrumentationBeSkipped(suspCallsBcis);
 
-        emitInstrumentedAnn(db, mv, mn, sourceName, className, skipInstrumentation, startSourceLine, endSourceLine, suspCallsSourceLines, null, null);
+        emitInstrumentedAnn(db, mv, mn, sourceName, className, skipInstrumentation, startSourceLine, endSourceLine, suspCallsSourceLines, null);
 
         if (skipInstrumentation) {
             db.log(LogLevel.INFO, "[OPTIMIZE] Skipping instrumentation for method %s:%s#%s%s", sourceName, className, mn.name, mn.desc);
@@ -635,7 +635,7 @@ class InstrumentMethod {
     static void emitInstrumentedAnn (
             MethodDatabase db, MethodVisitor mv, MethodNode mn, String sourceName, String className,
             boolean skip, int startSourceLine, int endSourceLine,
-            int[] suspCallsSourceLines, int[] preInstrOffsets, int[] postInstrOffsets
+            int[] suspCallsSourceLines, int[] postInstrOffsets
     ) {
         final StringBuilder sb = new StringBuilder();
         final AnnotationVisitor instrumentedAV = mv.visitAnnotation(INSTRUMENTED_DESC, true);
@@ -654,23 +654,6 @@ class InstrumentMethod {
                 sb.append(l);
             }
             linesAV.visitEnd();
-            sb.append("],");
-        }
-
-        if (preInstrOffsets != null) {
-            final AnnotationVisitor preInstrOffsetsAV =
-                    instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_BEFORE_INSTR);
-            sb.append(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_BEFORE_INSTR + "=[");
-            for (int i = 0; i < preInstrOffsets.length; i++) {
-                if (i != 0)
-                    sb.append(", ");
-
-                final int l = preInstrOffsets[i];
-                preInstrOffsetsAV.visit("", l);
-
-                sb.append(l);
-            }
-            preInstrOffsetsAV.visitEnd();
             sb.append("],");
         }
 

@@ -46,8 +46,10 @@ class MetricsFibersMonitor implements FibersMonitor {
             @Override
             public Map<String, String> getValue() {
                 Map<String, String> map = new HashMap<>();
-                for (Map.Entry<Fiber, StackTraceElement[]> e : problemFibers.entrySet())
-                    map.put(e.getKey().toString(), Strand.toString(e.getValue()));
+                if (problemFibers != null) {
+                    for (Map.Entry<Fiber, StackTraceElement[]> e : problemFibers.entrySet())
+                        map.put(e.getKey().toString(), Strand.toString(e.getValue()));
+                }
                 return map;
             }
         };

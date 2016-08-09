@@ -30,6 +30,10 @@ A core component of Quasar, bytecode instrumentation, is a fork of the wonderful
 
 ## News
 
+### August 7, 2016
+
+Quasar [0.7.6](https://github.com/puniverse/quasar/releases/tag/v0.7.6) has been released.
+
 ### May 2, 2016
 
 Quasar [0.7.5](https://github.com/puniverse/quasar/releases/tag/v0.7.5) has been released.
@@ -651,7 +655,7 @@ Now an interesting verification stacktrace is getting printed over and over (whi
 
 ~~~
 [quasar] WARNING: Uninstrumented methods (marked '**') or call-sites (marked '!!')
-         detected on the call stack: 
+         detected on the call stack:
       at co.paralleluniverse.common.util.ExtendedStackTrace.here
               (ExtendedStackTrace.java:44 bci: 8)
       at co.paralleluniverse.fibers.Fiber.checkInstrumentation (Fiber.java:1668 bci: 0)
@@ -700,9 +704,7 @@ We're going to fix that by adding `@Suspendable` to `MyUnmarkedInterface.myUnmar
 
 ### Manual troubleshooting {#troubleshooting-manual}
 
-Enabling instrumentation verification should work in almost all cases but there are some [known limitations](https://github.com/puniverse/quasar/issues/193). If you run into one such situation and you own/control the code, even simply splitting a line containing multiple suspendable method invocations might do the trick and allow verification to help you.
-
-If you don't own/control the code however, you can still verify manually by checking the code mentioned in the stack trace of the "strange" exception, proceeding from top to bottom, possibly with the help of instrumentation traces. If your program gets stuck instead, try to figure out with a [debugger](#debugging) where there's a restarting method and use that stack as a reference. If you can't find the culprit then consider [asking for help](#getting-help).
+You can also verify instrumentation manually by checking the code mentioned in the stack trace of the "strange" exception, proceeding from top to bottom, possibly with the help of instrumentation traces. If your program gets stuck instead, try to figure out with a [debugger](#debugging) where there's a restarting method and use that stack as a reference. If you can't find the culprit then consider [asking for help](#getting-help).
 
 ### Debugging {#debugging}
 
@@ -1221,7 +1223,7 @@ Event handlers are called synchronously on the same strand as the actor's and _s
 
 The finite-state-machine behavior is an actor that switches among a set of states and behaves differently in each.
 
-To create a finite state machine actor, simply construct an instance of the 
+To create a finite state machine actor, simply construct an instance of the
 [`FiniteStateMachineActor`]({{javadoc}}/actors/behaviors/FiniteStateMachineActor.html) class. Each of the actor's states is represented by a `SuspendableCallable` implementation returning the next state, or the special `FiniteStateMachineActor.TERMINATE` state to terminate the actor. You need to override the `initialState` method so that it returns the actor's initial state. This class is best enjoyed using Java 8 lambda syntax, as in the following example:
 
 ~~~ Java

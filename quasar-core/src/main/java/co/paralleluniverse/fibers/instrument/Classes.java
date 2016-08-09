@@ -51,7 +51,6 @@ public final class Classes {
     static final String SUSPENDABLE_DESC = Type.getDescriptor(Suspendable.class);
     static final String DONT_INSTRUMENT_DESC = Type.getDescriptor(DontInstrument.class);
     static final String INSTRUMENTED_DESC = Type.getDescriptor(Instrumented.class);
-    static final String SUSPENDABLE_CALLS_DESC = Type.getDescriptor(SuspendableCalls.class);
     static final String LAMBDA_METHOD_PREFIX = "lambda$";
 
     private static final Set<String> yieldMethods = new HashSet<>(Arrays.asList(new String[] {

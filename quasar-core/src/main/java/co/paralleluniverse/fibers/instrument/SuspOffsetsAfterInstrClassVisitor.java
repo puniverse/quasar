@@ -14,7 +14,6 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Instrumented;
-import co.paralleluniverse.fibers.SuspendableCalls;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -71,7 +70,6 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                 private int methodStart = -1, methodEnd = -1;
 
                 private List<Integer> suspOffsetsAfterInstrL = new ArrayList<>();
-                private int[] preInstrOffsets = new int[0];
                 private int[] suspCallSites = new int[0];
 
                 @Override
@@ -91,23 +89,10 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                                 else if (Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES.equals(name))
                                     suspCallSites = (int[]) value;
                                 else //noinspection StatementWithEmptyBody
-                                    if (Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_BEFORE_INSTR.equals(name))
-                                    ; // Ignore, we're filling it
-                                else //noinspection StatementWithEmptyBody
                                     if (Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR.equals(name))
                                     ; // Ignore, we're filling it
                                 else
                                     throw new RuntimeException("Unexpected `@Instrumented` field: " + name);
-                            }
-                        };
-                    } else if (Classes.SUSPENDABLE_CALLS_DESC.equals(adesc)) { // Non-AoT
-                        return new AnnotationVisitor(ASMAPI) { // Only collect info
-                            @Override
-                            public void visit(String name, Object value) {
-                                if (SuspendableCalls.FIELD_NAME_SUSPENDABLE_CALL_OFFSETS.equals(name))
-                                    preInstrOffsets = (int[]) value;
-                                else
-                                    throw new RuntimeException("Unexpected `@SuspendableCalls` field: " + name);
                             }
                         };
                     }
@@ -160,7 +145,7 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                     if (instrumented)
                         InstrumentMethod.emitInstrumentedAnn (
                             db, outMV, mn, sourceName, className, optimized, methodStart, methodEnd,
-                            suspCallSites, preInstrOffsets, toIntArray(suspOffsetsAfterInstrL)
+                            suspCallSites, toIntArray(suspOffsetsAfterInstrL)
                         );
 
                     super.visitEnd();

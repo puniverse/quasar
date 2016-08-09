@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-/*
+ /*
  * Copyright (c) 2008-2013, Matthias Mann
  *
  * All rights reserved.
@@ -40,7 +40,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/*
+ /*
  * Copyright (c) 2012, Enhanced Four
  * All rights reserved.
  *
@@ -103,7 +103,7 @@ public class JavaAgent {
             System.err.println("Retransforming classes is not supported!");
 
         final ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        final QuasarInstrumentor instrumentor = new QuasarInstrumentor(false, cl, new DefaultSuspendableClassifier(cl));
+        final QuasarInstrumentor instrumentor = new QuasarInstrumentor(false);
         ACTIVE = true;
         SuspendableHelper.javaAgent = true;
 
@@ -150,7 +150,7 @@ public class JavaAgent {
         });
 
         Retransform.instrumentation = instrumentation;
-        Retransform.db = instrumentor.getMethodDatabase();
+        Retransform.instrumentor = instrumentor;
         Retransform.classLoaders = classLoaders;
 
         instrumentation.addTransformer(new Transformer(instrumentor), true);
@@ -184,7 +184,10 @@ public class JavaAgent {
             classLoaders.add(new WeakReference<>(loader));
 
             try {
-                final byte[] transformed = instrumentor.instrumentClass(className, classfileBuffer);
+                if (loader == null)
+                    loader = Thread.currentThread().getContextClassLoader();
+
+                final byte[] transformed = instrumentor.instrumentClass(loader, className, classfileBuffer);
 
                 if (transformed != null)
                     Retransform.afterTransform(className, classBeingRedefined, transformed);
