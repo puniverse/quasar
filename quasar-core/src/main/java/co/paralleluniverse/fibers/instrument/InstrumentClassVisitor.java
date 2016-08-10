@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -41,10 +41,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import static co.paralleluniverse.fibers.instrument.Classes.INSTRUMENTED_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.SUSPENDABLE_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
+import static co.paralleluniverse.fibers.instrument.Classes.*;
 import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 
 import co.paralleluniverse.fibers.Instrumented;
@@ -65,7 +62,7 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
  * @author Matthias Mann
  * @author pron
  */
-public class InstrumentClassVisitor extends ClassVisitor {
+class InstrumentClassVisitor extends ClassVisitor {
     private final SuspendableClassifier classifier;
     private final MethodDatabase db;
     private final boolean aot;
@@ -84,7 +81,7 @@ public class InstrumentClassVisitor extends ClassVisitor {
 
     private RuntimeException exception;
 
-    public InstrumentClassVisitor(ClassVisitor cv, MethodDatabase db, boolean forceInstrumentation, boolean aot) {
+    InstrumentClassVisitor(ClassVisitor cv, MethodDatabase db, boolean forceInstrumentation, boolean aot) {
         super(ASMAPI, cv);
         this.db = db;
         this.classifier = db.getClassifier();
@@ -133,7 +130,7 @@ public class InstrumentClassVisitor extends ClassVisitor {
         classEntry.setSourceDebugInfo(sourceDebugInfo);
     }
 
-    public boolean hasSuspendableMethods() {
+    boolean hasSuspendableMethods() {
         return suspMethods != null && !suspMethods.isEmpty();
     }
 
@@ -215,7 +212,7 @@ public class InstrumentClassVisitor extends ClassVisitor {
                     commited = true;
 
                     if (db.isDebug())
-                        db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, setSuspendable);
+                        db.log(LogLevel.INFO, "Method %s#%s%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, desc, susp, susp, setSuspendable);
                     classEntry.set(name, desc, susp);
 
                     // Initial filtering: write out directly methods that we're sure won't need instrumentation
@@ -254,21 +251,23 @@ public class InstrumentClassVisitor extends ClassVisitor {
         classEntry.setRequiresInstrumentation(false);
         db.recordSuspendableMethods(className, classEntry);
 
-        // Fix otherMethods
-        for (final MethodNode mn : otherMethods) {
-            final MethodVisitor outMV = makeOutMV(mn);
-            final String[] a = new String[mn.exceptions.size()];
-            mn.exceptions.toArray(a);
-            final FixSuspInterfMethod fm = new FixSuspInterfMethod(db, className, mn);
-            if (db.isDebug())
-                db.log(LogLevel.INFO, "About to examine suspension interferences in method %s#%s%s", className, mn.name, mn.desc);
-
-            if (fm.isNeeded()) {
-                fm.applySuspensionInterferenceFixes(outMV);
-            } else {
+        if (otherMethods != null) {
+            // Fix otherMethods
+            for (final MethodNode mn : otherMethods) {
+                final MethodVisitor outMV = makeOutMV(mn);
+                final String[] a = new String[mn.exceptions.size()];
+                mn.exceptions.toArray(a);
+                final FixSuspInterfMethod fm = new FixSuspInterfMethod(db, className, mn);
                 if (db.isDebug())
-                    db.log(LogLevel.INFO, "Nothing to fix in method %s#%s%s", className, mn.name, mn.desc);
-                mn.accept(outMV);
+                    db.log(LogLevel.INFO, "About to examine suspension interferences in method %s#%s%s", className, mn.name, mn.desc);
+
+                if (fm.isNeeded()) {
+                    fm.applySuspensionInterferenceFixes(outMV);
+                } else {
+                    if (db.isDebug())
+                        db.log(LogLevel.INFO, "Nothing to fix in method %s#%s%s", className, mn.name, mn.desc);
+                    mn.accept(outMV);
+                }
             }
         }
 
@@ -334,7 +333,8 @@ public class InstrumentClassVisitor extends ClassVisitor {
     }
 
     private boolean hasAnnotation(MethodNode mn) {
-        @SuppressWarnings("unchecked") final List<AnnotationNode> ans = mn.visibleAnnotations;
+        @SuppressWarnings("unchecked")
+        final List<AnnotationNode> ans = mn.visibleAnnotations;
         if (ans == null)
             return false;
         for (final AnnotationNode an : ans) {
@@ -373,21 +373,23 @@ public class InstrumentClassVisitor extends ClassVisitor {
         if (l.isEmpty())
             return null;
 
-        //noinspection SuspiciousToArrayCall
-        return l.toArray(new String[l.size()]);
+        //noinspection RedundantCast,unchecked
+        return ((List<String>)l).toArray(new String[l.size()]);
     }
-//    
-//    private static boolean contains(String[] ifaces, String iface) {
-//        for(String i : ifaces) {
-//            if(i.equals(iface))
-//                return true;
-//        }
-//        return false;
-//    }
-//    
-//    private static String[] add(String[] ifaces, String iface) {
-//        String[] newIfaces = Arrays.copyOf(ifaces, ifaces.length + 1);
-//        newIfaces[newIfaces.length - 1] = iface;
-//        return newIfaces;
-//    }
+
+/*
+    private static boolean contains(String[] ifaces, String iface) {
+        for(String i : ifaces) {
+            if(i.equals(iface))
+                return true;
+        }
+        return false;
+    }
+
+    private static String[] add(String[] ifaces, String iface) {
+        String[] newIfaces = Arrays.copyOf(ifaces, ifaces.length + 1);
+        newIfaces[newIfaces.length - 1] = iface;
+        return newIfaces;
+    }
+*/
 }

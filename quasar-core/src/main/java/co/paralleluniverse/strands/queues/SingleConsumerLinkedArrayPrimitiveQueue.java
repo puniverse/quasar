@@ -36,14 +36,15 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
                     index = i;
                     break;
                 }
-                backoff();
+                // backoff();
             } else {
                 if (nn == null)
                     nn = newNode();
                 nn.prev = t;
-                if (compareAndSetTail(t, nn))
+                if (compareAndSetTail(t, nn)) {
                     t.next = nn;
-                else
+                    nn = null;
+                } else
                     backoff();
             }
         }
@@ -53,11 +54,11 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
         if (true) {
             final PrimitiveNode n = (PrimitiveNode) node;
             while (n.maxReadIndex != index)
-            ;
+                ;
             n.maxReadIndex = index + 1;
         } else {
             while (!compareAndSetMaxReadIndex(node, index, index + 1))
-            ;
+                ;
         }
         return true;
     }

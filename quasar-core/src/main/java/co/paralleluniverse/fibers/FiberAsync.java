@@ -170,7 +170,7 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
     @SuppressWarnings("empty-statement")
     public V run(final long timeout, final TimeUnit unit) throws E, SuspendExecution, InterruptedException, TimeoutException {
         if (Fiber.currentFiber() == null)
-            runSync(timeout, unit);
+            return runSync(timeout, unit);
 
         if (registrationComplete)
             throw new IllegalStateException("This FiberAsync instance has already been used");

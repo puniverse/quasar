@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -217,7 +217,7 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
         try {
             int i = 0;
 
-            final long deadline = timed ? System.nanoTime() : 0L;
+            final long deadline = timed ? System.nanoTime() + nanos : 0L;
 
             record("send0", "%s enqueing message %s", this, message);
             while (!queue.enq(message)) {
@@ -361,6 +361,9 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
             closed = isSendClosed(); // must be read BEFORE queue.poll()
             if ((m = queue.poll()) != null)
                 break;
+
+            // i can be > 0 if task state is LEASED
+
             if (closed) {
                 setReceiveClosed();
                 return closeValue();

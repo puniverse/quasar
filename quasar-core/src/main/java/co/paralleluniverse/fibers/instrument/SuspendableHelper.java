@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -34,7 +34,8 @@ import java.util.Set;
  */
 public final class SuspendableHelper {
     static boolean javaAgent;
-    static final Set<Pair<String, String>> waivers = Collections.newSetFromMap(MapUtil.<Pair<String, String>, Boolean>newConcurrentHashMap());
+
+    private static final Set<Pair<String, String>> waivers = Collections.newSetFromMap(MapUtil.<Pair<String, String>, Boolean>newConcurrentHashMap());
 
     public static boolean isJavaAgentActive() {
         return javaAgent;
@@ -51,7 +52,7 @@ public final class SuspendableHelper {
         if (ste.getMethod() != null)
             return ste.getMethod();
 
-        for (Method m : ste.getDeclaringClass().getDeclaredMethods()) {
+        for (final Method m : ste.getDeclaringClass().getDeclaredMethods()) {
             if (m.getName().equals(ste.getMethodName())) {
                 final Instrumented i = getAnnotation(m, Instrumented.class);
                 if (m.isSynthetic() || isWaiver(m.getDeclaringClass().getName(), m.getName()) || i != null && ste.getLineNumber() >= i.methodStartSourceLine() && ste.getLineNumber() <= i.methodEndSourceLine())
@@ -61,7 +62,7 @@ public final class SuspendableHelper {
         return null;
     }
 
-    public static Pair<Boolean, int[]> isCallSiteInstrumented(/*Executable*/ Member m, int sourceLine, ExtendedStackTraceElement optUpperSte) {
+    public static Pair<Boolean, Instrumented> isCallSiteInstrumented(/*Executable*/ Member m, int sourceLine, int bci, ExtendedStackTraceElement optUpperSte) {
         if (m == null)
             return new Pair<>(false, null);
 
@@ -76,15 +77,25 @@ public final class SuspendableHelper {
         } else {
             final Instrumented i = getAnnotation(m, Instrumented.class);
             if (i != null) {
-                final int[] sourceLines = getSourceLines(i);
-                for (int j : sourceLines) {
-                    if (j == sourceLine)
-                        return new Pair<>(true, sourceLines);
+                if (bci >= 0) { // Prefer BCI matching as it's unambiguous
+                    final int[] scs = getPostInstrumentationOffsets(i);
+                    for (int j : scs) {
+                        if (j == bci)
+                            return new Pair<>(true, i);
+                    }
+                } else if (sourceLine >= 0) {
+                    final int[] sourceLines = getSourceLines(i);
+                    for (int j : sourceLines) {
+                        if (j == sourceLine)
+                            return new Pair<>(true, i);
+                    }
                 }
-            }
-        }
 
-        return new Pair<>(false, null);
+                return new Pair<>(false, i);
+            }
+
+            return new Pair<>(false, null);
+        }
     }
 
     static int[] getSourceLines(Instrumented a) {
@@ -106,11 +117,12 @@ public final class SuspendableHelper {
     public static boolean isInstrumented(Member m) {
         return m != null && (isSyntheticAndNotLambda(m) || getAnnotation(m, Instrumented.class) != null);
     }
-    
+
+    @SuppressWarnings("WeakerAccess")
     public static boolean isSyntheticAndNotLambda(Member m) {
-        return m.isSynthetic() && !m.getName().startsWith("lambda$");
+        return m.isSynthetic() && !m.getName().startsWith(Classes.LAMBDA_METHOD_PREFIX);
     }
-    
+
     public static boolean isOptimized(Member m) {
         if (m == null)
             return false;
@@ -119,7 +131,7 @@ public final class SuspendableHelper {
         return (i != null && i.isMethodInstrumentationOptimized());
     }
 
-    public static <T extends Annotation> T getAnnotation(Member m, Class<T> annotationClass) {
+    private static <T extends Annotation> T getAnnotation(Member m, Class<T> annotationClass) {
         if (m == null || annotationClass == null)
             return  null;
 
@@ -129,6 +141,7 @@ public final class SuspendableHelper {
             return ((Method)m).getAnnotation(annotationClass);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public static void addWaiver(String className, String methodName) {
         waivers.add(new Pair<>(className, methodName));
     }
@@ -141,6 +154,8 @@ public final class SuspendableHelper {
             className.contains("$ByteBuddy$") ||
             (className.equals("co.paralleluniverse.strands.SuspendableUtils$VoidSuspendableCallable") &&
                 methodName.equals("run")) ||
+            (className.equals("co.paralleluniverse.strands.dataflow.Var") &&
+                methodName.equals("set")) ||
             waivers.contains(new Pair<>(className, methodName));
     }
 

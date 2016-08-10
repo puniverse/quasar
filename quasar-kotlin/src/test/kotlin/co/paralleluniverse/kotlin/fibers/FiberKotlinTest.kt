@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -13,8 +13,8 @@
  */
 package co.paralleluniverse.kotlin.fibers
 
-import co.paralleluniverse.fibers.*
 import co.paralleluniverse.kotlin.*
+import co.paralleluniverse.strands.Strand
 import co.paralleluniverse.strands.channels.Channels
 
 import org.junit.Test
@@ -24,53 +24,63 @@ import java.util.concurrent.TimeUnit
 /**
  * @author circlespainter
  */
-public class FiberKotlinTest {
-  @Test public fun testFiber() {
+class FiberKotlinTest {
+  @Test fun testFiber() {
     assertTrue (
-      fiber @Suspendable {
+      fiber {
         println("Hi there")
-        Fiber.sleep(10)
+        dumpStack()
+        Strand.sleep(10)
         println("Hi there later")
         1
       }.get() == 1
     )
   }
 
-  @Test public fun testSelect() {
+  @Test fun testSelect() {
     val ch1 = Channels.newChannel<Int>(1)
     val ch2 = Channels.newChannel<Double>(1)
 
     assertTrue (
-      fiber @Suspendable  {
+      fiber {
         select(Receive(ch1), Send(ch2, 2.0)) {
-          it
+          dumpStack { it }
         }
       }.get() is Send<*>)
 
     ch1.send(1)
 
     assertTrue (
-      fiber @Suspendable {
+      fiber {
         select(Receive(ch1), Send(ch2, 2.0)) {
           when (it) {
-            is Receive<*> -> it.msg
-            is Send<*> -> 0
-            else -> -1
+            is Receive<*> -> dumpStack { it.msg }
+            is Send<*> -> dumpStack { 0 }
+            else -> dumpStack { -1 }
           }
         }
       }.get() == 1
     )
 
     assertTrue (
-      fiber @Suspendable {
+      fiber {
         select(10, TimeUnit.MILLISECONDS, Receive(ch1), Send(ch2, 2.0)) {
           when (it) {
-            is Receive<*> -> it.msg
-            is Send<*> -> 0
-            else -> -1
+            is Receive<*> -> dumpStack { it.msg }
+            is Send<*> -> dumpStack { 0 }
+            else -> dumpStack { -1 }
           }
         }
       }.get() == -1
     )
+  }
+
+  private fun <T> dumpStack(f : () -> T) : T {
+    Throwable().printStackTrace()
+    return f()
+  }
+
+  private fun dumpStack() : Unit {
+    Throwable().printStackTrace()
   }
 }

@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -217,7 +217,6 @@ public class InstrumentMethod {
     private int startSourceLine = -1;
     private int endSourceLine = -1;
 
-
     static class SuspCallSite {
         final int idx; // Not output in annotation
         final String desc;
@@ -301,7 +300,7 @@ public class InstrumentMethod {
     }
 
     public static void emitInstrumentedAnn (
-        MethodDatabase db, MethodVisitor mv, MethodNode mn, String className,
+        MethodDatabase db, MethodVisitor mv, MethodNode mn, String sourceName, String className,
         boolean optimized, int methodStart, int methodEnd,
         List<SuspCallSite> suspCallSites
     ) {
@@ -418,7 +417,7 @@ public class InstrumentMethod {
         instrumentedAV.visitEnd();
         sb.append(")");
 
-        db.log(LogLevel.DEBUG, "Annotating method %s#%s%s with %s", className, mn.name, mn.desc, sb);
+        db.log(LogLevel.DEBUG, "Annotating method %s:%s#%s%s with %s", sourceName, className, mn.name, mn.desc, sb);
     }
 
     public boolean hasSuspendableCalls() {
@@ -464,7 +463,7 @@ public class InstrumentMethod {
                                 if (st == SuspendableType.NON_SUSPENDABLE)
                                     susp = false;
                                 else if (st == null) {
-                                    db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s#%s%s (at %s#%s)", min.owner, min.name, min.desc, className, mn.name);
+                                    db.log(LogLevel.WARNING, "Method not found in class - assuming suspendable: %s:%s#%s%s (at %s#%s)", min.owner, min.name, min.desc, sourceName, className, mn.name);
                                 } else if (st != SuspendableType.SUSPENDABLE_SUPER) {
                                     db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is suspendable", i, min.owner, min.name, min.desc);
                                 }
@@ -507,14 +506,14 @@ public class InstrumentMethod {
     }
 
     public void applySuspendableCallsInstrumentation(MethodVisitor mv, boolean hasAnnotation) {
-        db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
+        db.log(LogLevel.INFO, "Instrumenting method %s:%s#%s%s", sourceName, className, mn.name, mn.desc);
 
         final boolean optimizeInstrumentation = canInstrumentationBeOptimized();
 
         collectCodeBlocks(true); // Must be called first, sets flags & state used below
 
         if (optimizeInstrumentation) {
-            db.log(LogLevel.INFO, "[OPTIMIZE] Optimizing instrumentation for method %s#%s%s", className, mn.name, mn.desc);
+            db.log(LogLevel.INFO, "[OPTIMIZE] Optimizing instrumentation for method %s:%s#%s%s", sourceName, className, mn.name, mn.desc);
             applyOptimizedInstrumentation(mv);
             // mn.applySuspendableCallsInstrumentation(mv); // Dump
             return;
@@ -584,7 +583,7 @@ public class InstrumentMethod {
             final TryCatchBlockNode tcb = (TryCatchBlockNode) o;
 
             //noinspection PointlessBooleanExpression
-            if (SUSPEND_EXECUTION_NAME.equals(tcb.type) && !hasAnnotation && !LiveInstrumentation.ACTIVE) // we allow catch of SuspendExecution in method annotated with @Suspendable or if live instrumentation is active.
+            if (SUSPEND_EXECUTION_NAME.equals(tcb.type) && !mn.name.startsWith(Classes.LAMBDA_METHOD_PREFIX) && !hasAnnotation && !LiveInstrumentation.ACTIVE) // we allow catch of SuspendExecution only in methods annotated with @Suspendable and in lambda-generated ones or always if live instrumentation is active.
                 throw new UnableToInstrumentException("catch for SuspendExecution", className, mn.name, mn.desc);
             if (handleProxyInvocations && UNDECLARED_THROWABLE_NAME.equals(tcb.type)) // we allow catch of SuspendExecution in method annotated with @Suspendable.
                 throw new UnableToInstrumentException("catch for UndeclaredThrowableException", className, mn.name, mn.desc);
@@ -609,7 +608,7 @@ public class InstrumentMethod {
         }
 
         //noinspection ConstantConditions
-        emitInstrumentedAnn(db, mv, mn, className, optimizeInstrumentation, startSourceLine, endSourceLine, suspCallSites);
+        emitInstrumentedAnn(db, mv, mn, sourceName, className, optimizeInstrumentation, startSourceLine, endSourceLine, suspCallSites);
 
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchAll, null);
 
@@ -828,7 +827,7 @@ public class InstrumentMethod {
     }
 
     private void applyOptimizedInstrumentation(MethodVisitor mv) {
-        db.log(LogLevel.INFO, "Minimally instrumenting optimized method %s#%s%s", className, mn.name, mn.desc);
+        db.log(LogLevel.INFO, "Minimally instrumenting optimized method %s:%s#%s%s", sourceName, className, mn.name, mn.desc);
 
         mv.visitCode();
 
@@ -852,7 +851,7 @@ public class InstrumentMethod {
             }
         }
 
-        emitInstrumentedAnn(db, mv, mn, className, true, startSourceLine, endSourceLine, suspCallSites);
+        emitInstrumentedAnn(db, mv, mn, sourceName, className, true, startSourceLine, endSourceLine, suspCallSites);
 
         dumpUnoptimizedCodeBlockAfterIdx(mv, 0, 0);
 
@@ -908,7 +907,7 @@ public class InstrumentMethod {
                     throw new UnableToInstrumentException("blocking call to " + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
                 } else if ((warnedAboutBlocking & mask) == 0) {
                     warnedAboutBlocking |= mask;
-                    db.log(LogLevel.WARNING, "Method %s#%s%s contains potentially blocking call to " + min.owner + "#" + min.name + min.desc, className, mn.name, mn.desc);
+                    db.log(LogLevel.WARNING, "Method %s:%s#%s%s contains potentially blocking call to " + min.owner + "#" + min.name + min.desc, sourceName, className, mn.name, mn.desc);
                 }
             }
         }
@@ -920,7 +919,7 @@ public class InstrumentMethod {
             return false;
         }
 
-        db.log(LogLevel.DEBUG, "[OPTIMIZE] Examining method %s#%s%s", className, mn.name, mn.desc);
+        db.log(LogLevel.DEBUG, "[OPTIMIZE] Examining method %s:%s#%s%s", sourceName, className, mn.name, mn.desc);
         return isForwardingToSuspendable(); // Fully instrumentation-transparent methods
     }
 
@@ -1084,7 +1083,7 @@ public class InstrumentMethod {
                             throw new UnableToInstrumentException("synchronization", className, mn.name, mn.desc);
                     } else if (!warnedAboutMonitors) {
                         warnedAboutMonitors = true;
-                        db.log(LogLevel.WARNING, "Method %s#%s%s contains synchronization", className, mn.name, mn.desc);
+                        db.log(LogLevel.WARNING, "Method %s:%s#%s%s contains synchronization", sourceName, className, mn.name, mn.desc);
                     }
                     break;
 

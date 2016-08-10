@@ -27,7 +27,7 @@ public abstract class MessageSelector<M1, M2> implements MessageProcessor<Object
      *
      * @return A new {@code MessageSelector} that selects all messages.
      */
-    public static <M> MessageSelector<?, M> select() {
+    public static <M> MessageSelector<Object, M> select() {
         return new MessageSelector<Object, M>() {
             @Override
             public boolean matches(Object m) {

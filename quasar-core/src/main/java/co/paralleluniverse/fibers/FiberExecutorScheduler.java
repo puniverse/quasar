@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -24,6 +24,9 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A fiber scheduler that uses a given {@link Executor} for scheduling.
+ * 
+ * The {@code Runnable} tasks passed to the {@link Executor} for execution,
+ * implement the {@link FiberSchedulerTask} interface.
  *
  * @author pron
  */

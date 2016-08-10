@@ -47,7 +47,7 @@ public final class QuasarURLClassLoaderHelper {
     }
 
     private QuasarInstrumentor newInstrumentor() {
-        QuasarInstrumentor inst = new QuasarInstrumentor(false, cl);
+        QuasarInstrumentor inst = new QuasarInstrumentor(false);
         inst.setLog(new Log() {
             @Override
             public void log(LogLevel level, String msg, Object... args) {
@@ -97,7 +97,7 @@ public final class QuasarURLClassLoaderHelper {
         if (is != null && resourceName.endsWith(".class")) {
             try {
                 byte[] bytes = ByteStreams.toByteArray(is);
-                byte[] instrumented = instrumentor.instrumentClass(resourceName.substring(0, resourceName.length() - ".class".length()), bytes);
+                byte[] instrumented = instrumentor.instrumentClass(cl, resourceName.substring(0, resourceName.length() - ".class".length()), bytes);
                 return new ByteArrayInputStream(instrumented);
             } catch (final IOException e) {
                 return new InputStream() {
@@ -127,7 +127,7 @@ public final class QuasarURLClassLoaderHelper {
                     } else
                         bytes = res.getBytes();
                     try {
-                        this.instrumented = instrumentor.instrumentClass(className, bytes);
+                        this.instrumented = instrumentor.instrumentClass(cl, className, bytes);
                     } catch (Exception ex) {
                         if (MethodDatabase.isProblematicClass(className))
                             instrumentor.log(LogLevel.INFO, "Skipping problematic class instrumentation %s - %s %s", className, ex, Arrays.toString(ex.getStackTrace()));

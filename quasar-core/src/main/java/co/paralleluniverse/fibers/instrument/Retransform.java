@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -34,10 +34,10 @@ import org.objectweb.asm.util.TraceClassVisitor;
  */
 public class Retransform {
     static volatile Instrumentation instrumentation;
-    static volatile MethodDatabase db;
+    static volatile QuasarInstrumentor instrumentor;
     static volatile Set<WeakReference<ClassLoader>> classLoaders = Collections.newSetFromMap(MapUtil.<WeakReference<ClassLoader>, Boolean>newConcurrentHashMap());
     
-    private static final CopyOnWriteArrayList<ClassLoadListener> listeners = new CopyOnWriteArrayList<ClassLoadListener>();
+    private static final CopyOnWriteArrayList<ClassLoadListener> listeners = new CopyOnWriteArrayList<>();
 
     public static void retransform(Class<?>... classes) throws UnmodifiableClassException {
         instrumentation.retransformClasses(classes);
@@ -60,8 +60,12 @@ public class Retransform {
         }
     }
 
-    public static MethodDatabase getMethodDB() {
-        return db;
+    public static MethodDatabase getMethodDB(ClassLoader cl) {
+        return instrumentor.getMethodDatabase(cl);
+    }
+
+    public static QuasarInstrumentor getInstrumentor() {
+        return instrumentor;
     }
 
     public static boolean isInstrumented(Class clazz) {
@@ -92,10 +96,8 @@ public class Retransform {
         return SuspendableHelper.isWaiver(className, methodName);
     }
 
-    public static Boolean isSuspendable(String className, String methodName) {
-        if (db == null)
-            return null;
-        final MethodDatabase.ClassEntry ce = db.getClassEntry(className);
+    public static Boolean isSuspendable(ClassLoader cl, String className, String methodName) {
+        final MethodDatabase.ClassEntry ce = getMethodDB(cl).getClassEntry(className);
         if (ce == null)
             return null;
         return ce.isSuspendable(methodName);

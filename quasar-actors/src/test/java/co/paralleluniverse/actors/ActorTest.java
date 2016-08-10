@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
+import co.paralleluniverse.actors.behaviors.MessageSelector;
 import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
@@ -22,7 +23,6 @@ import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.StrandFactoryBuilder;
-import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.SendPort;
 import com.google.common.base.Function;
@@ -35,11 +35,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.junit.Assume;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -278,6 +279,147 @@ public class ActorTest {
         actor.ref().send(new ComplexMessage(ComplexMessage.Type.BAZ, 3));
 
         assertThat(actor.get(), equalTo(Arrays.asList(1, 3, 2)));
+    }
+
+    @Test
+    public void testSelectiveReceiveMsgSelector() throws Exception {
+        Actor<Object, String> actor = spawnActor(new BasicActor<Object, String>(mailboxConfig) {
+            @Override
+            protected String doRun() throws SuspendExecution, InterruptedException {
+                return receive(MessageSelector.select().ofType(String.class));
+            }
+        });
+
+        actor.ref().send(1);
+        actor.ref().send("hello");
+
+        assertThat(actor.get(), equalTo("hello"));
+    }
+
+    @Test
+    public void testNestedSelectiveWithEqualMessage() throws Exception {
+        Actor<String, String> actor = spawnActor(new BasicActor<String, String>(mailboxConfig) {
+            @Override
+            protected String doRun() throws SuspendExecution, InterruptedException {
+                // return receive(a -> a + receive(b -> b));
+                return receive(new MessageProcessor<String, String>() {
+                    @Override
+                    public String process(String m1) throws SuspendExecution, InterruptedException {
+                        return m1 + receive(new MessageProcessor<String, String>() {
+                            @Override
+                            public String process(String m2) throws SuspendExecution, InterruptedException {
+                                return m2;
+                            }
+                        });
+                    }
+                });
+            }
+        });
+
+        String msg = "a";
+        actor.ref().send(msg);
+        actor.ref().send(msg);
+
+        assertThat(actor.get(), equalTo("aa"));
+    }
+
+    @Test
+    public void whenLinkedActorDiesDuringSelectiveReceiveThenReceiverDies() throws Exception {
+        final Actor<Message, Void> a = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+            @Override
+            protected Void doRun() throws SuspendExecution, InterruptedException {
+                //noinspection InfiniteLoopStatement
+                for (;;)
+                    System.out.println(receive());
+            }
+        });
+
+        final Actor<Object, Void> m = spawnActor(new BasicActor<Object, Void>(mailboxConfig) {
+            @Override
+            protected Void doRun() throws SuspendExecution, InterruptedException {
+                link(a.ref());
+                receive(MessageSelector.select().ofType(String.class));
+                //noinspection StatementWithEmptyBody
+                for (; receive(100, TimeUnit.MILLISECONDS) instanceof Integer;);
+                return null;
+            }
+        });
+
+        try {
+            a.getStrand().interrupt();
+
+            m.ref().send(1);
+            m.ref().send("hello");
+
+            m.join();
+            fail();
+        } catch (final ExecutionException e) {
+            final Throwable cause = e.getCause();
+            assertEquals(cause.getClass(), LifecycleException.class);
+            final LifecycleException lce = (LifecycleException) cause;
+            assertEquals(lce.message().getClass(), ExitMessage.class);
+            final ExitMessage em = (ExitMessage) lce.message();
+            assertEquals(em.getCause().getClass(), InterruptedException.class);
+            assertNull(em.watch);
+            assertEquals(em.actor, a.ref());
+        }
+    }
+
+    @Test
+    public void whenWatchedActorDiesDuringSelectiveReceiveThenExitMessageDeferred() throws Exception {
+        final Actor<Message, Void> a = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+            @Override
+            protected Void doRun() throws SuspendExecution, InterruptedException {
+                //noinspection InfiniteLoopStatement
+                for (;;)
+                    System.out.println(receive());
+            }
+        });
+
+        final AtomicReference<ExitMessage> emr = new AtomicReference<>();
+        final Actor<Object, Object[]> m = spawnActor(new BasicActor<Object, Object[]>(mailboxConfig) {
+            private Object watch;
+
+            @Override
+            protected Object[] doRun() throws SuspendExecution, InterruptedException {
+                watch = watch(a.ref());
+                final String msg = receive(MessageSelector.select().ofType(String.class));
+                Object o;
+                //noinspection StatementWithEmptyBody
+                for (; (o = receive(100, TimeUnit.MILLISECONDS)) instanceof Integer;);
+                return new Object[]{watch, msg, o};
+            }
+
+            @Override
+            protected Object handleLifecycleMessage(LifecycleMessage m) {
+                if (m instanceof ExitMessage) {
+                    final ExitMessage em = (ExitMessage) m;
+                    if (watch.equals(em.watch) && em.actor.equals(a.ref()))
+                        emr.set(em);
+                }
+                return super.handleLifecycleMessage(m);
+            }
+        });
+
+        try {
+            a.getStrand().interrupt();
+
+            m.ref().send(1);
+            m.ref().send("hello");
+
+            final Object[] res = m.get();
+            assertNotNull(res[0]);
+            assertNotNull(res[1]);
+            assertNull(res[2]);
+            assertNotNull(emr.get());
+            assertEquals(res[1], "hello");
+            assertEquals(res[0], emr.get().watch);
+            assertEquals(a.ref(), emr.get().actor);
+            assertNotNull(emr.get().cause);
+            assertEquals(emr.get().cause.getClass(), InterruptedException.class);
+        } catch (final Throwable t) {
+            fail();
+        }
     }
 
     @Test

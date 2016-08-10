@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-/*
+ /*
  * Copyright (c) 2008-2013, Matthias Mann
  * All rights reserved.
  *
@@ -87,6 +87,7 @@ public class InstrumentationTask extends Task {
     private boolean allowBlocking;
     private boolean debug;
     private boolean writeClasses = true;
+    private final ArrayList<WorkListEntry> workList = new ArrayList<>();
 
     public void addFileSet(FileSet fs) {
         filesets.add(fs);
@@ -123,7 +124,7 @@ public class InstrumentationTask extends Task {
             for (FileSet fs : filesets)
                 urls.add(fs.getDir().toURI().toURL());
             final ClassLoader cl = new URLClassLoader(urls.toArray(new URL[0]), getClass().getClassLoader());
-            final QuasarInstrumentor instrumentor = new QuasarInstrumentor(true, cl, new DefaultSuspendableClassifier(cl));
+            final QuasarInstrumentor instrumentor = new QuasarInstrumentor(true);
 
             instrumentor.setCheck(check);
             instrumentor.setVerbose(verbose);
@@ -163,18 +164,19 @@ public class InstrumentationTask extends Task {
                 for (String filename : includedFiles) {
                     if (filename.endsWith(".class")) {
                         File file = new File(fs.getDir(), filename);
-                        if (file.isFile())
-                            instrumentor.checkClass(file);
-                        else
+                        if (file.isFile()) {
+                            final String className = instrumentor.checkClass(cl, file);
+                            workList.add(new WorkListEntry(className, file));
+                        } else
                             log("File not found: " + filename);
                     }
                 }
             }
 
-            instrumentor.log(LogLevel.INFO, "Instrumenting " + instrumentor.getWorkList().size() + " classes");
+            instrumentor.log(LogLevel.INFO, "Instrumenting " + workList.size() + " classes");
 
-            for (MethodDatabase.WorkListEntry f : instrumentor.getWorkList())
-                instrumentClass(instrumentor, f);
+            for (WorkListEntry f : workList)
+                instrumentClass(cl, instrumentor, f);
 
         } catch (Exception ex) {
             log(ex.getMessage());
@@ -182,12 +184,12 @@ public class InstrumentationTask extends Task {
         }
     }
 
-    private void instrumentClass(QuasarInstrumentor instrumentor, MethodDatabase.WorkListEntry entry) {
+    private void instrumentClass(ClassLoader cl, QuasarInstrumentor instrumentor, WorkListEntry entry) {
         if (!instrumentor.shouldInstrument(entry.name))
             return;
         try {
             try (FileInputStream fis = new FileInputStream(entry.file)) {
-                final byte[] newClass = instrumentor.instrumentClass(entry.name, fis);
+                final byte[] newClass = instrumentor.instrumentClass(cl, entry.name, fis);
 
                 if (writeClasses) {
                     try (FileOutputStream fos = new FileOutputStream(entry.file)) {
@@ -197,6 +199,16 @@ public class InstrumentationTask extends Task {
             }
         } catch (IOException ex) {
             throw new BuildException("Instrumenting file " + entry.file, ex);
+        }
+    }
+
+    public static class WorkListEntry {
+        public final String name;
+        public final File file;
+
+        public WorkListEntry(String name, File file) {
+            this.name = name;
+            this.file = file;
         }
     }
 }

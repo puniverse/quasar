@@ -1084,12 +1084,17 @@ public abstract class AbstractQueuedLongSynchronizer
      * you like.
      * @throws InterruptedException if the current strand is interrupted
      */
+    @Suspendable
     public final void acquireSharedInterruptibly(long arg)
-            throws InterruptedException, SuspendExecution {
-        if (Strand.interrupted())
-            throw new InterruptedException();
-        if (tryAcquireShared(arg) < 0)
-            doAcquireSharedInterruptibly(arg);
+            throws InterruptedException {
+        try {
+            if (Strand.interrupted())
+                throw new InterruptedException();
+            if (tryAcquireShared(arg) < 0)
+                doAcquireSharedInterruptibly(arg);
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
     /**
@@ -1108,12 +1113,17 @@ public abstract class AbstractQueuedLongSynchronizer
      * @return {@code true} if acquired; {@code false} if timed out
      * @throws InterruptedException if the current strand is interrupted
      */
+    @Suspendable
     public final boolean tryAcquireSharedNanos(long arg, long nanosTimeout)
-            throws InterruptedException, SuspendExecution {
-        if (Strand.interrupted())
-            throw new InterruptedException();
-        return tryAcquireShared(arg) >= 0 ||
-            doAcquireSharedNanos(arg, nanosTimeout);
+            throws InterruptedException {
+        try {
+            if (Strand.interrupted())
+                throw new InterruptedException();
+            return tryAcquireShared(arg) >= 0
+                   || doAcquireSharedNanos(arg, nanosTimeout);
+        } catch (SuspendExecution e) {
+            throw new AssertionError();
+        }
     }
 
     /**

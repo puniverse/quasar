@@ -1,3 +1,16 @@
+/*
+ * Quasar: lightweight threads and actors for the JVM.
+ * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
+ *
+ * This program and the accompanying materials are dual-licensed under
+ * either the terms of the Eclipse Public License v1.0 as published by
+ * the Eclipse Foundation
+ *
+ *   or (per the licensee's choosing)
+ *
+ * under the terms of the GNU Lesser General Public License version 3.0
+ * as published by the Free Software Foundation.
+ */
 package co.paralleluniverse.fibers.instrument;
 
 import org.objectweb.asm.ClassReader;
@@ -7,22 +20,22 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * Created by fabio on 12/13/15.
+ * @author circlespainter
  */
-public class OffsetClassReader extends ClassReader {
-    public OffsetClassReader(byte[] bytes) {
+class OffsetClassReader extends ClassReader {
+    OffsetClassReader(byte[] bytes) {
         super(bytes);
     }
 
-    public OffsetClassReader(byte[] bytes, int i, int i1) {
+    OffsetClassReader(byte[] bytes, int i, int i1) {
         super(bytes, i, i1);
     }
 
-    public OffsetClassReader(InputStream inputStream) throws IOException {
+    OffsetClassReader(InputStream inputStream) throws IOException {
         super(inputStream);
     }
 
-    public OffsetClassReader(String s) throws IOException {
+    OffsetClassReader(String s) throws IOException {
         super(s);
     }
 

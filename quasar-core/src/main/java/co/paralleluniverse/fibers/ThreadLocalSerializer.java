@@ -24,7 +24,11 @@ import java.io.Serializable;
  * @author pron
  */
 public class ThreadLocalSerializer extends Serializer<ThreadLocal<?>> {
+
     public static boolean PRINT_WARNINGS_ON_UNSERIALIZABLE_THREAD_LOCAL = false;
+
+    static final class DEFAULT implements Serializable {
+    }
 
     public ThreadLocalSerializer() {
         setImmutable(true);
@@ -34,19 +38,26 @@ public class ThreadLocalSerializer extends Serializer<ThreadLocal<?>> {
     public void write(Kryo kryo, Output output, ThreadLocal<?> tl) {
         output.writeBoolean(tl instanceof InheritableThreadLocal);
         final Object val = tl.get();
-        final boolean serializable = canSerialize(kryo, tl, val);
-        output.writeBoolean(serializable);
-        if (serializable)
+        final int pos = output.position();
+        try {
             kryo.writeClassAndObject(output, val);
+        } catch (RuntimeException e) {
+            if (PRINT_WARNINGS_ON_UNSERIALIZABLE_THREAD_LOCAL)
+                System.err.println("WARNING: Cannot serialize ThreadLocal (" + tl + " = " + val + "), it will be restored as null.");
+
+            output.setPosition(pos);
+            kryo.writeObject(output, new DEFAULT());
+        }
     }
 
     @Override
     public ThreadLocal<?> read(Kryo kryo, Input input, Class<ThreadLocal<?>> type) {
         final boolean inheritable = input.readBoolean();
         final ThreadLocal tl = inheritable ? new InheritableThreadLocal() : new ThreadLocal();
-        final boolean serializable = input.readBoolean();
-        if (serializable)
-            tl.set(kryo.readClassAndObject(input));
+
+        final Object val = kryo.readClassAndObject(input);
+        if (!(val instanceof DEFAULT))
+            tl.set(val);
         return tl;
     }
 

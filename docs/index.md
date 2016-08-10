@@ -30,6 +30,14 @@ A core component of Quasar, bytecode instrumentation, is a fork of the wonderful
 
 ## News
 
+### August 7, 2016
+
+Quasar [0.7.6](https://github.com/puniverse/quasar/releases/tag/v0.7.6) has been released.
+
+### May 2, 2016
+
+Quasar [0.7.5](https://github.com/puniverse/quasar/releases/tag/v0.7.5) has been released.
+
 ### January 18, 2016
 
 Quasar [0.7.4](https://github.com/puniverse/quasar/releases/tag/v0.7.4) has been released.
@@ -84,7 +92,14 @@ Introductory blog post: [Erlang (and Go) in Clojure (and Java), Lightweight Thre
 
 ### System Requirements
 
-Java 7 and is required to run Quasar.
+Quasar runs on Java 7 and higher.
+
+Quasar builds are tested during development in Mac OS X and Linux environments against the latest production JDK 7 and JDK 8 builds, as well as with [Travis CI](https://travis-ci.org/puniverse/quasar) using the [Trusty Beta](https://docs.travis-ci.com/user/trusty-ci-environment/) environment with the latest production JDK 7 and JDK 8 builds.
+
+As of June 20, 2016 the Travis CI build runs against Oracle's `1.7.0_80-b15` and `1.8.0_91-b14` and is known to require at least JDK 8 `1.8.0_65`.
+
+{:.alert .alert-warn}
+**Note**: We recommend using recent JDK builds as bugs in older releases can negatively affect your application.
 
 ### Using Maven/Gradle {#maven}
 
@@ -102,7 +117,7 @@ Add the following Maven/Gradle dependencies:
 
 Quasar fibers rely on bytecode instrumentation. This can be done at classloading time via a Java Agent, or at compilation time with an Ant task.
 
-#### Running the Instrumentation Java Agent
+### Running the Instrumentation Java Agent {#agent}
 
 Quasar's lightweight thread implementation relies on bytecode instrumentation. Instrumentation can be performed at compilation time (detailed below) or at runtime using a Java agent. To run the Java agent, the following must be added to the java command line (or use your favorite build tool to add this as a JVM argument):
 
@@ -110,7 +125,7 @@ Quasar's lightweight thread implementation relies on bytecode instrumentation. I
 -javaagent:path-to-quasar-jar.jar
 ~~~
 
-##### Specifying the Java Agent with Maven:
+#### Specifying the Java Agent with Maven:
 
 The best way to do this with Maven, as explained [here](http://stackoverflow.com/questions/14777909/specify-javaagent-argument-with-maven-exec-plugin), is:
 
@@ -211,7 +226,7 @@ jvmArgs "-javaagent:${configurations.quasar.iterator().next()}"
 
 A [Quasar Gradle template project](https://github.com/puniverse/quasar-gradle-template) is also available.
 
-#### Ahead-of-Time (AOT) Instrumentation {#aot}
+### Ahead-of-Time (AOT) Instrumentation {#aot}
 
 The easy and preferable way to instrument programs using Quasar is with the Java agent, which instruments code at runtime. Sometimes, however, running a Java agent is not an option.
 
@@ -223,11 +238,7 @@ Clone the repository:
 
     git clone git://github.com/puniverse/quasar.git quasar
 
-and run:
-
-    ./gradlew
-
-Or, if you have gradle installed, run:
+then [install Gradle](https://docs.gradle.org/current/userguide/installation.html) and run:
 
     gradle
 
@@ -247,7 +258,7 @@ Fibers are not meant to replace threads in all circumstances. A fiber should be 
 
 Fibers are especially useful for replacing callback-ridden asynchronous code. They allow you to enjoy the scalability and performance benefits of asynchronous code while keeping the simple to use and understand threaded model.
 
-#### Using Fibers
+### Using Fibers
 
 A fiber is represented by the [`Fiber`]({{javadoc}}/fibers/Fiber.html) class. Similarly to a thread, you spawn a fiber like so:
 
@@ -284,15 +295,15 @@ fiber @Suspendable {
 }
 ~~~
 
-#### The Fiber Scheduler and Runtime Fiber Monitoring {#runtime-monitoring}
+### The Scheduler and Monitoring {#runtime-monitoring}
 
 Fibers are scheduled by a [`FiberScheduler`]({{javadoc}}/fibers/FiberScheduler.html). When constructing a fiber, you can specify which scheduler should schedule it. If you don't a [default scheduler]({{javadoc}}/fibers/DefaultFiberScheduler.html) is used. You can set the default scheduler's properties by [setting some system properties]({{javadoc}}/fibers/DefaultFiberScheduler.html).
 
-The default scheduler is an instance of [`FiberForkJoinScheduler`]({{javadoc}}/fibers/FiberForkJoinScheduler.html) which schedules fibers in a `ForkJoinPool`. This is a high-quality work-stealing scheduler, but sometimes you might want to schedule fibers in a thread pool of your own design (or even on a particular thread (e.g. AWT/Swing's EDT). To that purpose you can use [`FiberExecutorScheduler`]({{javadoc}}/fibers/FiberExecutorScheduler.html). See [the Javadoc]({{javadoc}}/fibers/FiberExecutorScheduler.html) for details.
+The default scheduler is an instance of [`FiberForkJoinScheduler`]({{javadoc}}/fibers/FiberForkJoinScheduler.html) which schedules fibers in a `ForkJoinPool`. This is a high-quality work-stealing scheduler, but sometimes you might want to schedule fibers in a thread pool of your own design or even on a particular thread (e.g. AWT/Swing's EDT). To that purpose you can use [`FiberExecutorScheduler`]({{javadoc}}/fibers/FiberExecutorScheduler.html). See [the Javadoc]({{javadoc}}/fibers/FiberExecutorScheduler.html) for details.
 
 Every scheduler creates a [MXBean]({{javadoc}}/fibers/FibersMXBean.html) that monitors the fibers scheduled by that scheduler. The MXBean's name is `"co.paralleluniverse:type=Fibers,name=SCHEDULER_NAME"`, and you can find more details in the [Javadoc]({{javadoc}}/fibers/FibersMXBean.html).
 
-#### Runaway Fibers
+### Runaway Fibers {#runaway-fibers}
 
 A fiber that is stuck in a loop without blocking, or is blocking the thread its running on (by directly or indirectly performing a thread-blocking operation) is called a *runaway fiber*. It is *perfectly OK* for fibers to do that sporadically (as the work stealing scheduler will deal with that), but doing so frequently may severely impact system performance (as most of the scheduler's threads might be tied up by runaway fibers). Quasar detects runaway fibers, and notifies you about which fibers are problematic, whether they're blocking the thread or hogging the CPU, and gives you their stack trace, by printing this information to the console as well as reporting it to the runtime fiber monitor (exposed through a JMX MBean; see [the previous section](#runtime-monitoring)).
 
@@ -300,32 +311,54 @@ Note that this condition might happen when classes are encountered for the first
 
 If you wish to turn off runaway fiber detection, set the `co.paralleluniverse.fibers.detectRunawayFibers` system property to `"false"`.
 
-#### Thread Locals
+### "ThreadLocal"s in Fibers {#fiberlocals}
 
 Using `ThreadLocal`s in a fiber works as you'd expect – the values are local to the fiber. An `InheritableThreadLocal` inherits its value from the fiber's parent, i.e. the thread or the fiber that spawned it.
 
-#### Suspendable This, Suspendable That
+### "throws SuspendExecution" {#throws-suspend}
 
-The `run` method in `Fiber`, `SuspendableRunnable` and `SuspendableCallable` declares that it may throw a `SuspendExecution` exception. This is not a real exception, but part of the inner working of fibers. Any method that may run in a fiber and may block, declares to throw this exception or is annotated with the `@Suspendable` annotation. Such a method is called a *suspendable method*. When a method you write calls a suspendable method, it, too, is a suspendable method, and must therefore declare to throw `SuspendExecution` (if you cannot add this exception to your method's `throws` clause, say, because you're implementing an interface that does not throw it, you can annotate your method with the `@Suspendable` annotation, but this requires extra consideration; please see the [Advanced Fiber Usage](#advanced-fibers) section). Adding `SuspendExecution` to the `throws` clause is convenient because it makes the compiler force you to add the exception to any method that calls your method, which you should.
+The `run` methods in `Fiber`, `SuspendableRunnable` and `SuspendableCallable` declare that they may throw a `SuspendExecution` exception. This is not a real exception, but part of the inner working of fibers. Any method that may run in a fiber and may block, declares to throw this exception and is called a *suspendable method*. Transitively, when a method you write calls a suspendable method, it, too, becomes a suspendable method and must therefore declare to throw `SuspendExecution`. Adding `SuspendExecution` to the `throws` clause is convenient because it makes the compiler force you to add the exception to any method that calls your method, which you should.
 
-{:.alert .alert-warning}
-**Note**: Other than a few methods in the `Fiber` class that are usually only used internally, whenever you encounter a method that declares to throw `SuspendExecution`, it is safe to call to use by fibers as well as regular threads. If used in a thread, it will never actually throw a `SuspendExecution` exception, so it is best to declare a `catch(SuspendExecution e)` block when called on a regular thread, and just throw an `AssertionError`, as it should never happen.
+{:.alert .alert-info}
+**Note**: Sometimes a suspendable method can't throw `SuspendExecution` and needs to be marked suspendable in other ways (for example if you're overriding a method that doesn't declare that exception) but this needs extra consideration. See [Advanced Fibers](#advanced-fibers) for more information, including the parts about the [`@Suspendable`](#suspendable) annotation and [suspendable libraries](#suspendable-libreries).
 
-#### Synchronized Methods/Blocks in Fibers
+{:.alert .alert-info}
+**Note**: Other than a few methods in the `Fiber` class that are usually only used internally, whenever you encounter a method that declares to throw `SuspendExecution`, it is safe to call by fibers as well as by regular threads. If used in a thread, it will never actually throw a `SuspendExecution` exception, so it is best to declare a `catch(SuspendExecution e)` block when called on a regular thread, and just throw an `AssertionError`, as it should never happen.
+
+### Suspendables: special cases {#suspendables-special-cases}
+
+Quasar supports JDK's interface-based [dynamic proxies](http://docs.oracle.com/javase/7/docs/technotes/guides/reflection/proxy.html) out-of-the-box.
+
+Reflective calls are always considered suspendable. This is because the target method is computed at runtime, so there's no general way of telling if it's going to call a suspendable method or not before execution.
+
+Java 8 lambdas too are always considered suspendable. This is because they can't declare checked exceptions, they are ultimately linked (via [`invokedynamic`](http://docs.oracle.com/javase/7/docs/technotes/guides/vm/multiple-language-support.html#invokedynamic)) to synthethic static methods that can't be annotated and it is difficult to tell at instrumentation time if lambdas implement a suspendable interface.
+
+Quasar will reject with an error any attempt to mark [special methods](https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-2.html#jvms-2.9) (that is, constructors and class initializers) as suspendable. This is because suspending in an initializer could expose objects or classes before they're fully initialized and this is an error-prone, difficult-to-troubleshoot situation that can always (and must) be avoided.
+
+If you want to know more about marking methods in libraries and in the JDK as suspendable, please refer to the [suspendable libraries](#suspendable-libraries) advanced section.
+
+### "synchronized" in Fibers {#synchronized}
 
 Because `synchronized` blocks or methods block the kernel threads, by default they are not allowed in fibers. Suspendable methods that are marked `synchronized` or contain `synchronized` blocks will cause Quasar instrumentation to fail. However, Quasar can gracefully handle the occasional blocked thread, so `synchronized` methods/blocks can be allowed by passing the `m` argument to the Quasar Java agent, or by setting the `allowMonitors` property on the instrumentation Ant task.
+
+### Blocking "Thread" calls {#thread-blocking}
+
+These methods too block the kernel threads too and by default they are not allowed in fibers, causing Quasar instrumentation to fail. However, Quasar can gracefully handle these calls if they happen occasionally, so they can be allowed by passing the `b` argument to the Quasar Java agent, or by setting the `allowBlocking` property on the instrumentation Ant task.
 
 ### Strands
 
 A *strand* (represented by the [`Strand`]({{javadoc}}/strands/Strand.html) class) is an abstraction for both fibers and threads; in short – a strand is either a fiber or a thread. The `Strand` class provides many useful methods. `Strand.currentStrand()` returns the current running strand (be it a fiber or a thread); `Strand.sleep()` suspends the current strand for the given number of milliseconds; `getStackTrace` returns the current stack trace of the strand. To learn more about what operations you can perform on strands, please consult the [Javadoc]({{javadoc}}/strands/Strand.html).
 
-#### `park` and `unpark`
+### "park" and "unpark" {#park-unpark}
 
 Most importantly (though relevant only for power-users who would like to implement their own concurrency primitives, such as locks), the `Strand` class contains the methods `park` and `unpark`, that delegate to `Fiber.park` and `Fiber.unpark` methods if the strand is a fiber, or to [`LockSupport`](http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/locks/LockSupport.html)'s `park` and `unpark` methods if the strand is a thread (`LockSupport` lies at the core of all `java.util.concurrent` classes). This allows to create synchronization mechanisms that work well for both fibers and threads.
 
 Just as you almost never use `LockSupport` directly, so, too, you will never need to call `Strand.park` or `Strand.unpark`, unless you're writing your own concurrency constructs (like a new kind of lock).
 
-### Transforming any Asynchronous Callback to A Fiber-Blocking Operation
+{:.alert .alert-info}
+**Note**: only a strand (thread or fiber) can `park` itself and only another strand can `unpark` a parked one.
+
+### Any Async to Fiber-Blocking {#fiberasync}
 
 As we said above, fibers are great as a replacement for callbacks. The [FiberAsync]({{javadoc}}/fibers/FiberAsync.html) class helps us easily turn any callback-based asynchronous operation to as simple fiber-blocking call.
 
@@ -373,9 +406,9 @@ The call to `run` will block the fiber until the operation completes.
 
 Transforming asynchronous code to fiber-blocking calls has a negligible overhead both in terms of memory and performance, while making the code shorter and far simpler to understand.
 
-### Advanced Fiber Usage {#advanced-fibers}
+## Advanced Fiber Usage {#advanced-fibers}
 
-#### Fiber Internals
+### Fiber Internals {#internals}
 
 We will now cover in some depth the inner workings of Quasar fibers. You should read this section if you'd like to annotate suspendable methods with the `@Suspendable` annotation rather than by declaring `throws SuspendExecution`, or if you're just curious.
 
@@ -387,9 +420,9 @@ If `g` indeed blocks, the `SuspendExecution` exception will be caught by the `Fi
 
 This process sounds complicated, but its incurs a performance overhead of no more than 3%-5%.
 
-#### @Suspendable
+### "@Suspendable" {#suspendable}
 
-So far, our way to specify a suspendable method is by declaring it throws `SuspendExecution`. This is convenient because `SuspendExecution` is a checked exception, so if `f` calls `g` and `g` is suspendable, the Java compiler will force us to declare that `f` is suspendable (and it must be because it calls `g` and `g` might be suspended).
+So far, our way to specify a suspendable method is by declaring `throws SuspendExecution`. This is convenient because `SuspendExecution` is a checked exception, so if `f` calls `g` and `g` is suspendable, the Java compiler will force us to declare that `f` is suspendable (and it must be because it calls `g` and `g` might be suspended).
 
 Sometimes, however, we cannot declare `f` to throw `SuspendExecution`. One example is that `f` is an implementation of an interface method, and we cannot (or don't want to) change the interface so that it throws `SuspendExecution`. It is also possible that we want `f` to be run in regular threads as well as fibers.
 
@@ -426,15 +459,15 @@ public void h(I x) {
 
 First, if we want to run `h` in a fiber, then it must be suspendable because it calls `f` which is suspendable. We could designate `h` as suspendable either by annotating it with `@Suspendable` or by declaring `throws SuspendExecution` (even though `f` is not declared to throw `SuspendExecution`).
 
-When `h` is encountered by the instrumentation module, it will be instrumented because it's marked suspendable, but in order for the instrumentation to work, it needs to know of `h`'s calls to other instrumented methods. `h` calls `f`, which is suspendable, but through its interface `I`, while we've only annotated `f`'s *implementation* in class C. The instrumenter doeKotls not know that `I.f` has an implementation that might suspend.
+When `h` is encountered by the instrumentation module, it will be instrumented because it's marked suspendable, but in order for the instrumentation to work, it needs to know of `h`'s calls to other instrumented methods. `h` calls `f`, which is suspendable, but through its interface `I`, while we've only annotated `f`'s *implementation* in class C. The instrumenter does not know that `I.f` has an implementation that might suspend.
 
-Therefore, if you'd like to use the `@Suspendable` annotation, there's a step you need to add to your build step, after compilation and before creating the jar file: running the `co.paralleluniverse.fibers.instrument.SuspendablesScanner` Ant task. In Gradle it looks like this:
+Therefore, if you'd like to use the `@Suspendable` annotation, there's a step to be added to your build step, after compilation and before creating the jar file: running the `co.paralleluniverse.fibers.instrument.SuspendablesScanner` Ant task. In Gradle it looks like this:
 
 ~~~ groovy
 ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
     classpath: "build/classes/main:build/resources/main:${configurations.runtime.asPath}")
 ant.scanSuspendables(
-    auto:false,
+    auto: false,
     suspendablesFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendables",
     supersFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
     fileset(dir: sourceSets.main.output.classesDir)
@@ -449,15 +482,17 @@ Note that this has no effect on other calls to `I.f`. The instrumentation module
 
 When using [AOT instrumentation](#aot), `InstrumentationTask` must be able to find `META-INF/suspendable-supers` in its classpath.
 
-#### Automatic Instrumentation
+Of course if you don't want to use `SuspendablesScanner` you can also add entries to `META-INF/suspendable-supers` manually.
 
-Quasar supports automatic detection of suspendable methods, without manually marking them at all. The `SuspendableScanner` ant task can be configured to automatically find suspendable methods by analyzing the call graph:
+### Auto Suspendables Detection {#auto-detection}
+
+Quasar supports automatic detection of suspendable methods, without manually marking them at all. The build-time `SuspendableScanner` ant task can be configured to automatically find suspendable methods by analyzing the call graph:
 
 ~~~ groovy
 ant.taskdef(name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
     classpath: "build/classes/main:build/resources/main:${configurations.runtime.asPath}")
 ant.scanSuspendables(
-    auto:true,
+    auto: true,
     suspendablesFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendables",
     supersFile: "$sourceSets.main.output.resourcesDir/META-INF/suspendable-supers") {
     fileset(dir: sourceSets.main.output.classesDir)
@@ -468,21 +503,225 @@ This will create a `META-INF/suspendables` file containing the names of the susp
 
 When using [AOT instrumentation](#aot), `InstrumentationTask` must be able to find `META-INF/suspendables` and `META-INF/suspendable-supers` in its classpath.
 
-Automatic detection of suspendable methods is an experimental feature.
+Automatic detection of suspendable methods is currently a build-time static analysis tool, which means it must reason conservatively and so it could end up instrumenting more than necessary: for example, think of all call sites to `Runnable.run` being instrumented only because there's one suspendable implementation out of 20 that are not.
 
-#### Fiber Serialization
+### Fiber Serialization {#fiber-serialization}
 
 Fibers can be serialized while parked, and then deserialized an unparked to continue where they left off. The [`parkAndSerialize` method]({{javadoc}}/fibers/Fiber.html#parkAndSerialize(co.paralleluniverse.fibers.FiberWriter)) parks the currently running fiber, and then calls the passed callback, which can serialize the fiber (or any object graph containing the fiber) into a byte array using the supplied serializer.
 
 The [`unparkSerialized` method]({{javadoc}}/fibers//Fiber.html#unparkSerialized(byte[], co.paralleluniverse.fibers.FiberScheduler)) deserializes the serialized representation of the fiber, and unparks it. You can deserialize the byte array using the serializer returned from the [`getFiberSerializer` method]({{javadoc}}/fibers/Fiber.html#getFiberSerializer()), and pass the (uninitialized, unparked) deserialized fiber to the [`unparkDeserialized` method]({{javadoc}}/fibers/Fiber.html#unparkDeserialized(co.paralleluniverse.fibers.Fiber, co.paralleluniverse.fibers.FiberScheduler)). The latter approach is necessary if the serialized fiber is part of a bigger object graph serialized in the byte array.
 
-#### Troubleshooting Fibers {#troubleshooting}
+### Suspendables in Libraries {#suspendable-libreries}
 
-If you forget to mark a method as suspendable (with `throws SuspendExecution` or `@Suspendable`), you will encounter some strange errors. These will usually take the form of non-sensical `ClassCastException`s, `NullPointerException`s, or `SuspendExecution` being thrown. To troubleshoot those, set the value of the `co.paralleluniverse.fibers.verifyInstrumentation` system property to `true` and run your program. This will verify that all of your methods are instrumented properly, or print a warning to the console letting you know which methods that should have been marked suspendable weren't.
+Sometimes you want to use library methods that will end up calling your suspendable code, so they too must be marked suspendable and instrumented.
 
-Do not turn on `verifyInstrumentation` in production, as it will slow down your code considerably.
+If you don't own/control them or annotating them with `throws SuspendExecution` / `@Suspendable` is just impractical, you can instead list them, one method per line, in two text resources: concrete suspendable methods should appear in `META-INF/suspendables` and non-suspendable methods that could have suspendable overrides (be they concrete but non-final, interface or abstract) should appear instead in `META-INF/suspendable-supers`.
 
-### Channels {#channels}
+All entries should have the form "full.class.name.methodName" and `*` glob patterns can be used for the method part, as well as full JVM signatures (if you want to specify that only some overrides must be instrumented).
+
+`SuspendablesScanner` will automatically add your entries to its output.
+
+Methods in the `java.lang` package are dealt with by Quasar internals and it's not possible to mark them as suspendable in any way. Other JDK methods can be made explicitly suspendable by listing them in the `META-INF/suspendables` and `META-INF/suspendable-supers` resources _and_ by setting the `co.paralleluniverse.fibers.allowJdkInstrumentation` system property to `true` but there should rarely be, if ever, a need to do so. If you think you need it we suggest you first [get in touch](#getting-help) and discuss your case.
+
+### Troubleshooting Intro {#troubleshooting}
+
+Quasar relies on JVM bytecode instrumentation but there's one limitation at present: suspendable methods have to be marked before execution by analysis tools or by the developer.
+
+{:.alert .alert-info}
+**Note:** work is ongoing with the OpenJDK team that will allow to remove this restriction completely starting with a JDK9 version of Quasar: efficient, automatic runtime instrumentation will be performed at the bytecode level, that is for all code written in any JVM language, without need anymore for annotations nor instrumentation plugins.
+
+If you forget to mark a method as suspendable (with `throws SuspendExecution` or `@Suspendable` or the `META-INF/suspendables`/`META-INF/suspendable-supers` resources), you will encounter some strange or nonsensical errors, close to the point where the instrumentation missing, that can take the form of `ClassCastException`s, `NullPointerException`s, `ArrayIndexOutOfBounds` or `SuspendExecution` being thrown from within Quasar or from user code (actually they are thrown by instructions added by instrumentation that are not visible in the source code). Since an uninstrumented method lacks the ability to jump after the resume point, infinite loops are also possible.
+
+Luckily Quasar also provides a lot of troubleshooting tools that can be enabled only when needed and that will tell precisely where and why instrumentation is incomplete: we're going to cover them in the next few paragraphs.
+
+#### Catching the culprit
+
+Troubleshooting incomplete instrumentation requires the source code involved in the instrumentation issue, enabling instrumentation verification and, in few cases, enabling instrumentation traces.
+
+First set the value of the `co.paralleluniverse.fibers.verifyInstrumentation` system property to `true` and run your program. This will verify that all of your potentially suspendable calls in your suspendable-marked methods are properly instrumented, else a warning will be printed to the console letting you know which weren't.
+
+{:.alert .alert-warn}
+**Note:** do not turn on `verifyInstrumentation` in production, as it will slow down your code considerably: a warning will be printed whe the application starts in order to remind you of that.
+
+Instrumentation problems usually result from forgetting to mark methods as suspendable, but also look for `UnableToInstrumentException` stack traces: they list the methods that Quasar refused to instrument by default because of synchronization or thread-blocking `Thread` calls (see the [sections about `synchronized`](#synchronized) and [the one about blocking `Thread` calls](#thread-blocking) for information about how to override these defaults).
+
+If you still don't understand why there are uninstrumented calls or methods, you can also turn on the instrumentation traces, as well as additional checks, by adding respectively the `v`, `d` and `c` arguments to the Java agent (the corresponding [AOT instrumentation](#aot) task options are `verbose`, `debug` and `check` respectively). This will print thoroughly all the steps of Quasar's instrumentation process, including which methods calls are considered suspendable (or aren't, and why) and which are actually instrumented (or aren't, and why).
+
+Also consider that, for the sake of efficiency, Quasar will instrument a method marked as suspendable only if it can find at least one suspendable call in its body, so if a marked method is detected as uninstrumented and is not mentioned in an `UnableToInstrumentException`, then it probably means that Quasar couldn't find any suspendable call in it. This can cause several marked methods in a call chain not to be instrumented because of a "chain reaction" but instrumentation verification and instrumentation traces will expose the problem with precision.
+
+Another common reason for difficult-to-troubleshoot instrumentation issues is forgetting to mark abstract, interface or overridden methods as suspendable: if a suspendable-marked concrete method calls an unmarked "super" method, even if all its implementations (or overrides) are correctly marked as suspendable, Quasar will not be able to see that a (potentially) suspendable call is being performed.
+
+{:.alert .alert-info}
+**Note:** Quasar's' instrumentation and its diagnostic tools have been battle-tested, so while it's still possible that you've just found a bug in instrumentation or troubleshooting tools, this is quite unlikely: follow through the whole troubleshooting guide and you'll most probably find the issue very quickly. If you don't, read [Getting Help](#getting-help).
+
+### Troubleshooting Crash Course {#troubleshooting-crash-course}
+
+Let's consider the following short program:
+
+~~~ java
+public class Program {
+    public static void main(String[] args)
+      throws ExecutionException, InterruptedException {
+        final Commands c = new Commands();
+        FiberUtil.runInFiber(c::mySuspendableMethod1);
+    }
+
+    Program() throws SuspendExecution, InterruptedException {
+        Fiber.sleep(10);
+    }
+
+    private static class Commands {
+        private void mySuspendableMethod1()
+          throws SuspendExecution, InterruptedException {
+            myMarkedSyncMethod();
+            myMarkedThreadBlockingMethod();
+            myUnmarkedSuspendableMethod2();
+        }
+
+        private synchronized void myMarkedSyncMethod()
+          throws SuspendExecution, InterruptedException {
+            Fiber.sleep(10);
+        }
+
+        private void myMarkedThreadBlockingMethod()
+          throws SuspendExecution, InterruptedException {
+            Thread.sleep(10);
+        }
+
+        private void myUnmarkedSuspendableMethod2() {
+            mySuspendableMethod3();
+        }
+
+        interface MyUnmarkedInterface {
+            void myUnmarkedSuspendableInterfaceMethod();
+        }
+
+        @Suspendable
+        private void mySuspendableMethod3() {
+            MyUnmarkedInterface i = init();
+            i.myUnmarkedSuspendableInterfaceMethod();
+        }
+
+        private MyUnmarkedInterface init() {
+            return new MyUnmarkedInterface() {
+                @Override
+                @Suspendable
+                public void myUnmarkedSuspendableInterfaceMethod() {
+                    try {
+                        Fiber.sleep(10);
+                    } catch (Throwable t) {
+                        Exceptions.rethrow(t);
+                    }
+                }
+            };
+        }
+    }
+}
+~~~
+
+When you run the program it just seems to get stuck, so let's see if there are instrumentation-related issues and let's fix them.
+
+{:.alert .alert-info}
+**Note:** Quasar works at the JVM bytecode level so its diagnostic messages use JVM terminology and notation rather than Java's. You'll familiarize very quickly with them, the most unusual notation being probably [JVM type signaturess](http://docs.oracle.com/javase/8/docs/technotes/guides/jni/spec/types.html).
+
+Quasar will alert you very soon after the application starts (on `stderr`) that some methods that can't be instrumented:
+
+~~~
+co.paralleluniverse.fibers.instrument.UnableToInstrumentException:
+         Unable to instrument test/troubleshooting/Program#<init>()V
+         because of special method
+...
+co.paralleluniverse.fibers.instrument.UnableToInstrumentException:
+         Unable to instrument test/troubleshooting/Program$Commands#myMarkedSyncMethod()V
+         because of synchronization
+~~~
+
+For now we'll fix that by simply removing the (unused) constructor and by removing the `synchronized` modifier but in real situations the constructor's suspendable parts would probable become a (suspendable) initialization method; as for `synchronized` methods (and/or blocks) there are several options, for example using [Quasar's port of `java.util.concurrent`](http://docs.paralleluniverse.co/quasar/javadoc/co/paralleluniverse/strands/concurrent/package-frame.html) instead, or just telling Quasar to instrument them anyway through the `m` agent argument (but do that only if you're sure that the lock will be held for a very short time).
+
+After doing that, a new run yields:
+
+~~~
+o.paralleluniverse.fibers.instrument.UnableToInstrumentException:
+         Unable to instrument
+         test/troubleshooting/Program$Commands#myMarkedThreadBlockingMethod()V
+         because of blocking call to java/lang/Thread#sleep(J)V
+~~~
+
+We'll solve this further problem by Using `Strand.sleep` instead, which works for both fibers and threads (another option is telling Quasar to instrument anyway via the `b` agent argument but do that only if you're sure that the thread will block for a very short time).
+
+When we run again there are no message errors but the program still hangs, so it's time to turn on instrumentation verification by adding the `-Dco.paralleluniverse.fibers.verifyInstrumentation=true` command line option.
+
+Now an interesting verification stacktrace is getting printed over and over (which also tells us that a fiber can't resume correctly after suspending, and instead some uninstrumented method is being restarted). This is the verification stacktrace:
+
+~~~
+[quasar] WARNING: Uninstrumented methods (marked '**') or call-sites (marked '!!')
+         detected on the call stack:
+      at co.paralleluniverse.common.util.ExtendedStackTrace.here
+              (ExtendedStackTrace.java:44 bci: 8)
+      at co.paralleluniverse.fibers.Fiber.checkInstrumentation (Fiber.java:1668 bci: 0)
+      at co.paralleluniverse.fibers.Fiber.verifySuspend (Fiber.java:1641 bci: 6)
+      at co.paralleluniverse.fibers.Fiber.verifySuspend (Fiber.java:1636 bci: 3)
+      at co.paralleluniverse.fibers.Fiber.sleep (Fiber.java:672 bci: 0)
+      at co.paralleluniverse.fibers.Fiber.sleep (Fiber.java:664 bci: 4)
+
+      at test.troubleshooting.Program$Commands$1.myUnmarkedSuspendableInterfaceMethod)
+              (Program.java:57 bci: 72)
+      at test.troubleshooting.Program$Commands.mySuspendableMethod3)
+              (Program.java:48 bci: 6) **
+      at test.troubleshooting.Program$Commands.myUnmarkedSuspendableMethod2
+              (Program.java:38 bci: 1) **
+      at test.troubleshooting.Program$Commands.mySuspendableMethod1
+              (Program.java:24 bci: 110) !! (instrumented suspendable calls at: [23, 24])
+      at test.troubleshooting.Program$Commands.access$100
+              (Program.java:19 bci: 1) (optimized)
+      at test.troubleshooting.Program.lambda$main$dedc733e$1
+              (Program.java:16 bci: 1) (optimized)
+
+      at co.paralleluniverse.strands.SuspendableUtils$VoidSuspendableCallable.run
+              (SuspendableUtils.java:44 bci: 4)
+      at co.paralleluniverse.strands.SuspendableUtils$VoidSuspendableCallable.run
+              (SuspendableUtils.java:32 bci: 1)
+      at co.paralleluniverse.fibers.Fiber.run (Fiber.java:1072 bci: 11)
+      at co.paralleluniverse.fibers.Fiber.run1 (Fiber.java:1067 bci: 1)
+~~~
+
+The verification is telling us that `mySuspendable1` is partially instrumented, and specifically the call to `myUnmarkedSuspendableMethod2` is not instrumented. Well, since `myUnmarkedSuspendableMethod2` is not marked as suspendable (and is thus also fully uninstrumented) this shouldn't come as a surprise: let's add `@Suspendable` to `myUnmarkedSuspendableMethod2`.
+
+It tells us that `mySuspendableMethod3` is not instrumented at all either. Why is that, considering that it calls a method of an anonymous implementation of `MyUnmarkedInterface` that seems correctly instrumented? This is because it calls it through its interface type, which is unmarked instead, so Quasar doesn't know that the call must be instrumented. In addition, there are no other suspendable calls in `mySuspendable3` so it doesn't get instrumented at all. Indeed, if we turn on the instrumentation trace by adding the `=vdc` suffix to the agent before fixing that, we see that Quasar doesn't find any suspendable calls in `mySuspendableMethod3`:
+
+~~~
+[quasar] INFO: Method test/troubleshooting/Program$Commands#mySuspendableMethod3
+               suspendable: SUSPENDABLE (markedSuspendable: SUSPENDABLE setSuspendable: null)
+...
+[quasar] INFO: About to instrument method
+               test/troubleshooting/Program$Commands#mySuspendableMethod3()V
+[quasar] INFO: Reading class: test/troubleshooting/Program$Commands$MyUnmarkedInterface
+[quasar] INFO: Nothing to instrument in method
+               test/troubleshooting/Program$Commands#mySuspendableMethod3()V
+~~~
+
+We're going to fix that by adding `@Suspendable` to `MyUnmarkedInterface.myUnmarkedSuspendableInterfaceMethod()` as well. Afterwards a new run will now go through and complete without any errors. Well done!
+
+### Manual troubleshooting {#troubleshooting-manual}
+
+You can also verify instrumentation manually by checking the code mentioned in the stack trace of the "strange" exception, proceeding from top to bottom, possibly with the help of instrumentation traces. If your program gets stuck instead, try to figure out with a [debugger](#debugging) where there's a restarting method and use that stack as a reference. If you can't find the culprit then consider [asking for help](#getting-help).
+
+### Debugging {#debugging}
+
+Since Quasar fibers are scheduled on threads and have a stack, they can be debugged just like Java threads and this makes things much easier compared to, for example, async APIs. Sometimes, due to extra calls inserted during instrumentation and not present in the source code, if you step while debugging you could enter `Stack` methods or other Quasar internal methods: in these cases just add a breakpoint to the next user code line you're interested in and continue execution.
+
+{:.alert .alert-info}
+**Note:** in the future Quasar will also offer specific debugging support to increase debugging ergonomy and comfort in such circumstances.
+
+### Getting Help {#getting-help}
+
+If you're stuck with an instrumentation issue you don't understand, for example there are uninstrumented methods and/or call sites but you can't understand why or you get strange exceptions without any uninstrumented reports, don't hesitate to reach out to the [Quasar/Pulsar user group](https://groups.google.com/forum/#!forum/quasar-pulsar-user) and, if possible, provide a small project including the build and run commands as well as minimal (as much as possible) code that reproduces the problem, together with the instrumentation verification stacktrace(s) (if any) and/or "strange" exception stacktraces. If you can't post the information publicly then consider reaching out to the Quasar team members with a private email.
+
+As a last choice, share only the information you can but consider that this could make finding the problem harder: as we've just seen, effective instrumentation troubleshooting usually requires at least the involved code and instrumentation verification stacktraces.
+
+If you're fairly sure you found a bug then don't hesitate to open a [new GitHub issue](https://github.com/puniverse/quasar/issues/new) but don't forget to first search the user group and [the already open tickets](https://github.com/puniverse/quasar/issues) for problems similar to yours.
+
+## Channels {#channels}
 
 Channels are queues used to pass messages between strands (remember, strands are a general name for threads and fibers). If you are familiar with Go, Quasar channels are like Go channels.
 
@@ -490,7 +729,7 @@ A [channel]({{javadoc}}/strands/channels/Channel.html) is an interface that exte
 
 Channels are normally created by calling any of the `newChannel` static methods of the [`Channels`]({{javadoc}}/strands/channels/Channels.html) class. The `newChannel` methods create a channel with a specified set of properties. Those properties are:
 
-* `bufferSize` – if positive, the number of messages that the channel can hold in an internal buffer; `0` for a *transfer* channel, i.e. a channel with no internal buffer. or `-1` for a channel with an unbounded (infinite) buffer.
+* `bufferSize`     – if positive, the number of messages that the channel can hold in an internal buffer; `0` for a *transfer* channel, i.e. a channel with no internal buffer. or `-1` for a channel with an unbounded (infinite) buffer.
 * `policy`         – the [`OverflowPolicy`]({{javadoc}}/strands/channels/OverflowPolicy.html) specifying how the channel (if bounded) will behave if its internal buffer overflows.
 * `singleProducer` – whether the channel will be used by a single producer strand.
 * `singleConsumer` – whether the channel will be used by a single consumer strand.
@@ -520,7 +759,7 @@ A channel created with the `DISPLACE` overflow policy is called a *ticker channe
 
 The ticker channel is useful when a program component continually broadcasts some information. The size channel's circular buffer, its "screen" if you like, gives the subscribers some leeway if they occasionally fall behind reading.
 
-A ticker channel is single-consumer, i.e. only one strand is allowed to consume messages from the channel. On the other hand, it is possible, and useful, to create several views of the channel, each used by a different consumer strand. A view (which is of type [`TickerChannelConsumer`]({{javadoc}}/strands/channels/TickerChannelConsumer.html) is created with the [`Channels.newTickerConsumerFor`]({{javadoc}}/strands/channels/Channels.html#newTickerConsumerFor(Channel)) method.
+A ticker channel is single-consumer, i.e. only one strand is allowed to consume messages from the channel. On the other hand, it is possible, and useful, to create several views of the channel, each used by a different consumer strand. A view (which is of type [`TickerChannelConsumer`]({{javadoc}}/strands/channels/TickerChannelConsumer.html)) is created with the [`Channels.newTickerConsumerFor`]({{javadoc}}/strands/channels/Channels.html#newTickerConsumerFor(Channel)) method.
 
 The method returns a `ReceivePort` that can be used to receive messages from `channel`. Each ticker-consumer will yield monotonic messages, namely no message will be received more than once, and the messages will be received in the order they're sent, but if the consumer is too slow, messages could be lost.
 
@@ -602,7 +841,7 @@ assertTrue (
 )}
 ~~~
 
-## Dataflow (Reactive) Programming
+## Dataflow (Reactive) {#dataflow-reactive-programming}
 
 Dataflow, or reactive programming, is a computation described by composing variables whose value may be set (and possibly changed) at any given time, without concern for when these values are set. Quasar provides two dataflow primitives: [`Val`]({{javadoc}}/strands/dataflow/Val.html) and [`Var`]({{javadoc}}/strands/dataflow/Var.html) in the `co.paralleluniverse.strands.dataflow` package.
 
@@ -755,10 +994,12 @@ ComplexMessage m = receive(new MessageProcessor<ComplexMessage, ComplexMessage>(
     });
 ~~~
 
-will only return a message whose `type` value is `FOO` or `BAR`, but not `BAZ`. If a message of type `BAZ` is found in the mailbox, it
-will remain there and be skipped, until it is selected by a subsequent call to `receive` (selective or plain).
+will only return a message whose `type` value is `FOO` or `BAR`, but not `BAZ`. If a message of type `BAZ` is found in the mailbox, it will remain there and be skipped, until it is selected by a subsequent call to `receive` (selective or plain).
 
-`MessageProcessor.process` can also process the message inline (rather than have it processed by the caller to `receive`), and even call a nested `receive:
+{:.alert .alert-warn}
+**Note**: Selective receives always defer exit messages produced by [watches](#linking-and-watching-actors) to subsequent plain `receive` calls.
+
+`MessageProcessor.process` can also process the message inline (rather than have it processed by the caller to `receive`), and even call a nested `receive`:
 
 ~~~ java
 protected List<Integer> doRun() throws SuspendExecution, InterruptedException {
@@ -799,7 +1040,7 @@ protected List<Integer> doRun() throws SuspendExecution, InterruptedException {
 If a `FOO` is received first, then the next `BAZ` will be added to the list following the `FOO`, even if a `BAR` is found in the mailbox after the `FOO`, because the nested receive in the `case FOO:` clause selects only a `BAZ` message.
 
 {:.alert .alert-info}
-**Note**: `MessageProcessor` will become much less cumbersome in Java 8 with the introduction of lambda expressions.
+**Note**: `MessageProcessor` is much more compact in Java 8 when using lambda expressions.
 
 {:.alert .alert-info}
 **Note**: A simple, fluent API for selecting messages based on simple criteria is provided by the [`MessageSelector`]({{javadoc}}/actors/behaviors/MessageSelector.html) class (in the `co.paralleluniverse.actors.behaviors`) package.
@@ -920,6 +1161,9 @@ or by providing an instance of [`ServerHandler`]({{javadoc}}/actors/behaviors/Se
 
 The interface, [`Server`]({{javadoc}}/actors/behaviors/Server.html), adds additional methods to `ActorRef`, such as `call` and `cast`, that allow sending synchronous (a request that waits for a response) or asynchronous (a request that does not wait for a response) requests to the server actor.
 
+{:.alert .alert-warn}
+**Note**: `call` always defer exit messages produced by [watches](#linking-and-watching-actors) to subsequent plain `receive` calls.
+
 #### Proxy Server
 
 Because the server behavior implements a useful and common synchronous request-reply pattern, and because this pattern is natively supported by Java in the form of a method call, Quasar includes an implementation of a server actor that uses the method call syntax: [`ProxyServerActor`]({{javadoc}}/actors/behaviors/ServerHandler.html). Instead of defining message classes manually, a proxy server has an `ActorRef` that directly implements one or more interfaces; calling their methods automatically generates messages that are sent to the server actor, which then responds to the requests by calling the respective method on a given *target* object. This way, a server request becomes a simple method call. Note that the actor semantics are preserved: the target object's methods are all run on a single strand, so there is no need to account for concurrent calls.
@@ -973,13 +1217,13 @@ The event-source behavior is an actor that can be notified of *event* messages, 
 
 To create an event source actor, simply construct an instance of the [`EventSourceActor`]({{javadoc}}/actors/behaviors/EventSourceActor.html) class. Event handlers are instances of [`EventHandler`]({{javadoc}}/actors/behaviors/EventHandler.html). Event handlers can be registered or unregistered with the actor, and events sent to the actor, through the behavior's interface, the [`EventSource`]({{javadoc}}/actors/behaviors/EventSource.html) class.
 
-Event handlers are called synchronously on the same strand as the actor's, so they may delay processing by other handlers if they block the strand.
+Event handlers are called synchronously on the same strand as the actor's and _should not_ block the strand.
 
 #### FiniteStateMachineActor
 
 The finite-state-machine behavior is an actor that switches among a set of states and behaves differently in each.
 
-To create a finite state machine actor, simply construct an instance of the 
+To create a finite state machine actor, simply construct an instance of the
 [`FiniteStateMachineActor`]({{javadoc}}/actors/behaviors/FiniteStateMachineActor.html) class. Each of the actor's states is represented by a `SuspendableCallable` implementation returning the next state, or the special `FiniteStateMachineActor.TERMINATE` state to terminate the actor. You need to override the `initialState` method so that it returns the actor's initial state. This class is best enjoyed using Java 8 lambda syntax, as in the following example:
 
 ~~~ Java
@@ -1170,7 +1414,6 @@ For examples of using Quasar, you can take a look at Quasar's test suite.
 * [EventSource tests](https://github.com/puniverse/quasar/blob/master/quasar-actors/src/test/java/co/paralleluniverse/actors/behaviors/EventSourceTest.java)
 * [Supervisor tests](https://github.com/puniverse/quasar/blob/master/quasar-actors/src/test/java/co/paralleluniverse/actors/behaviors/SupervisorTest.java)
 * [Reactive Streams tests](https://github.com/puniverse/quasar/blob/master/quasar-reactive-streams/src/test/java/co/paralleluniverse/strands/channels/reactivestreams/TwoSidedTest.java)
-
 
 ### Distributed Examples
 

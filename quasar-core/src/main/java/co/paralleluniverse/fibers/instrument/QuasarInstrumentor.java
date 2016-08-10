@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -13,97 +13,106 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-// import co.paralleluniverse.common.reflection.ReflectionUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.common.util.VisibleForTesting;
-import co.paralleluniverse.fibers.instrument.MethodDatabase.WorkListEntry;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.util.CheckClassAdapter;
+import org.objectweb.asm.util.TraceClassVisitor;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.Date;
-
-import com.google.common.io.ByteStreams;
-import org.objectweb.asm.*;
-import org.objectweb.asm.util.CheckClassAdapter;
-import org.objectweb.asm.util.TraceClassVisitor;
+import java.util.WeakHashMap;
 
 /**
  * @author pron
  */
 public final class QuasarInstrumentor {
+    @SuppressWarnings("WeakerAccess")
     public static final int ASMAPI = Opcodes.ASM5;
+
     /* private */ final static String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClassesStartingWith");
     private static final boolean allowJdkInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.allowJdkInstrumentation");
-    private final MethodDatabase db;
+    private WeakHashMap<ClassLoader, MethodDatabase> dbForClassloader = new WeakHashMap<>();
     private boolean check;
     private final boolean aot;
+    private boolean allowMonitors;
+    private boolean allowBlocking;
+    private Log log;
+    private boolean verbose;
+    private boolean debug;
+    private int logLevelMask;
 
-    public QuasarInstrumentor(boolean aot, ClassLoader classLoader, SuspendableClassifier classifier) {
-        this.db = new MethodDatabase(classLoader, classifier);
+    public QuasarInstrumentor() {
+        this(false);
+    }
+
+    public QuasarInstrumentor(boolean aot) {
         this.aot = aot;
+        setLogLevelMask();
     }
 
-    /** @noinspection unused*/
-    public QuasarInstrumentor(ClassLoader classLoader, SuspendableClassifier classifier) {
-        this(false, classLoader, classifier);
-    }
-
-    public QuasarInstrumentor(boolean aot, ClassLoader classLoader) {
-        this(aot, classLoader, new DefaultSuspendableClassifier(classLoader));
-    }
-
-    public QuasarInstrumentor(ClassLoader classLoader) {
-        this(false, classLoader, new DefaultSuspendableClassifier(classLoader));
-    }
-
-    /** @noinspection unused*/
+    @SuppressWarnings("unused")
     public boolean isAOT() {
         return aot;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public boolean shouldInstrument(String className) {
-        className = className.replace('.', '/');
-        return
-            !(className.startsWith("co/paralleluniverse/fibers/instrument/") &&
-            !Debug.isUnitTest()) &&
-                !(className.equals(Classes.FIBER_CLASS_NAME) ||
-                  className.startsWith(Classes.FIBER_CLASS_NAME + '$')) &&
-            !className.equals(Classes.STACK_NAME) &&
-            !className.startsWith("org/objectweb/asm/") &&
-            !className.startsWith("org/netbeans/lib/") &&
-            !(className.startsWith("java/lang/") ||
-                (!allowJdkInstrumentation && MethodDatabase.isJavaCore(className)));
+        if (className != null) {
+            className = className.replace('.', '/');
+            return
+                !(className.startsWith("co/paralleluniverse/fibers/instrument/") &&
+                    !Debug.isUnitTest()) &&
+                    !(className.equals(Classes.FIBER_CLASS_NAME) ||
+                        className.startsWith(Classes.FIBER_CLASS_NAME + '$')) &&
+                    !className.equals(Classes.STACK_NAME) &&
+                    !className.startsWith("org/objectweb/asm/") &&
+                    !className.startsWith("org/netbeans/lib/") &&
+                    !(className.startsWith("java/lang/") ||
+                        (!allowJdkInstrumentation && MethodDatabase.isJDK(className)));
+        }
+        return true;
     }
 
-    public byte[] instrumentClass(String className, byte[] data) throws IOException {
-        className = className.replace('.', '/');
+    @SuppressWarnings("WeakerAccess")
+    public byte[] instrumentClass(ClassLoader loader, String className, byte[] data) throws IOException {
         try (final InputStream is = new ByteArrayInputStream(data)) {
-            return shouldInstrument(className) ? instrumentClass(className, is, false) : data;
+            return shouldInstrument(className) ? instrumentClass(loader, className, is, false) : data;
         }
     }
 
-    public byte[] instrumentClass(String className, InputStream is) throws IOException {
-        className = className.replace('.', '/');
-        return instrumentClass(className, is, false);
+    @SuppressWarnings("WeakerAccess")
+    public byte[] instrumentClass(ClassLoader loader, String className, InputStream is) throws IOException {
+        return instrumentClass(loader, className, is, false);
     }
 
     @VisibleForTesting
-    public byte[] instrumentClass(String className, InputStream is, boolean forceInstrumentation) throws IOException {
-        className = className.replace('.', '/');
+    byte[] instrumentClass(ClassLoader loader, String className, InputStream is, boolean forceInstrumentation) throws IOException {
+        className = className != null ? className.replace('.', '/') : null;
 
-        byte[] cb = ByteStreams.toByteArray(is);
+        byte[] cb = toByteArray(is);
 
-        // DEBUG
-        if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS)) {
-            writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-1.class", cb);
-            // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
+        MethodDatabase db = getMethodDatabase(loader);
+
+        if (className != null) {
+            log(LogLevel.INFO, "TRANSFORM: %s %s", className,
+                (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
+
+            // DEBUG
+            if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS)) {
+                writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-1-preinstr.class", cb);
+                // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
+            }
+        } else {
+            log(LogLevel.INFO, "TRANSFORM: null className");
         }
-
-        log(LogLevel.INFO, "TRANSFORM: %s %s", className, (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
 
         // Phase 1, add a label before any suspendable calls, event API is enough
         final ClassReader r1 = new ClassReader(cb);
@@ -113,7 +122,7 @@ public final class QuasarInstrumentor {
         cb = cw1.toByteArray();
 
         // DEBUG
-        if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS)) {
+        if (EXAMINED_CLASS != null && className != null && className.startsWith(EXAMINED_CLASS)) {
             writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-2.class", cb);
             // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
         }
@@ -126,7 +135,7 @@ public final class QuasarInstrumentor {
         cb = cw2.toByteArray(); // Class not really touched, just convenience
 
         // DEBUG
-        if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS)) {
+        if (EXAMINED_CLASS != null && className != null && className.startsWith(EXAMINED_CLASS)) {
             writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-3.class", cb);
             // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
         }
@@ -151,7 +160,7 @@ public final class QuasarInstrumentor {
         }
 
         // DEBUG
-        if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS)) {
+        if (EXAMINED_CLASS != null && className != null && className.startsWith(EXAMINED_CLASS)) {
             writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-4.class", cb);
             // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
         }
@@ -165,7 +174,7 @@ public final class QuasarInstrumentor {
 
         // DEBUG
         if (EXAMINED_CLASS != null) {
-            if (className.startsWith(EXAMINED_CLASS))
+            if (className != null && className.startsWith(EXAMINED_CLASS))
                 writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-5-final.class", cb);
 
             if (check) {
@@ -178,8 +187,16 @@ public final class QuasarInstrumentor {
         return cb;
     }
 
-    public MethodDatabase getMethodDatabase() {
-        return db;
+    @SuppressWarnings("WeakerAccess")
+    public synchronized MethodDatabase getMethodDatabase(ClassLoader loader) {
+        if (loader == null)
+            throw new IllegalArgumentException();
+        if (!dbForClassloader.containsKey(loader)) {
+            MethodDatabase newDb = new MethodDatabase(this, loader, new DefaultSuspendableClassifier(loader));
+            dbForClassloader.put(loader, newDb);
+            return newDb;
+        } else
+            return dbForClassloader.get(loader);
     }
 
     public QuasarInstrumentor setCheck(boolean check) {
@@ -187,62 +204,110 @@ public final class QuasarInstrumentor {
         return this;
     }
 
-    public QuasarInstrumentor setAllowMonitors(boolean allowMonitors) {
-        db.setAllowMonitors(allowMonitors);
+    @SuppressWarnings("WeakerAccess")
+    public synchronized boolean isAllowMonitors() {
+        return allowMonitors;
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    public synchronized QuasarInstrumentor setAllowMonitors(boolean allowMonitors) {
+        this.allowMonitors = allowMonitors;
         return this;
     }
 
-    public QuasarInstrumentor setAllowBlocking(boolean allowBlocking) {
-        db.setAllowBlocking(allowBlocking);
+    @SuppressWarnings("WeakerAccess")
+    public synchronized boolean isAllowBlocking() {
+        return allowBlocking;
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    public synchronized QuasarInstrumentor setAllowBlocking(boolean allowBlocking) {
+        this.allowBlocking = allowBlocking;
         return this;
     }
 
-    public QuasarInstrumentor setLog(Log log) {
-        db.setLog(log);
+    public synchronized QuasarInstrumentor setLog(Log log) {
+        this.log = log;
+//        for (MethodDatabase db : dbForClassloader.values()) {
+//            db.setLog(log);
+//        }
         return this;
     }
 
-    public QuasarInstrumentor setVerbose(boolean verbose) {
-        db.setVerbose(verbose);
-        return this;
+    public Log getLog() {
+        return log;
     }
 
-    public QuasarInstrumentor setDebug(boolean debug) {
-        db.setDebug(debug);
-        return this;
+    @SuppressWarnings("WeakerAccess")
+    public synchronized boolean isVerbose() {
+        return verbose;
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    public synchronized void setVerbose(boolean verbose) {
+        this.verbose = verbose;
+        setLogLevelMask();
+    }
+
+    public synchronized boolean isDebug() {
+        return debug;
+    }
+
+    public synchronized void setDebug(boolean debug) {
+        this.debug = debug;
+        setLogLevelMask();
+    }
+
+    private synchronized void setLogLevelMask() {
+        logLevelMask = (1 << LogLevel.WARNING.ordinal());
+        if (verbose || debug)
+            logLevelMask |= (1 << LogLevel.INFO.ordinal());
+        if (debug)
+            logLevelMask |= (1 << LogLevel.DEBUG.ordinal());
     }
 
     public void log(LogLevel level, String msg, Object... args) {
-        db.log(level, msg, args);
+        if (log != null && (logLevelMask & (1 << level.ordinal())) != 0)
+            log.log(level, msg, args);
     }
 
     public void error(String msg, Throwable ex) {
-        db.error(msg, ex);
+        if (log != null)
+            log.error(msg, ex);
     }
 
-    public ArrayList<WorkListEntry> getWorkList() {
-        return db.getWorkList();
-    }
-
-    public void checkClass(File f) {
-        db.checkClass(f);
+    String checkClass(ClassLoader cl, File f) {
+        return getMethodDatabase(cl).checkClass(f);
     }
 
     /* private */ static void writeToFile(String name, byte[] data) {
         try (OutputStream os = Files.newOutputStream(Paths.get(name), StandardOpenOption.CREATE_NEW)) {
             os.write(data);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    /*
-    private static byte[] getClassBuffer(ClassReader r) {
-        try {
-            return (byte[]) ReflectionUtil.accessible(ClassReader.class.getDeclaredField("b")).get(r);
-        } catch (ReflectiveOperationException e) {
-            throw new AssertionError(e);
-        }
+    private static byte[] toByteArray(InputStream in) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        copy(in, out);
+        return out.toByteArray();
     }
-    */
+
+    private static final int BUF_SIZE = 8192;
+
+    private static long copy(InputStream from, OutputStream to)
+        throws IOException {
+        byte[] buf = new byte[BUF_SIZE];
+        long total = 0;
+        while (true) {
+            int r = from.read(buf);
+            if (r == -1) {
+                break;
+            }
+            to.write(buf, 0, r);
+            total += r;
+        }
+        return total;
+    }
 }

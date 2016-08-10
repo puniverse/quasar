@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -245,7 +245,8 @@ public class FiberForkJoinScheduler extends FiberScheduler {
             this.fjPool = fjPool;
         }
 
-        Fiber getFiber() {
+        @Override
+        public Fiber<V> getFiber() {
             return fiber;
         }
 
@@ -276,8 +277,8 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         }
 
         @Override
-        public void unpark(Object unblocker) {
-            super.unpark(unblocker == FiberTask.EMERGENCY_UNBLOCKER ? ParkableForkJoinTask.EMERGENCY_UNBLOCKER : unblocker);
+        public boolean unpark(Object unblocker) {
+            return super.unpark(unblocker == FiberTask.EMERGENCY_UNBLOCKER ? ParkableForkJoinTask.EMERGENCY_UNBLOCKER : unblocker);
         }
 
         @Override
@@ -328,13 +329,10 @@ public class FiberForkJoinScheduler extends FiberScheduler {
 
         @Override
         protected void onException(Throwable t) {
-            fiber.onException(t);
         }
 
         @Override
         protected void onCompletion(boolean res) {
-            if (res)
-                fiber.onCompletion();
         }
 
         static boolean isIdle() {

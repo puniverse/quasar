@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -22,13 +22,16 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-interface FiberTask<V> extends Future<V> {
+interface FiberTask<V> extends Future<V>, FiberSchedulerTask {
     public static final Object EMERGENCY_UNBLOCKER = new Object();
     public static final int RUNNABLE = 0;
     public static final int LEASED = 1;
     public static final int PARKED = -1;
     public static final int PARKING = -2;
 
+    @Override
+    Fiber<V> getFiber();
+    
     boolean doExec();
     
     @Override
@@ -52,9 +55,9 @@ interface FiberTask<V> extends Future<V> {
 
     void doPark(boolean yield);
 
-    void unpark();
+    boolean unpark();
 
-    void unpark(Object unblocker);
+    boolean unpark(Object unblocker);
 
     boolean tryUnpark(Object unblocker);
 

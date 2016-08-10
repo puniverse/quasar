@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -26,11 +26,11 @@ import java.util.concurrent.TimeUnit
  *
  * @author circlespainter
  */
-public class ControlFlowTest {
+class ControlFlowTest {
     private val scheduler = FiberForkJoinScheduler("test", 4, null, false);
 
     @Test
-    public fun testForAndWhile() {
+    fun testForAndWhile() {
         val ch = Channels.newIntChannel(0);
         val vals = listOf(0, 1)
         val fiberSend = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
@@ -52,7 +52,7 @@ public class ControlFlowTest {
     }
 
     @Test
-    public fun testWhen() {
+    fun testWhen() {
         val ch = Channels.newIntChannel(0);
         val vals = listOf(1, 101)
         val fiberSend = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
@@ -82,7 +82,7 @@ public class ControlFlowTest {
     }
 
     @Test
-    public fun testHOFun() {
+    fun testHOFun() {
         val ch = Channels.newIntChannel(0);
         val vals = listOf(0, 1)
         val fiberSend = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {

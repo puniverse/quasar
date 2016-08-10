@@ -99,7 +99,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
 
             if (mbs.isRegistered(mxbeanName)) {
                 try {
-                    LOG.info("MBean named {} is alreasdy registered. Unregistering it.", name);
+                    LOG.info("MBean named {} is already registered. Unregistering it.", name);
                     mbs.unregisterMBean(mxbeanName);
                 } catch (InstanceNotFoundException e) {
                 }
@@ -162,7 +162,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
     }
 
     protected void collect(long intervalNanos) {
-        messages = messageCounter;
+        messages += messageCounter;
     }
 
     protected void reset() {

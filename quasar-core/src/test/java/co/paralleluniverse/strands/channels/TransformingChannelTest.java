@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -15,10 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 import static co.paralleluniverse.common.test.Matchers.*;
 import co.paralleluniverse.common.test.TestUtil;
-import co.paralleluniverse.common.util.Action2;
-import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Function2;
-import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
@@ -30,7 +27,6 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
-import co.paralleluniverse.strands.queues.QueueCapacityExceededException;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import java.util.ArrayList;
@@ -43,7 +39,6 @@ import org.junit.After;
 import static org.junit.Assert.*;
 import static org.junit.Assume.*;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -57,6 +52,8 @@ import org.junit.runners.Parameterized;
  */
 @RunWith(Parameterized.class)
 public class TransformingChannelTest {
+    private static final Object GO = new Object();
+
     @Rule
     public TestName name = new TestName();
     @Rule
@@ -355,20 +352,25 @@ public class TransformingChannelTest {
     public void testFilterWithTimeouts() throws Exception {
         final Channel<Integer> ch = newChannel();
 
-        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+        final Channel<Object> sync = Channels.newChannel(0);
+
+        final Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                ReceivePort<Integer> ch1 = Channels.filter((ReceivePort<Integer>) ch, new Predicate<Integer>() {
+                final ReceivePort<Integer> ch1 = Channels.filter((ReceivePort<Integer>) ch, new Predicate<Integer>() {
                     @Override
                     public boolean apply(Integer input) {
                         return input % 2 == 0;
                     }
                 });
 
-                Integer m1 = ch1.receive();
-                Integer m0 = ch1.receive(30, TimeUnit.MILLISECONDS);
-                Integer m2 = ch1.receive(50, TimeUnit.MILLISECONDS);
-                Integer m3 = ch1.receive();
+                sync.receive(); // 0
+                final Integer m1 = ch1.receive(200, TimeUnit.MILLISECONDS);
+
+                sync.receive(); // 1
+                final Integer m0 = ch1.receive(10, TimeUnit.MILLISECONDS);
+                final Integer m2 = ch1.receive(190, TimeUnit.MILLISECONDS);
+                final Integer m3 = ch1.receive(30, TimeUnit.MILLISECONDS);
 
                 assertThat(m1, equalTo(2));
                 assertThat(m0, is(nullValue()));
@@ -377,13 +379,17 @@ public class TransformingChannelTest {
             }
         }).start();
 
+        sync.send(GO); // 0
         Strand.sleep(50);
-        ch.send(1);
-        ch.send(2);
-        Strand.sleep(50);
-        ch.send(3);
-        ch.send(4);
-        ch.send(5);
+        ch.send(1, 10, TimeUnit.SECONDS); // Discarded (at receive side)
+        ch.send(2, 10, TimeUnit.SECONDS);
+
+        sync.send(GO); // 1
+        Strand.sleep(100);
+        ch.send(3, 10, TimeUnit.SECONDS); // Discarded (at receive side)
+        ch.send(4, 10, TimeUnit.SECONDS);
+        ch.send(5, 10, TimeUnit.SECONDS); // Discarded (at receive side)
+
         ch.close();
 
         fib.join();
@@ -509,13 +515,18 @@ public class TransformingChannelTest {
     public void testSendFilterWithTimeouts() throws Exception {
         final Channel<Integer> ch = newChannel();
 
-        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+        final Channel<Object> sync = Channels.newChannel(0);
+
+        final Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                Integer m1 = ch.receive();
-                Integer m0 = ch.receive(30, TimeUnit.MILLISECONDS);
-                Integer m2 = ch.receive(80, TimeUnit.MILLISECONDS);
-                Integer m3 = ch.receive();
+                sync.receive(); // 0
+                final Integer m1 = ch.receive(200, TimeUnit.MILLISECONDS);
+
+                sync.receive(); // 1
+                final Integer m0 = ch.receive(10, TimeUnit.MILLISECONDS);
+                final Integer m2 = ch.receive(190, TimeUnit.MILLISECONDS);
+                final Integer m3 = ch.receive(30, TimeUnit.MILLISECONDS);
 
                 assertThat(m1, equalTo(2));
                 assertThat(m0, is(nullValue()));
@@ -531,13 +542,17 @@ public class TransformingChannelTest {
             }
         });
 
+        sync.send(GO); // 0
         Strand.sleep(50);
-        ch1.send(1);
-        ch1.send(2);
+        ch1.send(1, 10, TimeUnit.SECONDS); // Discarded (at send side)
+        ch1.send(2, 10, TimeUnit.SECONDS);
+
+        sync.send(GO); // 1
         Strand.sleep(50);
-        ch1.send(3);
-        ch1.send(4);
-        ch1.send(5);
+        ch1.send(3, 10, TimeUnit.SECONDS); // Discarded (at send side)
+        ch1.send(4, 10, TimeUnit.SECONDS);
+        ch1.send(5, 10, TimeUnit.SECONDS); // Discarded (at send side)
+
         ch1.close();
 
         fib.join();
@@ -970,21 +985,30 @@ public class TransformingChannelTest {
         final Channel<String> ch1 = newChannel();
         final Channel<Integer> ch2 = newChannel();
 
-        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+        final Channel<Object> sync = Channels.newChannel(0);
+
+        final Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                ReceivePort<String> ch = Channels.zip(ch1, ch2, new Function2<String, Integer, String>() {
+                final ReceivePort<String> ch = Channels.zip(ch1, ch2, new Function2<String, Integer, String>() {
                     @Override
                     public String apply(String x1, Integer x2) {
                         return x1 + x2;
                     }
                 });
 
-                String m1 = ch.receive();
-                String m0 = ch.receive(30, TimeUnit.MILLISECONDS);
-                String m2 = ch.receive(40, TimeUnit.MILLISECONDS);
-                String m3 = ch.receive();
-                String m4 = ch.receive();
+                sync.receive(); // 0
+                final String m1 = ch.receive(200, TimeUnit.MILLISECONDS);
+
+                sync.receive(); // 1
+                final String m0 = ch.receive(10, TimeUnit.MILLISECONDS);
+                final String m2 = ch.receive(190, TimeUnit.MILLISECONDS);
+
+                sync.receive(); // 2
+                final String m3 = ch.receive(30, TimeUnit.MILLISECONDS);
+
+                sync.receive(); // 3
+                final String m4 = ch.receive(30, TimeUnit.MILLISECONDS);
 
                 assertThat(m1, equalTo("a1"));
                 assertThat(m0, is(nullValue()));
@@ -994,16 +1018,25 @@ public class TransformingChannelTest {
             }
         }).start();
 
+        sync.send(GO); // 0
         Strand.sleep(50);
-        ch1.send("a");
-        ch2.send(1);
-        ch1.send("b");
-        Strand.sleep(50);
-        ch2.send(2);
-        ch1.send("c");
-        ch2.send(3);
-        ch1.send("foo");
-        ch2.close();
+        ch1.send("a", 10, TimeUnit.SECONDS);
+        ch2.send(1, 10, TimeUnit.SECONDS);
+
+        sync.send(GO); // 1
+        ch1.send("b", 10, TimeUnit.SECONDS);
+        Strand.sleep(100);
+        ch2.send(2, 10, TimeUnit.SECONDS);
+
+        sync.send(GO); // 2
+        ch1.send("c", 10, TimeUnit.SECONDS);
+        ch2.send(3, 10, TimeUnit.SECONDS);
+
+        sync.send(GO); // 3
+        ch1.send("foo", 10, TimeUnit.SECONDS);
+
+        ch2.close(); // Discards previous
+
         fib.join();
     }
 
@@ -1053,14 +1086,16 @@ public class TransformingChannelTest {
     public void testFlatmapWithTimeoutsThreadToFiber() throws Exception {
         final Channel<Integer> ch1 = newChannel();
 
-        Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
+        final Channel<Object> sync = Channels.newChannel(0);
+
+        final Fiber fib = new Fiber("fiber", scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
-                ReceivePort<Integer> ch = Channels.flatMap(ch1, new Function<Integer, ReceivePort<Integer>>() {
+                final ReceivePort<Integer> ch = Channels.flatMap(ch1, new Function<Integer, ReceivePort<Integer>>() {
                     @Override
                     public ReceivePort<Integer> apply(Integer x) {
                         if (x == 3)
-                            return null;
+                            return null; // Discard
                         if (x % 2 == 0)
                             return Channels.toReceivePort(Arrays.asList(new Integer[]{x * 10, x * 100, x * 1000}));
                         else
@@ -1068,30 +1103,49 @@ public class TransformingChannelTest {
                     }
                 });
 
-                assertThat(ch.receive(), is(1));
+                sync.receive(); // 0
+                assertThat(ch.receive(200, TimeUnit.MILLISECONDS), is(1));
+
+                sync.receive(); // 1
+                assertThat(ch.receive(10, TimeUnit.MILLISECONDS), is(nullValue()));
+                assertThat(ch.receive(190, TimeUnit.MILLISECONDS), is(20));
+                assertThat(ch.receive(10, TimeUnit.MILLISECONDS), is(200));
+                assertThat(ch.receive(10, TimeUnit.MILLISECONDS), is(2000));
+
+                sync.receive(); // 2
+                assertThat(ch.receive(200, TimeUnit.MILLISECONDS), is(40));
+                assertThat(ch.receive(10, TimeUnit.MILLISECONDS), is(400));
+                assertThat(ch.receive(10, TimeUnit.MILLISECONDS), is(4000));
+
+                sync.receive(); // 3
+                assertThat(ch.receive(10, TimeUnit.MILLISECONDS), is(nullValue()));
+                assertThat(ch.receive(190, TimeUnit.MILLISECONDS), is(5));
+
+                sync.receive(); // 4
                 assertThat(ch.receive(30, TimeUnit.MILLISECONDS), is(nullValue()));
-                assertThat(ch.receive(40, TimeUnit.MILLISECONDS), is(20));
-                assertThat(ch.receive(), is(200));
-                assertThat(ch.receive(), is(2000));
-                assertThat(ch.receive(), is(40));
-                assertThat(ch.receive(), is(400));
-                assertThat(ch.receive(), is(4000));
-                assertThat(ch.receive(30, TimeUnit.MILLISECONDS), is(nullValue()));
-                assertThat(ch.receive(40, TimeUnit.MILLISECONDS), is(5));
-                assertThat(ch.receive(), is(nullValue()));
                 assertThat(ch.isClosed(), is(true));
             }
         }).start();
 
+        sync.send(GO); // 0
         Strand.sleep(50);
-        ch1.send(1);
+        ch1.send(1, 10, TimeUnit.SECONDS);
+
+        sync.send(GO); // 1
+        Strand.sleep(100);
+        ch1.send(2, 10, TimeUnit.SECONDS);
+
+        sync.send(GO); // 2
+        ch1.send(3, 10, TimeUnit.SECONDS); // Discarded
+        ch1.send(4, 10, TimeUnit.SECONDS);
+
+        sync.send(GO); // 3
         Strand.sleep(50);
-        ch1.send(2);
-        ch1.send(3);
-        ch1.send(4);
-        Strand.sleep(50);
-        ch1.send(5);
+        ch1.send(5, 10, TimeUnit.SECONDS);
+
+        sync.send(GO); // 4
         ch1.close();
+
         fib.join();
     }
 

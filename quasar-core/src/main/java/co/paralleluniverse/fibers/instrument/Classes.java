@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -17,10 +17,9 @@ import co.paralleluniverse.fibers.*;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.UndeclaredThrowableException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
+import co.paralleluniverse.fibers.Stack;
 import co.paralleluniverse.strands.Strand;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -63,20 +62,22 @@ public final class Classes {
     static final String SUSPENDABLE_CALL_SITE_DESC = Type.getDescriptor(SuspendableCallSite.class);
     static final String SUSPENDABLE_CALLS_DESC = Type.getDescriptor(SuspendableCalls.class);
 
+    static final String LAMBDA_METHOD_PREFIX = "lambda$";
+
     private static final Set<String> yieldMethods = new HashSet<>(Arrays.asList(new String[] {
         "park", "yield", "parkAndUnpark", "yieldAndUnpark", "parkAndSerialize"
     }));
 
-    public static boolean isYieldMethod(String className, String methodName) {
+    static boolean isYieldMethod(String className, String methodName) {
         return FIBER_CLASS_NAME.equals(className) && yieldMethods.contains(methodName);
     }
 
     /** @noinspection UnusedParameters*/
-    public static boolean isAllowedToBlock(String className, String methodName) {
+    static boolean isAllowedToBlock(String className, String methodName) {
         return STRAND_NAME.equals(className);
     }
 
-    public static int blockingCallIdx(MethodInsnNode ins) {
+    static int blockingCallIdx(MethodInsnNode ins) {
         for (int i = 0, n = BLOCKING_METHODS.length; i < n; i++) {
             if (BLOCKING_METHODS[i].match(ins))
                 return i;
@@ -84,7 +85,7 @@ public final class Classes {
         return -1;
     }
 
-    static class BlockingMethod {
+    private static class BlockingMethod {
         private final String owner;
         private final String name;
         private final String[] descs;
@@ -95,7 +96,7 @@ public final class Classes {
             this.descs = descs;
         }
 
-        public boolean match(MethodInsnNode min) {
+        boolean match(MethodInsnNode min) {
             if (owner.equals(min.owner) && name.equals(min.name)) {
                 for (String desc : descs) {
                     if (desc.equals(min.desc)) {
@@ -105,6 +106,26 @@ public final class Classes {
             }
             return false;
         }
+    }
+
+    static int[] toIntArray(List<Integer> suspOffsetsAfterInstrL) {
+        if (suspOffsetsAfterInstrL == null)
+            return null;
+
+        final List<Integer> suspOffsetsAfterInstrLFiltered = new ArrayList<>(suspOffsetsAfterInstrL.size());
+        for (final Integer i : suspOffsetsAfterInstrL) {
+            if (i != null)
+                suspOffsetsAfterInstrLFiltered.add(i);
+        }
+
+        final int[] ret = new int[suspOffsetsAfterInstrLFiltered.size()];
+        int j = 0;
+        for (final Integer i : suspOffsetsAfterInstrLFiltered) {
+            ret[j] = i;
+            j++;
+        }
+
+        return ret;
     }
 
     private Classes() {

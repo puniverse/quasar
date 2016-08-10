@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -29,11 +29,11 @@ import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 /**
  * @author circlespainter
  */
-public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
+class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
     private final MethodDatabase db;
-    private String className;
+    private String sourceName, className;
 
-    public SuspOffsetsAfterInstrClassVisitor(ClassVisitor cv, MethodDatabase db) {
+    SuspOffsetsAfterInstrClassVisitor(ClassVisitor cv, MethodDatabase db) {
         super(ASMAPI, cv);
         this.db = db;
     }
@@ -47,6 +47,13 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
             version = Opcodes.V1_5;
 
         super.visit(version, access, name, signature, superName, interfaces);
+    }
+
+    @Override
+    public void visitSource(String source, String debug) {
+        this.sourceName = source;
+
+        super.visitSource(source, debug);
     }
 
     @Override
@@ -248,7 +255,7 @@ public class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
 
                     if (instrumented)
                         InstrumentMethod.emitInstrumentedAnn (
-                            db, outMV, mn, className, optimized, methodStart, methodEnd, suspCallSitesL
+                            db, outMV, mn, sourceName, className, optimized, methodStart, methodEnd, suspCallSitesL
                         );
 
                     super.visitEnd();

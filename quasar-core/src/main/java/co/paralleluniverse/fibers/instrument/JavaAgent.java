@@ -1,17 +1,17 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
- * 
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
+ *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
  * the Eclipse Foundation
- *  
+ *
  *   or (per the licensee's choosing)
- *  
+ *
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-/*
+ /*
  * Copyright (c) 2008-2013, Matthias Mann
  *
  * All rights reserved.
@@ -40,7 +40,7 @@
  * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/*
+ /*
  * Copyright (c) 2012, Enhanced Four
  * All rights reserved.
  *
@@ -75,20 +75,14 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.concurrent.util.MapUtil;
 import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
-
-import java.io.IOException;
-import java.io.InputStream;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.lang.ref.WeakReference;
 import java.security.ProtectionDomain;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Set;
-
-import com.google.common.io.ByteStreams;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -109,7 +103,7 @@ public class JavaAgent {
             System.err.println("Retransforming classes is not supported!");
 
         final ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        instrumentor = new QuasarInstrumentor(false, cl, new DefaultSuspendableClassifier(cl));
+        instrumentor = new QuasarInstrumentor(false);
         SuspendableHelper.javaAgent = true;
 
         if (agentArguments != null) {
@@ -155,7 +149,7 @@ public class JavaAgent {
         });
 
         Retransform.instrumentation = instrumentation;
-        Retransform.db = instrumentor.getMethodDatabase();
+        Retransform.instrumentor = instrumentor;
         Retransform.classLoaders = classLoaders;
 
         instrumentation.addTransformer(new Transformer(instrumentor), true);
@@ -198,7 +192,10 @@ public class JavaAgent {
             classLoaders.add(new WeakReference<>(loader));
 
             try {
-                final byte[] transformed = instrumentor.instrumentClass(className, classfileBuffer);
+                if (loader == null)
+                    loader = Thread.currentThread().getContextClassLoader();
+
+                final byte[] transformed = instrumentor.instrumentClass(loader, className, classfileBuffer);
 
                 if (transformed != null)
                     Retransform.afterTransform(className, classBeingRedefined, transformed);
@@ -215,22 +212,21 @@ public class JavaAgent {
         if (!Boolean.parseBoolean(System.getProperty("co.paralleluniverse.pulsar.disableOnce", "false")))
             return classfileBuffer;
 
-        ClassReader cr = new ClassReader(classfileBuffer);
-        ClassWriter cw = new ClassWriter(cr, 0);
-        ClassVisitor cv = new ClassVisitor(ASMAPI, cw) {
+        final ClassReader cr = new ClassReader(classfileBuffer);
+        final ClassWriter cw = new ClassWriter(cr, 0);
+        final ClassVisitor cv = new ClassVisitor(ASMAPI, cw) {
 
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
                 return new MethodVisitor(api, super.visitMethod(access, name, desc, signature, exceptions)) {
-
                     @Override
                     public void visitLdcInsn(Object cst) {
                         if (cst instanceof String && cst.equals("once")) {
                             super.visitLdcInsn("once$disabled-by-pulsar");
-                        } else
+                        } else {
                             super.visitLdcInsn(cst);
+                        }
                     }
-
                 };
             }
         };

@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -17,9 +17,9 @@ import co.paralleluniverse.actors.KotlinActorSupport
 import java.util.concurrent.TimeUnit
 import co.paralleluniverse.actors.LifecycleMessage
 import co.paralleluniverse.actors.Actor as JActor
-import java.util.concurrent.TimeoutException
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.actors.ActorRef
+import co.paralleluniverse.actors.ExitMessage
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.strands.SuspendableCallable
 import co.paralleluniverse.strands.queues.QueueIterator
@@ -29,10 +29,10 @@ import co.paralleluniverse.strands.queues.QueueIterator
  *
  * @author circlespainter
  */
-public abstract class Actor : KotlinActorSupport<Any?, Any?>() {
-    public companion object {
+abstract class Actor : KotlinActorSupport<Any?, Any?>() {
+    companion object {
         object DeferException : Exception()
-        public object Timeout
+        object Timeout
     }
 
     protected var currentMessage: Any? = null
@@ -47,7 +47,7 @@ public abstract class Actor : KotlinActorSupport<Any?, Any?>() {
     /**
      * Let the actor handle lifecycle messages
      */
-    override protected fun handleLifecycleMessage(lcm: LifecycleMessage): Any? {
+    override fun handleLifecycleMessage(lcm: LifecycleMessage): Any? {
         return lcm
     }
 
@@ -86,7 +86,8 @@ public abstract class Actor : KotlinActorSupport<Any?, Any?>() {
 
                 record(1, "KotlinActor", "receive", "Received %s <- %s", this, m)
                 monitorAddMessage()
-                if (m is LifecycleMessage) {
+                if (m is ExitMessage && m.getWatch() == null) {
+                    // Delay all lifecycle messages except link death signals
                     it.remove()
                     handleLifecycleMessage(m)
                 } else {
@@ -144,13 +145,13 @@ public abstract class Actor : KotlinActorSupport<Any?, Any?>() {
 
 // A couple of top-level utils
 
-public fun spawn(a: JActor<*, *>): ActorRef<Any?> {
+fun spawn(a: JActor<*, *>): ActorRef<Any?> {
     @Suppress("UNCHECKED_CAST")
     Fiber(a as SuspendableCallable<Any>).start()
     @Suppress("UNCHECKED_CAST")
     return a.ref() as ActorRef<Any?>
 }
 
-public fun register(ref: String, v: JActor<*, *>): JActor<*, *> {
+fun register(ref: String, v: JActor<*, *>): JActor<*, *> {
     return v.register(ref)
 }

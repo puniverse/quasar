@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-/*
+ /*
  * Copyright (c) 2008-2013, Matthias Mann
  * All rights reserved.
  *
@@ -46,6 +46,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
+
 import java.util.*;
 
 import com.google.common.collect.Lists;
@@ -63,103 +65,59 @@ import org.objectweb.asm.Type;
  * @author Matthias Mann
  * @author pron
  */
-public class MethodDatabase implements Log {
+public class MethodDatabase {
     private static final int ASMAPI = Opcodes.ASM5;
-    private final ClassLoader cl;
+    private final WeakReference<ClassLoader> clRef;
     private final SuspendableClassifier classifier;
     private final NavigableMap<String, ClassEntry> classes;
     private final HashMap<String, String> superClasses;
-    private final ArrayList<WorkListEntry> workList;
-    private Log log;
-    private boolean verbose;
-    private boolean debug;
-    private boolean allowMonitors;
-    private boolean allowBlocking;
-    private int logLevelMask;
+    private final QuasarInstrumentor instrumentor;
 
-    public MethodDatabase(ClassLoader classloader, SuspendableClassifier classifier) {
+    public MethodDatabase(QuasarInstrumentor instrumentor, ClassLoader classloader, SuspendableClassifier classifier) {
+        this.instrumentor = instrumentor;
         if (classloader == null)
             throw new NullPointerException("classloader");
 
-        this.cl = classloader;
+        this.clRef = new WeakReference<>(classloader);
         this.classifier = classifier;
 
         classes = new TreeMap<>();
         superClasses = new HashMap<>();
-        workList = new ArrayList<>();
-
-        setLogLevelMask();
     }
 
-    public boolean isAllowMonitors() {
-        return allowMonitors;
+    boolean isAllowMonitors() {
+        return instrumentor.isAllowMonitors();
     }
 
-    public void setAllowMonitors(boolean allowMonitors) {
-        this.allowMonitors = allowMonitors;
-    }
-
-    public boolean isAllowBlocking() {
-        return allowBlocking;
-    }
-
-    public void setAllowBlocking(boolean allowBlocking) {
-        this.allowBlocking = allowBlocking;
+    boolean isAllowBlocking() {
+        return instrumentor.isAllowBlocking();
     }
 
     public SuspendableClassifier getClassifier() {
         return classifier;
     }
 
-    public Log getLog() {
-        return log;
+    public void log(LogLevel level, String msg, Object... args) {
+        instrumentor.log(level, msg, args);
     }
 
-    public void setLog(Log log) {
-        this.log = log;
-    }
-
-    public boolean isVerbose() {
-        return verbose;
-    }
-
-    public void setVerbose(boolean verbose) {
-        this.verbose = verbose;
-        setLogLevelMask();
+    public void error(String msg, Throwable ex) {
+        instrumentor.error(msg, ex);
     }
 
     public boolean isDebug() {
-        return debug;
+        return instrumentor.isDebug();
     }
 
-    public void setDebug(boolean debug) {
-        this.debug = debug;
-        setLogLevelMask();
+    public boolean isVerbose() {
+        return instrumentor.isVerbose();
     }
 
-    private void setLogLevelMask() {
-        logLevelMask = (1 << LogLevel.WARNING.ordinal());
-        if (verbose || debug) {
-            logLevelMask |= (1 << LogLevel.INFO.ordinal());
-        }
-        if (debug) {
-            logLevelMask |= (1 << LogLevel.DEBUG.ordinal());
-        }
+    public Log getLog() {
+        return instrumentor.getLog();
     }
 
-    @Override
-    public void log(LogLevel level, String msg, Object... args) {
-        if (log != null && (logLevelMask & (1 << level.ordinal())) != 0)
-            log.log(level, msg, args);
-    }
-
-    @Override
-    public void error(String msg, Throwable ex) {
-        if (log != null)
-            log.error(msg, ex);
-    }
-
-    public void checkClass(File f) {
+    public String checkClass(File f) {
         try {
             final FileInputStream fis = new FileInputStream(f);
             final CheckInstrumentationVisitor civ = checkFileAndClose(fis, f.getPath());
@@ -174,34 +132,38 @@ public class MethodDatabase implements Log {
                             throw new AssertionError();
                     } else {
                         log(LogLevel.INFO, "Found class: %s", f.getPath());
-                        if (!JavaAgent.isActive())
-                            workList.add(new WorkListEntry(civ.getName(), f));
+                        return civ.getName();
                     }
                 }
             }
+            return null;
         } catch (final UnableToInstrumentException ex) {
             throw ex;
         } catch (final Exception ex) {
             error(f.getPath(), ex);
+            return null;
         }
     }
+
     private static final int UNKNOWN = 0;
-    private static final int MAYBE_CORE = 1;
+    private static final int JDK = 1;
     private static final int NONSUSPENDABLE = 2;
     private static final int SUSPENDABLE_ABSTRACT = 3;
     private static final int SUSPENDABLE = 4;
 
     public SuspendableType isMethodSuspendable(String className, String methodName, String methodDesc, int opcode) {
-        if (className.startsWith("org/netbeans/lib/"))
+        if (className.startsWith("org/netbeans/lib/")) {
+            log(LogLevel.INFO, "Method: %s#%s marked non-suspendable because it is Netbeans library", className, methodName);
             return SuspendableType.NON_SUSPENDABLE;
+        }
 
         final int res = isMethodSuspendable0(className, methodName, methodDesc, opcode);
         switch (res) {
             case UNKNOWN:
                 return null;
-            case MAYBE_CORE:
+            case JDK:
                 if (!className.startsWith("java/"))
-                    log(LogLevel.INFO, "Method: %s#%s presumed non-suspendable: probably java core", className, methodName);
+                    log(LogLevel.INFO, "Method: %s#%s not in 'java' package but marked non-suspendable anyway because it is a probably part of the JDK", className, methodName);
             // fallthrough
             case NONSUSPENDABLE:
                 return SuspendableType.NON_SUSPENDABLE;
@@ -230,8 +192,8 @@ public class MethodDatabase implements Log {
 
         final ClassEntry entry = getOrLoadClassEntry(className);
         if (entry == null) {
-            if (isJavaCore(className))
-                return MAYBE_CORE;
+            if (isJDK(className))
+                return JDK;
 
 //            if (JavaAgent.isActive())
 //                throw new AssertionError();
@@ -260,7 +222,7 @@ public class MethodDatabase implements Log {
                     int s = isMethodSuspendable0(iface, methodName, methodDesc, opcode);
                     if (s > suspendable)
                         suspendable = s;
-                    if (suspendable > MAYBE_CORE)
+                    if (suspendable > JDK)
                         break;
                 }
             }
@@ -282,6 +244,7 @@ public class MethodDatabase implements Log {
         return ce;
     }
 
+/*
     public synchronized Map<String, ClassEntry> getInnerClassesEntries(String className) {
         final Map<String, ClassEntry> tailMap = classes.tailMap(className, true);
         final HashMap<String, ClassEntry> map = new HashMap<>();
@@ -291,6 +254,7 @@ public class MethodDatabase implements Log {
         }
         return Collections.unmodifiableMap(map);
     }
+*/
 
     void recordSuspendableMethods(String className, ClassEntry entry) {
         ClassEntry oldEntry;
@@ -335,23 +299,20 @@ public class MethodDatabase implements Log {
 
             final String superClass = getDirectSuperClass(className);
             if (superClass == null) {
-                log(isProblematicClass(className) ? LogLevel.INFO : LogLevel.WARNING, "Can't determine super class of %s", className);
+                log(isProblematicClass(className) ? LogLevel.INFO : LogLevel.WARNING, "Can't determine super class of %s (this is usually related to classloading)", className);
                 return false;
             }
             className = superClass;
         }
     }
 
-    public ArrayList<WorkListEntry> getWorkList() {
-        return workList;
-    }
-
     protected ClassEntry checkClass(String className) {
+        ClassLoader cl = clRef.get();
         if (cl == null) {
             log(LogLevel.INFO, "Can't check class: %s", className);
             return null;
         }
-        
+
         log(LogLevel.INFO, "Reading class: %s", className);
         final InputStream is = cl.getResourceAsStream(className + ".class");
         if (is == null) {
@@ -383,7 +344,7 @@ public class MethodDatabase implements Log {
                 final ClassReader r = new ClassReader(is);
 
                 final CheckInstrumentationVisitor civ = new CheckInstrumentationVisitor(this);
-                r.accept(civ, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES | ClassReader.SKIP_CODE);
+                r.accept(civ, ClassReader.SKIP_FRAMES | ClassReader.SKIP_CODE);
 
                 return civ;
             } finally {
@@ -398,6 +359,10 @@ public class MethodDatabase implements Log {
     }
 
     private String extractSuperClass(String className) {
+        ClassLoader cl = clRef.get();
+        if (cl == null)
+            return null;
+
         final InputStream is = cl.getResourceAsStream(className + ".class");
         if (is != null) {
             try {
@@ -474,17 +439,19 @@ public class MethodDatabase implements Log {
         return className.equals("java/lang/invoke/MethodHandle") && methodName.startsWith("invoke");
     }
 
-    public static boolean isJavaCore(String className) {
-        return className.startsWith("java/") || className.startsWith("javax/")
-                || className.startsWith("sun/") || (className.startsWith("com/sun/") && !className.startsWith("com/sun/jersey"));
+    public static boolean isJDK(String className) {
+        return className != null && (className.startsWith("java/")
+               || className.startsWith("javax/")
+               || className.startsWith("sun/")
+               || (className.startsWith("com/sun/") && !className.startsWith("com/sun/jersey")));
     }
 
     public static boolean isProblematicClass(String className) {
-        return className.startsWith("org/gradle/")
-                || className.startsWith("javax/jms/")
-                || className.startsWith("ch/qos/logback/")
-                || className.startsWith("org/apache/logging/log4j/")
-                || className.startsWith("org/apache/log4j/");
+        return className != null && (className.startsWith("org/gradle/")
+               || className.startsWith("javax/jms/")
+               || className.startsWith("ch/qos/logback/")
+               || className.startsWith("org/apache/logging/log4j/")
+               || className.startsWith("org/apache/log4j/"));
     }
 
     private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>");
@@ -613,16 +580,6 @@ public class MethodDatabase implements Log {
         @Override
         public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
             this.superClass = superName;
-        }
-    }
-
-    public static class WorkListEntry {
-        public final String name;
-        public final File file;
-
-        public WorkListEntry(String name, File file) {
-            this.name = name;
-            this.file = file;
         }
     }
 }

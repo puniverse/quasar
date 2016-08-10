@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -22,11 +22,11 @@ import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 /**
  * @author circlespainter
  */
-public class LabelSuspendableCallSitesClassVisitor extends ClassVisitor {
+class LabelSuspendableCallSitesClassVisitor extends ClassVisitor {
     private final MethodDatabase db;
     private String className;
 
-    public LabelSuspendableCallSitesClassVisitor(ClassVisitor cv, MethodDatabase db) {
+    LabelSuspendableCallSitesClassVisitor(ClassVisitor cv, MethodDatabase db) {
         super(ASMAPI, cv);
         this.db = db;
     }
@@ -50,7 +50,7 @@ public class LabelSuspendableCallSitesClassVisitor extends ClassVisitor {
             final MethodVisitor outMV = super.visitMethod(access, name, desc, signature, exceptions);
 
             return new MethodVisitor(ASMAPI, outMV) {
-                public int currLineNumber = -1;
+                private int currLineNumber = -1;
 
                 @Override
                 public void visitLineNumber(int i, Label label) {
