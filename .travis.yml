@@ -1,23 +1,36 @@
 language: java
 sudo: required
 dist: trusty
+group: edge
 before_install:
+  - wget http://services.gradle.org/distributions/gradle-2.14-bin.zip
+  - unzip gradle-2.14-bin.zip
+  - export GRADLE_HOME=$PWD/gradle-2.14
+  - export PATH=$GRADLE_HOME/bin:$PATH
   - export JAVA_VER=$(java -version 2>&1 | sed 's/java version "\(.*\)\.\(.*\)\..*"/\1\2/; 1q')
   - echo ${JAVA_VER}
   - sudo chmod a+x travis/pre_build.sh
   - ./travis/pre_build.sh
+  - if [[ ${JAVA_VER} == "17" ]]; then export GRADLE_OPTS="-XX:MaxPermSize=512m"; fi
   - if [[ ${JAVA_VER} == "18" ]]; then jdk_switcher use oraclejdk8; fi
   - if [[ ${JAVA_VER} == "18" ]]; then export JAVA_HOME=/usr/lib/jvm/java-8-oracle; fi
+  - if [[ ${JAVA_VER} == "19" ]]; then jdk_switcher use oraclejdk9; fi
+  - if [[ ${JAVA_VER} == "19" ]]; then export JAVA_HOME=/usr/lib/jvm/java-9-oracle; fi
   - echo ${JAVA_HOME}
   - java -version
   - javac -version
   - javah -version
 
-install: GRADLE_OPTS="-XX:MaxPermSize=512m" gradle -q assemble
-script: GRADLE_OPTS="-XX:MaxPermSize=512m" gradle -i check
+install: gradle -q assemble
+script: gradle -i check
 jdk:
   - oraclejdk7
   - oraclejdk8
+  - oraclejdk9
+
+matrix:
+  allow_failures:
+    - jdk: oraclejdk9
 
 branches:
   except:
