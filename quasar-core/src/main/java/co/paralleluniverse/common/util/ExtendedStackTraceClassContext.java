@@ -63,18 +63,19 @@ class ExtendedStackTraceClassContext extends ExtendedStackTrace {
     }
 
     static boolean skipSTE(StackTraceElement ste) {
-        return (ste.getClassName().startsWith("sun.reflect")
-                || ste.getClassName().equals("java.lang.reflect.Method")
-                || ste.getClassName().startsWith("java.lang.invoke."));
+        final String className = ste.getClassName();
+        return (className.startsWith("sun.reflect")
+                || className.equals("java.lang.reflect.Method")
+                || className.startsWith("java.lang.invoke.")
+                // Originated from http://bugs.java.com/view_bug.do?bug_id=8025636, Quasar PR #207
+                || className.contains("$$Lambda$"));
     }
 
     private static boolean skipCTX(Class c) {
-        return (c.getName().startsWith("java.lang.invoke.")
+        final String className = c.getName();
+        return (className.startsWith("java.lang.invoke.")
                 // Originated from http://bugs.java.com/view_bug.do?bug_id=8025636, Quasar PR #207
-                //
-                // candrews PR#207: next one needed since after 8u60, see http://bugs.java.com/view_bug.do?bug_id=802563;
-                //                  reported @ http://bugreport.java.com/, Review ID: JI-9040355
-                || c.getName().contains("$$Lambda$"));
+                || className.contains("$$Lambda$"));
     }
 
     private static class ClassContext extends SecurityManager {
