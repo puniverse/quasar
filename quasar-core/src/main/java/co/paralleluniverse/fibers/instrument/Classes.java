@@ -68,7 +68,7 @@ public final class Classes {
         "park", "yield", "parkAndUnpark", "yieldAndUnpark", "parkAndSerialize"
     }));
 
-    static boolean isYieldMethod(String className, String methodName) {
+    public static boolean isYieldMethod(String className, String methodName) {
         return FIBER_CLASS_NAME.equals(className) && yieldMethods.contains(methodName);
     }
 

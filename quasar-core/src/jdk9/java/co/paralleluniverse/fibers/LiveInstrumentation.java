@@ -471,7 +471,7 @@ public final class LiveInstrumentation {
 
     private static String getCallSiteId(StackWalker.StackFrame f) throws IllegalAccessException, InvocationTargetException {
         return
-            f.getFileName().orElse("<UNKNOWN SOURCE>") + "@l" + f.getLineNumber().orElse(-1) +
+            f.getFileName() + "@l" + f.getLineNumber() +
             ":\"" + getMethodId(f) + "\"@b" + offset.get(f);
     }
 
@@ -1012,8 +1012,6 @@ public final class LiveInstrumentation {
             // serialization of threadlocals in fibers (ClassNotFound)
             err = new PrintStream(new FileOutputStream(FileDescriptor.err));
 
-            db = Retransform.getMethodDB();
-
             if (ACTIVE || DUMP_STACK_FRAMES_FIRST) {
                 if (ACTIVE) {
                     DEBUG("Live lazy auto-instrumentation ENABLED");
@@ -1072,8 +1070,6 @@ public final class LiveInstrumentation {
     private static final Collector<StackWalker.StackFrame, ?, Long> COUNTING = Collectors.counting();
     private static final int[] EMPTY_INT_ARRAY = new int[0];
 
-    private static final MethodDatabase db;
-
     private static void ensureCorrectSuspendableSupers(Class<?> cCaller, String mnCaller, MethodType mtCaller) {
         final Class<?> sup = cCaller.getSuperclass();
         if (sup != null)
@@ -1099,7 +1095,7 @@ public final class LiveInstrumentation {
     private static void suspendable(Class<?> c, String n, MethodType t, MethodDatabase.SuspendableType st) {
         final Class<?> s = c.getSuperclass();
         final MethodDatabase.ClassEntry ce =
-            db.getOrCreateClassEntry (
+            Retransform.getMethodDB(c.getClassLoader()).getOrCreateClassEntry (
                 c.getName().replace(".", "/"),
                 s != null ? s.getName().replace(".", "/") : null
             );
@@ -1130,7 +1126,7 @@ public final class LiveInstrumentation {
             //noinspection RedundantCast
             sb.append(String.format (
                 "[FRAME] %s:%d, %s#%s%s @ %db%n",
-                f.getFileName().orElse("<UNKNOWN>"), f.getLineNumber().orElse(-1),
+                f.getFileName(), f.getLineNumber(),
                 f.getClassName(), f.getMethodName(),
                 ((MethodType) getMethodType.invoke(memberName.get(f))).toMethodDescriptorString(),
                 (int) offset.get(f)
