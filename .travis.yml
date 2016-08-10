@@ -29,10 +29,12 @@ jdk:
   - oraclejdk8
   - openjdk8
   - oraclejdk9
+  - openjdk9
 
 matrix:
   allow_failures:
     - jdk: oraclejdk9
+    - jdk: openjdk9
 
 branches:
   except:
