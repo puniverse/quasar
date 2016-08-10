@@ -25,7 +25,9 @@ install: gradle -q assemble
 script: gradle -i check
 jdk:
   - oraclejdk7
+  - openjdk7
   - oraclejdk8
+  - openjdk8
   - oraclejdk9
 
 matrix:
