@@ -17,6 +17,13 @@ println("JDK 7: " + ext.java7)
 println("JDK 8: " + ext.java8)
 println("JDK 9: " + ext.java9)
 
+allprojects {
+    tasks.withType(JavaCompile) {
+        options.fork = true
+        options.forkOptions.jvmArgs << '-XaddExports:jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED'
+    }
+}
+
 subprojects {
     apply plugin: 'java'
 
