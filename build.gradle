@@ -20,7 +20,8 @@ println("JDK 9: " + ext.java9)
 allprojects {
     tasks.withType(JavaCompile) {
         options.fork = true
-        options.forkOptions.jvmArgs << '-XaddExports:jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED'
+        if (ext.java9)
+            options.forkOptions.jvmArgs << '-XaddExports:jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED'
     }
 }
 
