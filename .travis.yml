@@ -10,7 +10,6 @@ before_install:
   - sudo apt-get -y install oracle-java8-installer
   - sudo apt-get -y install openjdk-8-jdk
   - sudo apt-get -y install oracle-java9-installer
-  - sudo apt-get -y install openjdk-9-jdk
   - wget http://services.gradle.org/distributions/gradle-2.14.1-bin.zip
   - unzip gradle-2.14.1-bin.zip
   - export GRADLE_HOME=$PWD/gradle-2.14.1
