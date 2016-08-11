@@ -6,23 +6,27 @@ before_install:
   - sudo add-apt-repository -y ppa:webupd8team/java
   - sudo apt-get -y update
   - sudo apt-get -y install oracle-java7-installer
+  - sudo apt-get -y install openjdk-7-jdk
+  - sudo apt-get -y install oracle-java8-installer
+  - sudo apt-get -y install openjdk-8-jdk
+  - sudo apt-get -y install oracle-java9-installer
+  - sudo apt-get -y install openjdk-9-jdk
   - wget http://services.gradle.org/distributions/gradle-2.14.1-bin.zip
   - unzip gradle-2.14.1-bin.zip
   - export GRADLE_HOME=$PWD/gradle-2.14.1
   - export PATH=$GRADLE_HOME/bin:$PATH
+  - if [[ ${TRAVIS_JDK_VERSION} == "oraclejdk7" ]]; then export GRADLE_OPTS="-XX:MaxPermSize=512m"; jdk_switcher use oraclejdk7; export JAVA_HOME=/usr/lib/jvm/java-7-oracle; fi
+  - if [[ ${TRAVIS_JDK_VERSION} == "openjdk7" ]]; then export GRADLE_OPTS="-XX:MaxPermSize=512m"; jdk_switcher use openjdk7; export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64; fi
+  - if [[ ${TRAVIS_JDK_VERSION} == "oraclejdk8" ]]; then jdk_switcher use oraclejdk8; export JAVA_HOME=/usr/lib/jvm/java-8-oracle; fi
+  - if [[ ${TRAVIS_JDK_VERSION} == "openjdk8" ]]; then jdk_switcher use openjdk8; export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64; fi
+  - if [[ ${TRAVIS_JDK_VERSION} == "oraclejdk9" ]]; then jdk_switcher use oraclejdk9; export JAVA_HOME=/usr/lib/jvm/java-9-oracle; fi
+  - if [[ ${TRAVIS_JDK_VERSION} == "openjdk9" ]]; then jdk_switcher use openjdk9; export JAVA_HOME=/usr/lib/jvm/java-9-openjdk-amd64; fi
   - export JAVA_VER=$(java -version 2>&1 | sed 's/java version "\(.*\)\.\(.*\)\..*"/\1\2/; 1q')
-  - echo ${JAVA_VER}
-  - sudo chmod a+x travis/pre_build.sh
-  - ./travis/pre_build.sh
-  - if [[ ${JAVA_VER} == "17" ]]; then export GRADLE_OPTS="-XX:MaxPermSize=512m"; fi
-  - if [[ ${JAVA_VER} == "18" ]]; then jdk_switcher use oraclejdk8; fi
-  - if [[ ${JAVA_VER} == "18" ]]; then export JAVA_HOME=/usr/lib/jvm/java-8-oracle; fi
-  - if [[ ${JAVA_VER} == "19" ]]; then jdk_switcher use oraclejdk9; fi
-  - if [[ ${JAVA_VER} == "19" ]]; then export JAVA_HOME=/usr/lib/jvm/java-9-oracle; fi
-  - echo ${JAVA_HOME}
-  - java -version
-  - javac -version
-  - javah -version
+  - export JAVAC_VER=$(javac -version 2>&1 | sed 's/java version "\(.*\)\.\(.*\)\..*"/\1\2/; 1q')
+  - echo "java: ${JAVA_VER}"
+  - echo "javac: ${JAVAC_VER}"
+  - echo "JAVA_HOME: ${JAVA_HOME}"
+  - gradle -version
 
 install: gradle -q assemble
 script: gradle -i check
