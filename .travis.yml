@@ -3,6 +3,9 @@ sudo: required
 dist: trusty
 group: edge
 before_install:
+  - sudo add-apt-repository -y ppa:webupd8team/java
+  - sudo apt-get -y update
+  - sudo apt-get -y install oracle-java7-installer
   - wget http://services.gradle.org/distributions/gradle-2.14.1-bin.zip
   - unzip gradle-2.14.1-bin.zip
   - export GRADLE_HOME=$PWD/gradle-2.14.1
