@@ -14,15 +14,14 @@ before_install:
   - unzip gradle-2.14.1-bin.zip
   - export GRADLE_HOME=$PWD/gradle-2.14.1
   - export PATH=$GRADLE_HOME/bin:$PATH
-  - if [[ ${TRAVIS_JDK_VERSION} == "oraclejdk7" ]]; then export GRADLE_OPTS="-XX:MaxPermSize=512m"; jdk_switcher use oraclejdk7; export JAVA_HOME=/usr/lib/jvm/java-7-oracle; fi
-  - if [[ ${TRAVIS_JDK_VERSION} == "openjdk7" ]]; then export GRADLE_OPTS="-XX:MaxPermSize=512m"; jdk_switcher use openjdk7; export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64; fi
-  - if [[ ${TRAVIS_JDK_VERSION} == "oraclejdk8" ]]; then jdk_switcher use oraclejdk8; export JAVA_HOME=/usr/lib/jvm/java-8-oracle; fi
-  - if [[ ${TRAVIS_JDK_VERSION} == "openjdk8" ]]; then jdk_switcher use openjdk8; export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64; fi
-  - if [[ ${TRAVIS_JDK_VERSION} == "oraclejdk9" ]]; then jdk_switcher use oraclejdk9; export JAVA_HOME=/usr/lib/jvm/java-9-oracle; fi
-  - if [[ ${TRAVIS_JDK_VERSION} == "openjdk9" ]]; then jdk_switcher use openjdk9; export JAVA_HOME=/usr/lib/jvm/java-9-openjdk-amd64; fi
+  - if [[ ${TRAVIS_JDK_VERSION} == "oraclejdk7" ]]; then export GRADLE_OPTS="-XX:MaxPermSize=512m"; jdk_switcher use oraclejdk7; fi
+  - if [[ ${TRAVIS_JDK_VERSION} == "openjdk7" ]]; then export GRADLE_OPTS="-XX:MaxPermSize=512m"; jdk_switcher use openjdk7; fi
+  - if [[ ${TRAVIS_JDK_VERSION} == "oraclejdk8" ]]; then jdk_switcher use oraclejdk8; fi
+  - if [[ ${TRAVIS_JDK_VERSION} == "openjdk8" ]]; then jdk_switcher use openjdk8; fi
+  - if [[ ${TRAVIS_JDK_VERSION} == "oraclejdk9" ]]; then jdk_switcher use oraclejdk9; fi
+  - if [[ ${TRAVIS_JDK_VERSION} == "openjdk9" ]]; then jdk_switcher use openjdk9; fi
   - export JAVA_VER=$(java -version 2>&1 | sed 's/java version "\(.*\)\.\(.*\)\..*"/\1\2/; 1q')
-  - export JAVAC_VER=$(javac -version 2>&1 | sed 's/java version "\(.*\)\.\(.*\)\..*"/\1\2/; 1q')
-  - echo ${JAVA_HOME} ${JAVA_VER} ${JAVAC_VER}
+  - echo ${JAVA_HOME} ${JAVA_VER}
   - gradle -version
 
 install: gradle -q assemble
