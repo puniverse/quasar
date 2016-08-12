@@ -28,7 +28,7 @@ import org.objectweb.asm.Type;
  * @author pron
  */
 public final class AnnotationUtil {
-    public static final int ASMAPI = Opcodes.ASM5;
+    public static final int ASMAPI = Opcodes.ASM6;
     
     public static boolean hasClassAnnotation(Class<? extends Annotation> annotationType, byte[] classData) {
         return hasClassAnnotation(annotationType, new ClassReader(classData));

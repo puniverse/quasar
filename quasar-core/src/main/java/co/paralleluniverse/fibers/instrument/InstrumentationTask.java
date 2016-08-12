@@ -188,11 +188,11 @@ public class InstrumentationTask extends Task {
         if (!instrumentor.shouldInstrument(entry.name))
             return;
         try {
-            try (FileInputStream fis = new FileInputStream(entry.file)) {
+            try (final FileInputStream fis = new FileInputStream(entry.file)) {
                 final byte[] newClass = instrumentor.instrumentClass(cl, entry.name, fis);
 
-                if (writeClasses) {
-                    try (FileOutputStream fos = new FileOutputStream(entry.file)) {
+                if (newClass != null && writeClasses) {
+                    try (final FileOutputStream fos = new FileOutputStream(entry.file)) {
                         fos.write(newClass);
                     }
                 }

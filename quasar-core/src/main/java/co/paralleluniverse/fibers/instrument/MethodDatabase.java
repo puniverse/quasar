@@ -66,7 +66,7 @@ import org.objectweb.asm.Type;
  * @author pron
  */
 public class MethodDatabase {
-    private static final int ASMAPI = Opcodes.ASM5;
+    private static final int ASMAPI = Opcodes.ASM6;
     private final WeakReference<ClassLoader> clRef;
     private final SuspendableClassifier classifier;
     private final NavigableMap<String, ClassEntry> classes;

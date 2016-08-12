@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -64,7 +64,8 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 public class SuspendablesScanner extends Task {
-    private static final int ASMAPI = Opcodes.ASM5;
+    private static final int ASMAPI = Opcodes.ASM6;
+    private static final ClassNode[] EMPTY_CLASSNODE_ARRAY = new ClassNode[] {};
     //
     private final Map<String, MethodNode> methods = new HashMap<>();
     private final Map<String, ClassNode> classes = new HashMap<>();
@@ -662,10 +663,18 @@ public class SuspendablesScanner extends Task {
     private ClassNode fill(ClassNode node) {
         try {
             if (node.supers == null) {
-                try (InputStream is = cl.getResourceAsStream(classToResource(node.name))) {
-                    final ClassReader cr = new ClassReader(is);
-                    cr.accept(new ClassNodeVisitor(false, ASMAPI, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
-                    assert node.supers != null;
+                try (final InputStream is = cl.getResourceAsStream(classToResource(node.name))) {
+                    if (is != null) {
+                        final ClassReader cr = new ClassReader(is);
+                        cr.accept(new ClassNodeVisitor(false, ASMAPI, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
+                        assert node.supers != null;
+                    } else {
+                        final ClassNode cn = getOrCreateClassNode(node.name); // Empty
+                        cn.inProject |= false;
+                        //noinspection unchecked
+                        cn.setMethods(Collections.EMPTY_LIST);
+                        cn.supers = EMPTY_CLASSNODE_ARRAY;
+                    }
                 }
             }
             return node;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -14,20 +14,13 @@ package co.paralleluniverse.common.util;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import sun.management.VMManagement;
 
 public class ProcessUtil {
     public static int getCurrentPid() {
         try {
             RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
-            Field jvmField = runtimeMXBean.getClass().getDeclaredField("jvm");
-            jvmField.setAccessible(true);
-            VMManagement vmManagement = (VMManagement) jvmField.get(runtimeMXBean);
-            Method getProcessIdMethod = vmManagement.getClass().getDeclaredMethod("getProcessId");
-            getProcessIdMethod.setAccessible(true);
-            return (Integer) getProcessIdMethod.invoke(vmManagement);
+            // From http://hg.openjdk.java.net/jdk9/hs/hotspot/rev/b14b199c0eaa
+            return Integer.parseInt(runtimeMXBean.getName().split("@")[0]);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

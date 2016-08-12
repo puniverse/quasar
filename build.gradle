@@ -20,8 +20,10 @@ println("JDK 9: " + ext.java9)
 allprojects {
     tasks.withType(JavaCompile) {
         options.fork = true
-        if (rootProject.ext.java9)
-            options.forkOptions.jvmArgs << '-XaddExports:jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED'
+        if (rootProject.ext.java9) {
+//            options.forkOptions.jvmArgs << '-XaddExports:java.base/jdk.internal.loader=ALL-UNNAMED'
+            options.forkOptions.jvmArgs << '-XaddExports:jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED' // ,java.base/jdk.internal.loader=ALL-UNNAMED'
+        }
     }
 }
 
@@ -54,7 +56,7 @@ subprojects {
     ext.jdkVer          = ext.java9 ? "9" : (ext.java8 ? "8" : "7")
     ext.quasarJar       = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}${ext.java9 ? "-jdk9" : (ext.java8 ? "-jdk8" : "")}.jar" // project(':quasar-core').jar.archivePath
 
-    ext.asmVer    = '5.1'
+    ext.asmVer    = '6.0_ALPHA'
     ext.kotlinVer = '1.0.2'
 
     if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
@@ -132,6 +134,7 @@ subprojects {
             exclude group: "org.ow2.asm", module: '*'
         }
         testCompile "org.ow2.asm:asm:$asmVer"
+        // testCompile "org.ow2.asm:asm-debug-all:$asmVer"
 
         jmhCompile 'org.openjdk.jmh:jmh-core:1.13'
         jmhCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.13'
@@ -498,6 +501,7 @@ project (':quasar-core') {
         compile("org.latencyutils:LatencyUtils:2.0.3") {
             exclude group: "org.hdrhistogram", module: '*'
         }
+        // compile "org.ow2.asm:asm-debug-all:$asmVer"
         compile "org.ow2.asm:asm:$asmVer"
         compile "org.ow2.asm:asm-analysis:$asmVer"
         compile "org.ow2.asm:asm-commons:$asmVer"

@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -13,17 +13,17 @@
  */
 package co.paralleluniverse.fibers;
 
-import co.paralleluniverse.common.monitoring.MetricsForkJoinPoolMonitor;
-import co.paralleluniverse.common.monitoring.MonitorType;
-import co.paralleluniverse.fibers.instrument.DontInstrument;
-import co.paralleluniverse.strands.Strand;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
 import co.paralleluniverse.common.monitoring.JMXForkJoinPoolMonitor;
+import co.paralleluniverse.common.monitoring.MetricsForkJoinPoolMonitor;
+import co.paralleluniverse.common.monitoring.MonitorType;
 import co.paralleluniverse.concurrent.forkjoin.ExtendedForkJoinWorkerFactory;
 import co.paralleluniverse.concurrent.forkjoin.ExtendedForkJoinWorkerThread;
 import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
+import co.paralleluniverse.fibers.instrument.DontInstrument;
+import co.paralleluniverse.strands.Strand;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Collections;
@@ -241,7 +241,8 @@ public class FiberForkJoinScheduler extends FiberScheduler {
             this.fjPool = fjPool;
         }
 
-        Fiber getFiber() {
+        @Override
+        public Fiber<V> getFiber() {
             return fiber;
         }
 
@@ -272,8 +273,8 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         }
 
         @Override
-        public void unpark(Object unblocker) {
-            super.unpark(unblocker == FiberTask.EMERGENCY_UNBLOCKER ? ParkableForkJoinTask.EMERGENCY_UNBLOCKER : unblocker);
+        public boolean unpark(Object unblocker) {
+            return super.unpark(unblocker == FiberTask.EMERGENCY_UNBLOCKER ? ParkableForkJoinTask.EMERGENCY_UNBLOCKER : unblocker);
         }
 
         @Override
@@ -324,13 +325,10 @@ public class FiberForkJoinScheduler extends FiberScheduler {
 
         @Override
         protected void onException(Throwable t) {
-            fiber.onException(t);
         }
 
         @Override
         protected void onCompletion(boolean res) {
-            if (res)
-                fiber.onCompletion();
         }
 
         static boolean isIdle() {

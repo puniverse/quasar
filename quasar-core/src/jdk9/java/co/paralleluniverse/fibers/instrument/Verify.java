@@ -15,14 +15,12 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.common.util.*;
 import co.paralleluniverse.fibers.*;
+import co.paralleluniverse.fibers.Stack;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableUtils;
 
 import java.lang.reflect.*;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -289,7 +287,7 @@ public final class Verify {
             final /*Executable*/ Member m = SuspendableHelper.lookupMethod(ste);
             if (m != null) {
                 boolean methodInstrumented = SuspendableHelper.isInstrumented(m);
-                Pair<Boolean, int[]> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), optUpperSte);
+                Pair<Boolean, Instrumented> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), ste.getBytecodeIndex(), optUpperSte);
                 if (!classInstrumented || !methodInstrumented || !callSiteInstrumented.getFirst()) {
                     if (ok_last[0] && optStackTrace != null && optStes != null && optCurrStesIdx != null)
                         initTrace(optStackTrace, optStes, optCurrStesIdx);
@@ -299,7 +297,7 @@ public final class Verify {
                             optStackTrace.append(" **");
                         else if (!callSiteInstrumented.getFirst())
                             optStackTrace.append(" !! (instrumented suspendable calls at: ")
-                                .append(callSiteInstrumented.getSecond() == null ? "[]" : Arrays.toString(callSiteInstrumented.getSecond()))
+                                .append(callSiteInstrumented.getSecond() == null ? "[]" : callSitesString(callSiteInstrumented.getSecond()))
                                 .append(")");
                     }
                     ok_last[0] = false;
@@ -316,6 +314,15 @@ public final class Verify {
         } else if (ste.getClassName().equals(Fiber.class.getName()) && ste.getMethodName().equals("run1")) {
             ok_last[1] = true;
         }
+    }
+
+    private static String callSitesString(Instrumented i) {
+        if (i == null)
+            return "N/A";
+
+        return
+            "BCIs " + Arrays.toString(SuspendableHelper.getPostInstrumentationOffsets(i)) +
+                ", lines " + Arrays.toString(SuspendableHelper.getSourceLines(i));
     }
 
     private static void initTrace(StringBuilder stackTrace, ExtendedStackTraceElement[] stes, int i) {

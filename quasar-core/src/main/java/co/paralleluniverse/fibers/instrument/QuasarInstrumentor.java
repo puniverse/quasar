@@ -35,7 +35,7 @@ import java.util.WeakHashMap;
  */
 public final class QuasarInstrumentor {
     @SuppressWarnings("WeakerAccess")
-    public static final int ASMAPI = Opcodes.ASM5;
+    public static final int ASMAPI = Opcodes.ASM6;
 
     /* private */ final static String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClassesStartingWith");
     private static final boolean allowJdkInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.allowJdkInstrumentation");
