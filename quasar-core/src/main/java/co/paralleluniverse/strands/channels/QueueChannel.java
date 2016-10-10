@@ -356,22 +356,24 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
 
         Message m;
         boolean closed;
-        Object token = sync.register();
-        for (int i = 0;; i++) {
-            closed = isSendClosed(); // must be read BEFORE queue.poll()
-            if ((m = queue.poll()) != null)
-                break;
+        final Object token = sync.register();
+        try {
+            for (int i = 0;; i++) {
+                closed = isSendClosed(); // must be read BEFORE queue.poll()
+                if ((m = queue.poll()) != null)
+                    break;
 
-            // i can be > 0 if task state is LEASED
+                // i can be > 0 if task state is LEASED
+                if (closed) {
+                    setReceiveClosed();
+                    return closeValue();
+                }
 
-            if (closed) {
-                setReceiveClosed();
-                return closeValue();
+                sync.await(i);
             }
-
-            sync.await(i);
+        } finally {
+            sync.unregister(token);
         }
-        sync.unregister(token);
 
         assert m != null;
         signalSenders();
@@ -392,7 +394,7 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
 
         Message m;
         boolean closed;
-        Object token = sync.register();
+        final Object token = sync.register();
         try {
             for (int i = 0;; i++) {
                 closed = isSendClosed(); // must be read BEFORE queue.poll()
