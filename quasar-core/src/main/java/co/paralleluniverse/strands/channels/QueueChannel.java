@@ -356,7 +356,6 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
 
         Message m;
         boolean closed;
-        Object token = sync.register();
         for (int i = 0;; i++) {
             closed = isSendClosed(); // must be read BEFORE queue.poll()
             if ((m = queue.poll()) != null)
@@ -368,6 +367,7 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
                 setReceiveClosed();
                 return closeValue();
             }
+        final Object token = sync.register();
 
             sync.await(i);
         }
@@ -392,7 +392,7 @@ public abstract class QueueChannel<Message> implements StandardChannel<Message>,
 
         Message m;
         boolean closed;
-        Object token = sync.register();
+        final Object token = sync.register();
         try {
             for (int i = 0;; i++) {
                 closed = isSendClosed(); // must be read BEFORE queue.poll()
