@@ -131,7 +131,8 @@ public class ExtendedStackTrace implements Iterable<ExtendedStackTraceElement> {
                     }
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                if (!(e instanceof UnsupportedOperationException))
+                    e.printStackTrace();
             }
         }
 

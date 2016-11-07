@@ -34,7 +34,8 @@ import org.objectweb.asm.tree.MethodNode;
  */
 public final class ASMUtil {
     public static InputStream getClassInputStream(String className, ClassLoader cl) {
-        return cl.getResourceAsStream(classToResource(className));
+        final String resource = classToResource(className);
+        return cl != null ? cl.getResourceAsStream(resource) : ClassLoader.getSystemResourceAsStream(resource);
     }
 
     public static InputStream getClassInputStream(Class<?> clazz) {
