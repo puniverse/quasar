@@ -102,7 +102,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     private /*final*/ ActorRunner<V> runner;
     private boolean migrating;
     private static final AtomicReferenceFieldUpdater<Actor, ActorRef> wrapperRefUpdater = AtomicReferenceFieldUpdater.newUpdater(Actor.class, ActorRef.class, "wrapperRef");
-
+    private boolean forwardWatch;
+    
     /**
      * Creates a new actor.
      *
@@ -149,6 +150,24 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         this(name, mailboxConfig);
         if (strand != null)
             runner.setStrand(strand);
+    }
+    
+    /**
+     * <b>For use by non-Java, untyped languages only.</b>
+     * <p>
+     * If set to {@code true}, {@link #handleLifecycleMessage(co.paralleluniverse.actors.LifecycleMessage) LifecycleMessage}
+     * will, by default, return {@link ExitMessage}s from {@link #watch(co.paralleluniverse.actors.ActorRef) watched} 
+     * actors to be returned by {@code receive}. This means that {@code receive} will return a message of
+     * a type that may not be {@code Message}, and therefore this value should only be set to true in
+     * untyped languages.
+     * 
+     * @param value
+     * @return 
+     */
+    @Deprecated
+    public Actor<Message, V> setForwardWatch(boolean value) {
+        this.forwardWatch = value;
+        return this;
     }
 
     void onCodeChange0() {
@@ -753,6 +772,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             removeObserverListeners(exit.getActor());
             if (exit.getWatch() == null)
                 throw new LifecycleException(m);
+            else if (forwardWatch)
+                return (Message) m; // this is a false cast! forwardWatch must only be used in untyped languages
         }
         return null;
     }

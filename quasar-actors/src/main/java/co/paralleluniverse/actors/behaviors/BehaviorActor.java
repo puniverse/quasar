@@ -316,10 +316,10 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
      */
     @Override
     protected Object handleLifecycleMessage(LifecycleMessage m) {
-        if (m instanceof ShutdownMessage)
+        if (m instanceof ShutdownMessage) {
             shutdown();
-        else
-            super.handleLifecycleMessage(m);
-        return null;
+            return null;
+        } else
+            return super.handleLifecycleMessage(m);
     }
 }
