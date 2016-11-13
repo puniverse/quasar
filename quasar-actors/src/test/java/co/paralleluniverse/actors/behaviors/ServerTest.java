@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -42,6 +43,8 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 /**
  * These tests are also good tests for sendSync, as they test sendSync (and receive) from both fibers and threads.
@@ -300,7 +303,7 @@ public class ServerTest {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 //noinspection InfiniteLoopStatement
-                for(;;)
+                for (;;)
                     System.out.println(receive());
             }
         });
@@ -348,7 +351,7 @@ public class ServerTest {
             @Override
             protected Void doRun() throws SuspendExecution, InterruptedException {
                 //noinspection InfiniteLoopStatement
-                for(;;)
+                for (;;)
                     System.out.println(receive());
             }
         });
@@ -372,7 +375,7 @@ public class ServerTest {
 
             @Override
             protected Object[] doRun() throws SuspendExecution, InterruptedException {
-                return new Object[] {
+                return new Object[]{
                     watch = watch(a.ref()),
                     s.call(new Message(3, 4)),
                     receive(100, TimeUnit.MILLISECONDS)
