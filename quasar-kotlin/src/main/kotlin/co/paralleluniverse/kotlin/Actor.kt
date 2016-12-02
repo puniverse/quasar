@@ -13,16 +13,15 @@
  */
 package co.paralleluniverse.kotlin
 
-import co.paralleluniverse.actors.KotlinActorSupport
-import java.util.concurrent.TimeUnit
-import co.paralleluniverse.actors.LifecycleMessage
-import co.paralleluniverse.actors.Actor as JActor
-import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.actors.ActorRef
 import co.paralleluniverse.actors.ExitMessage
+import co.paralleluniverse.actors.KotlinActorSupport
+import co.paralleluniverse.actors.LifecycleMessage
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.strands.SuspendableCallable
 import co.paralleluniverse.strands.queues.QueueIterator
+import java.util.concurrent.TimeUnit
+import co.paralleluniverse.actors.Actor as JActor
 
 /**
  * Ported from {@link co.paralleluniverse.actors.SelectiveReceiveHelper}
@@ -64,11 +63,11 @@ abstract class Actor : KotlinActorSupport<Any?, Any?>() {
 
         val start = if (timeout > 0) System.nanoTime() else 0
         var now: Long
-        var left = if (unit != null) unit.toNanos(timeout) else 0
+        var left = unit?.toNanos(timeout) ?: 0
         val deadline = start + left
 
         monitorResetSkippedMessages()
-        var i: Int = 0
+        val i: Int = 0
         val it: QueueIterator<Any> = mailboxQueue().iterator()
         while (true) {
             if (flightRecorder != null)
@@ -139,7 +138,7 @@ abstract class Actor : KotlinActorSupport<Any?, Any?>() {
     }
 
     protected fun defer() {
-        throw DeferException;
+        throw DeferException
     }
 }
 
