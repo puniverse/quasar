@@ -107,7 +107,7 @@ subprojects {
         timewarp 'co.paralleluniverse:timewarp:0.1.0-SNAPSHOT'
         testCompile 'co.paralleluniverse:timewarp:0.1.0-SNAPSHOT'
         testCompile 'junit:junit:4.12'
-        testCompile('com.google.truth:truth:0.28') {
+        testCompile('com.google.truth:truth:0.30') {
             exclude group: 'com.google.guava', module: 'guava'
             exclude group: 'junit', module: 'junit'
         }
@@ -117,8 +117,8 @@ subprojects {
         }
         testCompile "org.ow2.asm:asm:$asmVer"
 
-        jmhCompile 'org.openjdk.jmh:jmh-core:1.13'
-        jmhCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.13'
+        jmhCompile 'org.openjdk.jmh:jmh-core:1.17'
+        jmhCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.17'
 
         compileOnly 'org.kohsuke.metainf-services:metainf-services:1.7'
         // compileOnly 'com.google.auto.service:auto-service:1.0-rc1' // same as metainf-services
@@ -622,11 +622,11 @@ project (':quasar-actors') {
         // compile 'org.mutabilitydetector:MutabilityDetector:0.9.2'
         compile "org.slf4j:slf4j-api:1.7.21"
         compile "net.bytebuddy:byte-buddy:1.5.7"
-        testRuntime("org.apache.logging.log4j:log4j-slf4j-impl:2.6.2") {
+        testRuntime("org.apache.logging.log4j:log4j-slf4j-impl:2.7") {
             exclude group: "org.slf4j", module: '*'
         }
-        testRuntime "org.apache.logging.log4j:log4j-api:2.6.2"
-        testRuntime "org.apache.logging.log4j:log4j-core:2.6.2"
+        testRuntime "org.apache.logging.log4j:log4j-api:2.7"
+        testRuntime "org.apache.logging.log4j:log4j-core:2.7"
         testRuntime "com.lmax:disruptor:3.3.6" // required for log4j
     }
 }
@@ -691,7 +691,7 @@ project (':quasar-reactive-streams') {
             exclude group: "junit", module: "*"
             exclude group: "org.testng", module: "testng"
         }
-        testCompile('org.testng:testng:6.9.12') {
+        testCompile('org.testng:testng:6.9.13.6') {
             exclude group: "com.google.guava", module: "*"
             exclude group: "junit", module: "*"
         }
@@ -707,7 +707,7 @@ project (':quasar-disruptor') {
 
     dependencies {
         provided project(path: ':quasar-core', configuration: "jdk${jdkVer}Archives")
-        compile "com.lmax:disruptor:3.3.5"
+        compile "com.lmax:disruptor:3.3.6"
     }
 }
 

@@ -289,7 +289,7 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
                     .subclass(Server.class)
                     .implement(interfaces)
                     .implement(java.io.Serializable.class)
-                    .method(isDeclaredBy(anyOf(interfaces))).intercept(InvocationHandlerAdapter.of(callOnVoidMethods ? handler1 : handler2).withMethodCache())
+                    .method(isDeclaredBy(anyOf(interfaces))).intercept(InvocationHandlerAdapter.of(callOnVoidMethods ? handler1 : handler2))
                     .make()
                     .load(ProxyServerActor.class.getClassLoader(), ClassLoadingStrategy.Default.WRAPPER).getLoaded();
             final Class<? extends Server> old = classes.putIfAbsent(key, clazz);
