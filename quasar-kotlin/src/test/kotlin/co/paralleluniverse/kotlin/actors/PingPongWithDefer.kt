@@ -13,14 +13,17 @@
  */
 package co.paralleluniverse.kotlin.actors
 
-import co.paralleluniverse.actors.*
+import co.paralleluniverse.actors.ActorRef
+import co.paralleluniverse.actors.ActorRegistry
+import co.paralleluniverse.actors.LocalActor
 import co.paralleluniverse.fibers.Suspendable
-import org.junit.Test
-import java.util.concurrent.TimeUnit.*
 import co.paralleluniverse.kotlin.Actor
-import co.paralleluniverse.kotlin.*
+import co.paralleluniverse.kotlin.register
+import co.paralleluniverse.kotlin.spawn
+import org.junit.Test
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.TimeUnit.SECONDS
 
 /**
  * @author circlespainter
@@ -37,8 +40,8 @@ fun now(): String = "[${sdfDate.format(Date())}]"
 class Ping(val n: Int) : Actor() {
     @Suspendable override fun doRun() {
         val pong: ActorRef<Any> = ActorRegistry.getActor("pong")
-        for(i in 1..n) {
-            val msg = Msg("ping$i", self())
+        (1..n).forEach {
+            val msg = Msg("ping$it", self())
             println("${now()} Ping sending '$msg' to '$pong'")
             pong.send(msg)          // Fiber-blocking
             println("${now()} Ping sent '$msg' to '$pong'")
@@ -68,7 +71,7 @@ class Ping(val n: Int) : Actor() {
     }
 }
 
-class Pong() : Actor() {
+class Pong : Actor() {
     @Suspendable override fun doRun() {
         var discardGarbage = false
 
