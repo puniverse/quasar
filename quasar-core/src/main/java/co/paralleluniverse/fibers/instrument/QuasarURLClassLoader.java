@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-
 import com.google.common.io.ByteStreams;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

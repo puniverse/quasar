@@ -1704,7 +1704,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 final /*Executable*/ Member m = SuspendableHelper.lookupMethod(ste);
                 if (m != null) {
                     final boolean methodInstrumented = SuspendableHelper.isInstrumented(m);
-                    final Pair<Boolean, int[]> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), stes, i);
+                    final Pair<Boolean, Instrumented> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), ste.getBytecodeIndex(), stes, i);
                     if (!classInstrumented || !methodInstrumented || !callSiteInstrumented.getFirst()) {
                         if (ok)
                             stackTrace = initTrace(i, stes);
@@ -1713,7 +1713,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                             stackTrace.append(" **");
                         else if (!callSiteInstrumented.getFirst())
                             stackTrace.append(" !! (instrumented suspendable calls at: ")
-                                    .append(callSiteInstrumented.getSecond() == null ? "[]" : Arrays.toString(callSiteInstrumented.getSecond()))
+                                    .append(callSitesString(callSiteInstrumented.getSecond()))
                                     .append(")");
                         ok = false;
                     }
@@ -1726,7 +1726,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 }
             } else if (ste.getClassName().equals(Fiber.class.getName()) && ste.getMethodName().equals("run1")) {
                 if (!ok) {
-                    final String str = "Uninstrumented methods (marked '**') or call-sites (marked '!!') detected on the call stack: " + stackTrace;
+                    final String str = "Uninstrumented whole methods ('**') or single calls ('!!') detected: " + stackTrace;
                     if (Debug.isUnitTest())
                         throw new VerifyInstrumentationException(str);
                     System.err.println("WARNING: " + str);
@@ -1735,6 +1735,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             }
         }
         throw new IllegalStateException("Not run through Fiber.exec(). (trace: " + Arrays.toString(stes) + ")");
+    }
+
+    private static String callSitesString(Instrumented i) {
+        if (i == null)
+            return "N/A";
+        return
+            "BCIs " + Arrays.toString(i.suspendableCallSitesOffsetsAfterInstr()) +
+            ", lines " + Arrays.toString(i.suspendableCallSites());
     }
 
     private static StringBuilder initTrace(int i, ExtendedStackTraceElement[] stes) {
@@ -1749,8 +1757,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private static void printTraceLine(StringBuilder stackTrace, ExtendedStackTraceElement ste) {
-        stackTrace.append("\n\tat ").append(ste);
         final Member m = SuspendableHelper.lookupMethod(ste);
+        stackTrace.append("\n\tat ").append(ste.getMethod() == null ? ste.toString(m) : ste.toString());
         if (SuspendableHelper.isOptimized(m))
             stackTrace.append(" (optimized)");
     }

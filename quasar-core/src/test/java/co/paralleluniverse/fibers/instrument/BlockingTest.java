@@ -49,12 +49,12 @@ public class BlockingTest {
     public void testSuspend() throws IOException {
         final String className = BlockingTest.class.getName().replace('.', '/');
         final HashSet<String> msgs = new HashSet<>();
-        msgs.add("Method " + className + "#t_wait()V contains potentially blocking call to java/lang/Object#wait()V");
-        msgs.add("Method " + className + "#t_sleep1()V contains potentially blocking call to java/lang/Thread#sleep(J)V");
-        msgs.add("Method " + className + "#t_sleep2()V contains potentially blocking call to java/lang/Thread#sleep(JI)V");
-        msgs.add("Method " + className + "#t_join1(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join()V");
-        msgs.add("Method " + className + "#t_join2(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(J)V");
-        msgs.add("Method " + className + "#t_join3(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(JI)V");
+        msgs.add("Method BlockingTest.java:" + className + "#t_wait()V contains potentially blocking call to java/lang/Object#wait()V");
+        msgs.add("Method BlockingTest.java:" + className + "#t_sleep1()V contains potentially blocking call to java/lang/Thread#sleep(J)V");
+        msgs.add("Method BlockingTest.java:" + className + "#t_sleep2()V contains potentially blocking call to java/lang/Thread#sleep(JI)V");
+        msgs.add("Method BlockingTest.java:" + className + "#t_join1(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join()V");
+        msgs.add("Method BlockingTest.java:" + className + "#t_join2(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(J)V");
+        msgs.add("Method BlockingTest.java:" + className + "#t_join3(Ljava/lang/Thread;)V contains potentially blocking call to java/lang/Thread#join(JI)V");
 
         final QuasarInstrumentor instrumentor = new QuasarInstrumentor(false);
         final MethodDatabase db = instrumentor.getMethodDatabase(BlockingTest.class.getClassLoader());
@@ -74,7 +74,7 @@ public class BlockingTest {
             }
         });
 
-        try (InputStream in = BlockingTest.class.getResourceAsStream("BlockingTest.class")) {
+        try (final InputStream in = BlockingTest.class.getResourceAsStream("BlockingTest.class")) {
             instrumentor.instrumentClass(BlockingTest.class.getClassLoader(), BlockingTest.class.getName(), in, true);
         }
 

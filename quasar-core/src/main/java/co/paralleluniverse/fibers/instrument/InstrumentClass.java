@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2014, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -41,10 +41,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import static co.paralleluniverse.fibers.instrument.Classes.ALREADY_INSTRUMENTED_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.ANNOTATION_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_ANNOTATION_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
+import static co.paralleluniverse.fibers.instrument.Classes.*;
 import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
@@ -65,7 +62,7 @@ import org.objectweb.asm.tree.analysis.AnalyzerException;
  * @author Matthias Mann
  * @author pron
  */
-public class InstrumentClass extends ClassVisitor {
+class InstrumentClass extends ClassVisitor {
     private final SuspendableClassifier classifier;
     private final MethodDatabase db;
     private boolean forceInstrumentation;
@@ -80,7 +77,7 @@ public class InstrumentClass extends ClassVisitor {
 
     private RuntimeException exception;
 
-    public InstrumentClass(ClassVisitor cv, MethodDatabase db, boolean forceInstrumentation) {
+    InstrumentClass(ClassVisitor cv, MethodDatabase db, boolean forceInstrumentation) {
         super(ASMAPI, cv);
         this.db = db;
         this.classifier = db.getClassifier();
@@ -127,15 +124,15 @@ public class InstrumentClass extends ClassVisitor {
         classEntry.setSourceDebugInfo(sourceDebugInfo);
     }
 
-    public boolean hasSuspendableMethods() {
+    boolean hasSuspendableMethods() {
         return methods != null && !methods.isEmpty();
     }
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-        if (desc.equals(ALREADY_INSTRUMENTED_DESC))
+        if (desc.equals(INSTRUMENTED_DESC))
             this.alreadyInstrumented = true;
-        else if (isInterface && desc.equals(ANNOTATION_DESC))
+        else if (isInterface && desc.equals(SUSPENDABLE_DESC))
             this.suspendableInterface = true;
 
         return super.visitAnnotation(desc, visible);
@@ -167,9 +164,9 @@ public class InstrumentClass extends ClassVisitor {
                 @Override
                 public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
                     // look for @Suspendable or @DontInstrument annotation
-                    if (adesc.equals(ANNOTATION_DESC))
+                    if (adesc.equals(SUSPENDABLE_DESC))
                         susp = SuspendableType.SUSPENDABLE;
-                    else if (adesc.equals(DONT_INSTRUMENT_ANNOTATION_DESC))
+                    else if (adesc.equals(DONT_INSTRUMENT_DESC))
                         susp = SuspendableType.NON_SUSPENDABLE;
 
                     susp = suspendableToSuperIfAbstract(access, susp);
@@ -202,7 +199,7 @@ public class InstrumentClass extends ClassVisitor {
                     commited = true;
 
                     if (db.isDebug())
-                        db.log(LogLevel.INFO, "Method %s#%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, susp, susp, setSuspendable);
+                        db.log(LogLevel.INFO, "Method %s#%s%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, desc, susp, susp, setSuspendable);
                     classEntry.set(name, desc, susp);
 
                     if (susp == SuspendableType.SUSPENDABLE && checkAccessForMethodInstrumentation(access)) {
@@ -282,16 +279,17 @@ public class InstrumentClass extends ClassVisitor {
     }
 
     private void emitInstrumentedAnn() {
-        final AnnotationVisitor instrumentedAV = visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
+        final AnnotationVisitor instrumentedAV = visitAnnotation(INSTRUMENTED_DESC, true);
         instrumentedAV.visitEnd();
     }
 
     private boolean hasAnnotation(MethodNode mn) {
+        //noinspection unchecked
         final List<AnnotationNode> ans = mn.visibleAnnotations;
         if (ans == null)
             return false;
         for (AnnotationNode an : ans) {
-            if (an.desc.equals(ANNOTATION_DESC))
+            if (an.desc.equals(SUSPENDABLE_DESC))
                 return true;
         }
         return false;
@@ -330,20 +328,23 @@ public class InstrumentClass extends ClassVisitor {
         if (l.isEmpty())
             return null;
 
+        //noinspection RedundantCast,unchecked
         return ((List<String>)l).toArray(new String[l.size()]);
     }
-//    
-//    private static boolean contains(String[] ifaces, String iface) {
-//        for(String i : ifaces) {
-//            if(i.equals(iface))
-//                return true;
-//        }
-//        return false;
-//    }
-//    
-//    private static String[] add(String[] ifaces, String iface) {
-//        String[] newIfaces = Arrays.copyOf(ifaces, ifaces.length + 1);
-//        newIfaces[newIfaces.length - 1] = iface;
-//        return newIfaces;
-//    }
+
+/*
+    private static boolean contains(String[] ifaces, String iface) {
+        for(String i : ifaces) {
+            if(i.equals(iface))
+                return true;
+        }
+        return false;
+    }
+
+    private static String[] add(String[] ifaces, String iface) {
+        String[] newIfaces = Arrays.copyOf(ifaces, ifaces.length + 1);
+        newIfaces[newIfaces.length - 1] = iface;
+        return newIfaces;
+    }
+*/
 }

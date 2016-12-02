@@ -147,7 +147,7 @@ subprojects {
 
         // systemProperty "java.util.logging.config.file", "jul.properties"
 
-        // Uncomment for logging
+        // Uncomment and add ${rootProject.projectDir}/log4j.xml, if not present, for logging
         // systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
 
         // systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"

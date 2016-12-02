@@ -117,7 +117,7 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
     private static Object get(Node n, int i) {
         return UNSAFE.getObjectVolatile(((ObjectNode) n).array, byteOffset(i));
     }
-    
+
     private static void set(Node n, int i, Object x) {
         ((ObjectNode) n).array[i] = x;
     }

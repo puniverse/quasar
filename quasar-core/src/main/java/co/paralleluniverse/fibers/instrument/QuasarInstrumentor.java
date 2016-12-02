@@ -13,9 +13,9 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.common.reflection.ReflectionUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.SystemProperties;
+import co.paralleluniverse.common.util.VisibleForTesting;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -23,20 +23,20 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Date;
 import java.util.WeakHashMap;
 
 /**
  * @author pron
  */
 public final class QuasarInstrumentor {
+    @SuppressWarnings("WeakerAccess")
     public static final int ASMAPI = Opcodes.ASM5;
+
     private final static String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClassesStartingWith");
     private static final boolean allowJdkInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.allowJdkInstrumentation");
     private WeakHashMap<ClassLoader, MethodDatabase> dbForClassloader = new WeakHashMap<>();
@@ -58,10 +58,12 @@ public final class QuasarInstrumentor {
         setLogLevelMask();
     }
 
+    @SuppressWarnings("unused")
     public boolean isAOT() {
         return aot;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public boolean shouldInstrument(String className) {
         if (className != null) {
             className = className.replace('.', '/');
@@ -75,73 +77,104 @@ public final class QuasarInstrumentor {
                 return false;
             if (className.startsWith("org/netbeans/lib/"))
                 return false;
-            if (className.startsWith("java/lang/") || (!allowJdkInstrumentation && MethodDatabase.isJavaCore(className)))
+            if (className.startsWith("java/lang/") || (!allowJdkInstrumentation && MethodDatabase.isJDK(className)))
                 return false;
         }
         return true;
     }
 
-    public byte[] instrumentClass(ClassLoader loader, String className, byte[] data) {
-        return shouldInstrument(className) ? instrumentClass(loader, className, new ClassReader(data), false) : data;
+    @SuppressWarnings("WeakerAccess")
+    public byte[] instrumentClass(ClassLoader loader, String className, byte[] data) throws IOException {
+        return shouldInstrument(className) ? instrumentClass(loader, className, new ByteArrayInputStream(data), false) : data;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public byte[] instrumentClass(ClassLoader loader, String className, InputStream is) throws IOException {
-        return instrumentClass(loader, className, new ClassReader(is), false);
+        return instrumentClass(loader, className, is, false);
     }
 
+    @VisibleForTesting
     byte[] instrumentClass(ClassLoader loader, String className, InputStream is, boolean forceInstrumentation) throws IOException {
-        return instrumentClass(loader, className, new ClassReader(is), forceInstrumentation);
-    }
-
-    private byte[] instrumentClass(ClassLoader loader, String className, ClassReader r, boolean forceInstrumentation) {
         className = className != null ? className.replace('.', '/') : null;
+
+        byte[] cb = toByteArray(is);
 
         MethodDatabase db = getMethodDatabase(loader);
 
-        if (className != null)
+        if (className != null) {
             log(LogLevel.INFO, "TRANSFORM: %s %s", className,
-                    (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
-        else
+                (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
+
+            // DEBUG
+            if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS)) {
+                writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-1-preinstr.class", cb);
+                // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
+            }
+        } else {
             log(LogLevel.INFO, "TRANSFORM: null className");
-
-        final ClassWriter cw = new DBClassWriter(db, r);
-        final ClassVisitor cv = (check && EXAMINED_CLASS == null) ? new CheckClassAdapter(cw) : cw;
-
-        if (EXAMINED_CLASS != null && className != null && className.startsWith(EXAMINED_CLASS)) {
-            writeToFile(className.replace('/', '.') + "-before.class", getClassBuffer(r));
-            // cv = new TraceClassVisitor(cv, new PrintWriter(System.err));
         }
 
-        final InstrumentClass ic = new InstrumentClass(cv, db, forceInstrumentation);
-        byte[] transformed;
+        // Phase 1, add a label before any suspendable calls, event API is enough
+        final ClassReader r1 = new ClassReader(cb);
+        final ClassWriter cw1 = new ClassWriter(r1, 0);
+        final LabelSuspendableCallSitesClassVisitor ic1 = new LabelSuspendableCallSitesClassVisitor(cw1, db);
+        r1.accept(ic1, 0);
+        cb = cw1.toByteArray();
+
+        // DEBUG
+        if (EXAMINED_CLASS != null && className != null && className.startsWith(EXAMINED_CLASS)) {
+            writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-2.class", cb);
+            // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
+        }
+
+        // Phase 2, instrument, tree API
+        final ClassReader r2 = new ClassReader(cb);
+        final ClassWriter cw2 = new DBClassWriter(db, r2);
+        final ClassVisitor cv2 = (check && EXAMINED_CLASS == null) ? new CheckClassAdapter(cw2) : cw2;
+        final InstrumentClass ic2 = new InstrumentClass(cv2, db, forceInstrumentation);
         try {
-            r.accept(ic, ClassReader.SKIP_FRAMES);
-            transformed = cw.toByteArray();
+            r2.accept(ic2, ClassReader.SKIP_FRAMES);
+            cb = cw2.toByteArray();
         } catch (final Exception e) {
-            if (ic.hasSuspendableMethods()) {
+            if (ic2.hasSuspendableMethods()) {
                 error("Unable to instrument class " + className, e);
                 throw e;
             } else {
-                if (className != null && !MethodDatabase.isProblematicClass(className))
+                if (!MethodDatabase.isProblematicClass(className))
                     log(LogLevel.DEBUG, "Unable to instrument class " + className);
                 return null;
             }
         }
 
+        // DEBUG
+        if (EXAMINED_CLASS != null && className != null && className.startsWith(EXAMINED_CLASS)) {
+            writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-4.class", cb);
+            // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
+        }
+
+        // Phase 4, fill suspendable call offsets, event API is enough
+        final OffsetClassReader r3 = new OffsetClassReader(cb);
+        final ClassWriter cw3 = new ClassWriter(r3, 0);
+        final SuspOffsetsAfterInstrClassVisitor ic3 = new SuspOffsetsAfterInstrClassVisitor(cw3, db);
+        r3.accept(ic3, 0);
+        cb = cw3.toByteArray();
+
+        // DEBUG
         if (EXAMINED_CLASS != null) {
             if (className != null && className.startsWith(EXAMINED_CLASS))
-                writeToFile(className.replace('/', '.') + "-after.class", transformed);
+                writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-5-final.class", cb);
 
             if (check) {
-                final ClassReader r2 = new ClassReader(transformed);
-                final ClassVisitor cv2 = new CheckClassAdapter(new TraceClassVisitor(null), true);
-                r2.accept(cv2, 0);
+                ClassReader r4 = new ClassReader(cb);
+                ClassVisitor cv4 = new CheckClassAdapter(new TraceClassVisitor(null), true);
+                r4.accept(cv4, 0);
             }
         }
 
-        return transformed;
+        return cb;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public synchronized MethodDatabase getMethodDatabase(ClassLoader loader) {
         if (loader == null)
             throw new IllegalArgumentException();
@@ -158,19 +191,23 @@ public final class QuasarInstrumentor {
         return this;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public synchronized boolean isAllowMonitors() {
         return allowMonitors;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public synchronized QuasarInstrumentor setAllowMonitors(boolean allowMonitors) {
         this.allowMonitors = allowMonitors;
         return this;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public synchronized boolean isAllowBlocking() {
         return allowBlocking;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public synchronized QuasarInstrumentor setAllowBlocking(boolean allowBlocking) {
         this.allowBlocking = allowBlocking;
         return this;
@@ -188,10 +225,12 @@ public final class QuasarInstrumentor {
         return log;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public synchronized boolean isVerbose() {
         return verbose;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public synchronized void setVerbose(boolean verbose) {
         this.verbose = verbose;
         setLogLevelMask();
@@ -224,7 +263,7 @@ public final class QuasarInstrumentor {
             log.error(msg, ex);
     }
 
-    public String checkClass(ClassLoader cl, File f) {
+    String checkClass(ClassLoader cl, File f) {
         return getMethodDatabase(cl).checkClass(f);
     }
 
@@ -236,11 +275,26 @@ public final class QuasarInstrumentor {
         }
     }
 
-    private static byte[] getClassBuffer(ClassReader r) {
-        try {
-            return (byte[]) ReflectionUtil.accessible(ClassReader.class.getDeclaredField("b")).get(r);
-        } catch (ReflectiveOperationException e) {
-            throw new AssertionError(e);
+    private static byte[] toByteArray(InputStream in) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        copy(in, out);
+        return out.toByteArray();
+    }
+
+    private static final int BUF_SIZE = 8192;
+
+    private static long copy(InputStream from, OutputStream to)
+        throws IOException {
+        byte[] buf = new byte[BUF_SIZE];
+        long total = 0;
+        while (true) {
+            int r = from.read(buf);
+            if (r == -1) {
+                break;
+            }
+            to.write(buf, 0, r);
+            total += r;
         }
+        return total;
     }
 }

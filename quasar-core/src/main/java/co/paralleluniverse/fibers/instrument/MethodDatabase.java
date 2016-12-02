@@ -113,7 +113,7 @@ public class MethodDatabase {
     public boolean isVerbose() {
         return instrumentor.isVerbose();
     }
-    
+
     public Log getLog() {
         return instrumentor.getLog();
     }
@@ -145,23 +145,26 @@ public class MethodDatabase {
             return null;
         }
     }
+
     private static final int UNKNOWN = 0;
-    private static final int MAYBE_CORE = 1;
+    private static final int JDK = 1;
     private static final int NONSUSPENDABLE = 2;
     private static final int SUSPENDABLE_ABSTRACT = 3;
     private static final int SUSPENDABLE = 4;
 
     public SuspendableType isMethodSuspendable(String className, String methodName, String methodDesc, int opcode) {
-        if (className.startsWith("org/netbeans/lib/"))
+        if (className.startsWith("org/netbeans/lib/")) {
+            log(LogLevel.INFO, "Method: %s#%s marked non-suspendable because it is Netbeans library", className, methodName);
             return SuspendableType.NON_SUSPENDABLE;
+        }
 
         int res = isMethodSuspendable0(className, methodName, methodDesc, opcode);
         switch (res) {
             case UNKNOWN:
                 return null;
-            case MAYBE_CORE:
+            case JDK:
                 if (!className.startsWith("java/"))
-                    log(LogLevel.INFO, "Method: %s#%s presumed non-suspendable: probably java core", className, methodName);
+                    log(LogLevel.INFO, "Method: %s#%s not in 'java' package but marked non-suspendable anyway because it is a probably part of the JDK", className, methodName);
             // fallthrough
             case NONSUSPENDABLE:
                 return SuspendableType.NON_SUSPENDABLE;
@@ -190,8 +193,8 @@ public class MethodDatabase {
 
         final ClassEntry entry = getOrLoadClassEntry(className);
         if (entry == null) {
-            if (isJavaCore(className))
-                return MAYBE_CORE;
+            if (isJDK(className))
+                return JDK;
 
 //            if (JavaAgent.isActive())
 //                throw new AssertionError();
@@ -220,7 +223,7 @@ public class MethodDatabase {
                     int s = isMethodSuspendable0(iface, methodName, methodDesc, opcode);
                     if (s > suspendable)
                         suspendable = s;
-                    if (suspendable > MAYBE_CORE)
+                    if (suspendable > JDK)
                         break;
                 }
             }
@@ -242,6 +245,7 @@ public class MethodDatabase {
         return ce;
     }
 
+/*
     public synchronized Map<String, ClassEntry> getInnerClassesEntries(String className) {
         Map<String, ClassEntry> tailMap = classes.tailMap(className, true);
         HashMap<String, ClassEntry> map = new HashMap<>();
@@ -251,6 +255,7 @@ public class MethodDatabase {
         }
         return Collections.unmodifiableMap(map);
     }
+*/
 
     void recordSuspendableMethods(String className, ClassEntry entry) {
         ClassEntry oldEntry;
@@ -295,7 +300,7 @@ public class MethodDatabase {
 
             String superClass = getDirectSuperClass(className);
             if (superClass == null) {
-                log(isProblematicClass(className) ? LogLevel.INFO : LogLevel.WARNING, "Can't determine super class of %s", className);
+                log(isProblematicClass(className) ? LogLevel.INFO : LogLevel.WARNING, "Can't determine super class of %s (this is usually related to classloading)", className);
                 return false;
             }
             className = superClass;
@@ -435,9 +440,11 @@ public class MethodDatabase {
         return className.equals("java/lang/invoke/MethodHandle") && methodName.startsWith("invoke");
     }
 
-    public static boolean isJavaCore(String className) {
-        return className.startsWith("java/") || className.startsWith("javax/")
-               || className.startsWith("sun/") || (className.startsWith("com/sun/") && !className.startsWith("com/sun/jersey"));
+    public static boolean isJDK(String className) {
+        return className.startsWith("java/")
+               || className.startsWith("javax/")
+               || className.startsWith("sun/")
+               || (className.startsWith("com/sun/") && !className.startsWith("com/sun/jersey"));
     }
 
     public static boolean isProblematicClass(String className) {

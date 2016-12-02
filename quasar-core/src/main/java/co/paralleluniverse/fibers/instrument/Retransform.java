@@ -54,7 +54,7 @@ public class Retransform {
     public static MethodDatabase getMethodDB(ClassLoader cl) {
         return instrumentor.getMethodDatabase(cl);
     }
-    
+
     public static QuasarInstrumentor getInstrumentor() {
         return instrumentor;
     }

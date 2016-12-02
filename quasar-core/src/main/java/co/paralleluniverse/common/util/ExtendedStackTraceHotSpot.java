@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -56,9 +56,7 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
                     if (chunk == null)
                         return false;
                 }
-                if (getDeclaringClass(chunk, j + 1) == null)
-                    return false;
-                return true;
+                return getDeclaringClass(chunk, j + 1) != null;
             }
 
             @Override

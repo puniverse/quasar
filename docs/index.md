@@ -704,9 +704,7 @@ We're going to fix that by adding `@Suspendable` to `MyUnmarkedInterface.myUnmar
 
 ### Manual troubleshooting {#troubleshooting-manual}
 
-Enabling instrumentation verification should work in almost all cases but there are some [known limitations](https://github.com/puniverse/quasar/issues/193). If you run into one such situation and you own/control the code, even simply splitting a line containing multiple suspendable method invocations might do the trick and allow verification to help you.
-
-If you don't own/control the code however, you can still verify manually by checking the code mentioned in the stack trace of the "strange" exception, proceeding from top to bottom, possibly with the help of instrumentation traces. If your program gets stuck instead, try to figure out with a [debugger](#debugging) where there's a restarting method and use that stack as a reference. If you can't find the culprit then consider [asking for help](#getting-help).
+You can also verify instrumentation manually by checking the code mentioned in the stack trace of the "strange" exception, proceeding from top to bottom, possibly with the help of instrumentation traces. If your program gets stuck instead, try to figure out with a [debugger](#debugging) where there's a restarting method and use that stack as a reference. If you can't find the culprit then consider [asking for help](#getting-help).
 
 ### Debugging {#debugging}
 
