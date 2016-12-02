@@ -140,7 +140,7 @@ class InstrumentMethod {
         }
     }
 
-    public boolean callsSuspendables() {
+    private void collectCallsites() {
         if (suspCallsBcis == null) {
             suspCallsBcis = new int[8];
             final int numIns = mn.instructions.size();
@@ -178,8 +178,6 @@ class InstrumentMethod {
             if (count < suspCallsBcis.length)
                 suspCallsBcis = Arrays.copyOf(suspCallsBcis, count);
         }
-
-        return suspCallsBcis.length > 0;
     }
 
     private boolean isSuspendableCall(AbstractInsnNode in) {
@@ -189,9 +187,9 @@ class InstrumentMethod {
             final MethodInsnNode min = (MethodInsnNode) in;
 
             if (!isSyntheticAccess(min.owner, min.name)
-                    && !isReflectInvocation(min.owner, min.name)
-                    && !isMethodHandleInvocation(min.owner, min.name)
-                    && !isInvocationHandlerInvocation(min.owner, min.name)) {
+                && !isReflectInvocation(min.owner, min.name)
+                && !isMethodHandleInvocation(min.owner, min.name)
+                && !isInvocationHandlerInvocation(min.owner, min.name)) {
                 SuspendableType st = db.isMethodSuspendable(min.owner, min.name, min.desc, min.getOpcode());
 
                 if (st == SuspendableType.NON_SUSPENDABLE)
@@ -287,8 +285,9 @@ class InstrumentMethod {
     public void accept(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s#%s%s", className, mn.name, mn.desc);
 
+        collectCallsites();
+        
         final boolean skipInstrumentation = canInstrumentationBeSkipped(suspCallsBcis);
-
         emitInstrumentedAnn(mv, skipInstrumentation);
 
         if (skipInstrumentation) {
@@ -530,6 +529,11 @@ class InstrumentMethod {
     }
 
     private boolean canInstrumentationBeSkipped(int[] susCallsIndexes) {
+        if (susCallsIndexes.length == 0) {
+            db.log(LogLevel.INFO, "No callsites to instrument in method %s#%s%s", className, mn.name, mn.desc);
+            return true;
+        }
+        
         if (optimizationDisabled) {
             db.log(LogLevel.DEBUG, "[OPTIMIZE] Optimization disabled, not examining method %s#%s%s with susCallsIndexes=%s", className, mn.name, mn.desc, Arrays.toString(susCallsIndexes));
             return false;
@@ -585,7 +589,7 @@ class InstrumentMethod {
     private boolean hasSuspendableTryCatchBlocksAround(int bci) {
         for (TryCatchBlockNode tcb : (List<TryCatchBlockNode>) mn.tryCatchBlocks) {
             if (mn.instructions.indexOf(tcb.start) <= bci && mn.instructions.indexOf(tcb.end) >= bci
-                    && (THROWABLE_NAME.equals(tcb.type)
+                && (THROWABLE_NAME.equals(tcb.type)
                     || EXCEPTION_NAME.equals(tcb.type)
                     || RUNTIME_EXCEPTION_NAME.equals(tcb.type)
                     || RUNTIME_SUSPEND_EXECUTION_NAME.equals(tcb.type)
@@ -596,34 +600,44 @@ class InstrumentMethod {
     }
 
     private void emitInstrumentedAnn(MethodVisitor mv, boolean skip) {
-        final StringBuilder sb = new StringBuilder();
         final AnnotationVisitor instrumentedAV = mv.visitAnnotation(ALREADY_INSTRUMENTED_DESC, true);
-        sb.append("@Instrumented(");
+
+        StringBuilder sb = null;
+
+        if (db.isDebug()) {
+            sb = new StringBuilder();
+            sb.append("@Instrumented(");
+        }
         final AnnotationVisitor linesAV = instrumentedAV.visitArray("suspendableCallSites");
 
-        sb.append("suspendableCallSites=[");
+        if (db.isDebug())
+            sb.append("suspendableCallSites=[");
         for (int i = 0; i < suspCallsSourceLines.length; i++) {
-            if (i != 0)
+            if (db.isDebug() && i != 0)
                 sb.append(", ");
 
             final int l = suspCallsSourceLines[i];
             linesAV.visit("", l);
 
-            sb.append(l);
+            if (db.isDebug())
+                sb.append(l);
         }
         linesAV.visitEnd();
-        sb.append("],");
+        if (db.isDebug())
+            sb.append("],");
 
         instrumentedAV.visit("methodStart", startSourceLine);
         instrumentedAV.visit("methodEnd", endSourceLine);
         instrumentedAV.visit("methodOptimized", skip);
         instrumentedAV.visitEnd();
 
-        sb.append("methodStart=").append(startSourceLine).append(",");
-        sb.append("methodEnd=").append(endSourceLine).append(",");
-        sb.append("methodOptimized=").append(skip);
-        sb.append(")");
-        db.log(LogLevel.DEBUG, "Annotating method %s#%s%s with %s", className, mn.name, mn.desc, sb);
+        if (db.isDebug()) {
+            sb.append("methodStart=").append(startSourceLine).append(",");
+            sb.append("methodEnd=").append(endSourceLine).append(",");
+            sb.append("methodOptimized=").append(skip);
+            sb.append(")");
+            db.log(LogLevel.DEBUG, "Annotating method %s#%s%s with %s", className, mn.name, mn.desc, sb);
+        }
     }
 
     private void dumpStack(MethodVisitor mv) {
