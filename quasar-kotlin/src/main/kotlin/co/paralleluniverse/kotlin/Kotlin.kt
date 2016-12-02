@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit
 open class SelectOp<out M>(private val wrappedSA: SelectAction<out M>) {
     fun getWrappedSelectAction(): SelectAction<out M> = wrappedSA
 }
-class Receive<M>(public val receivePort: ReceivePort<M>) : SelectOp<M>(Selector.receive(receivePort)) {
+class Receive<M>(val receivePort: ReceivePort<M>) : SelectOp<M>(Selector.receive(receivePort)) {
     @Suppress("BASE_WITH_NULLABLE_UPPER_BOUND")
     var msg: M? = null
         internal set(value) {
