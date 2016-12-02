@@ -636,65 +636,65 @@ class InstrumentMethod {
             boolean skip, int startSourceLine, int endSourceLine,
             int[] suspCallsSourceLines, int[] postInstrOffsets
     ) {
-        StringBuilder sb = null;
+        final StringBuilder sb = db.isDebug() ? new StringBuilder() : null;
         final AnnotationVisitor instrumentedAV = mv.visitAnnotation(INSTRUMENTED_DESC, true);
-        if (db.isDebug()) {
-            sb = new StringBuilder();
+        if (sb != null)
             sb.append("@").append(Instrumented.class.getSimpleName()).append("(");
-        }
+        
 
         if (suspCallsSourceLines != null) {
             final AnnotationVisitor linesAV = instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES);
-            if (db.isDebug())
+            if (sb != null)
                 sb.append(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES + "=[");
             for (int i = 0; i < suspCallsSourceLines.length; i++) {
-                if (db.isDebug() && i != 0)
+                if (sb != null && i != 0)
                     sb.append(", ");
 
                 final int l = suspCallsSourceLines[i];
                 linesAV.visit("", l);
 
-                if (db.isDebug())
+                if (sb != null)
                     sb.append(l);
             }
             linesAV.visitEnd();
-            if (db.isDebug())
+            if (sb != null)
                 sb.append("],");
         }
 
         if (postInstrOffsets != null) {
             final AnnotationVisitor postInstrOffsetsAV =
                     instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR);
-            if (db.isDebug())
+            if (sb != null)
                 sb.append(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR + "=[");
             for (int i = 0; i < postInstrOffsets.length; i++) {
-                if (db.isDebug() && i != 0)
+                if (sb != null && i != 0)
                     sb.append(", ");
 
                 final int l = postInstrOffsets[i];
                 postInstrOffsetsAV.visit("", l);
 
-                sb.append(l);
+                if (sb != null)
+                    sb.append(l);
             }
             postInstrOffsetsAV.visitEnd();
-            if (db.isDebug())
+            if (sb != null)
                 sb.append("],");
         }
 
         instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_START, startSourceLine);
-        if (db.isDebug())
+        if (sb != null)
             sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(startSourceLine).append(",");
 
         instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_END, endSourceLine);
-        if (db.isDebug())
+        if (sb != null)
             sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(endSourceLine).append(",");
 
         instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_OPTIMIZED, skip);
-        if (db.isDebug())
+        if (sb != null)
             sb.append(Instrumented.FIELD_NAME_METHOD_OPTIMIZED + "=").append(skip);
 
         instrumentedAV.visitEnd();
-        if (db.isDebug())
+        if (sb != null)
             sb.append(")");
 
         db.log(LogLevel.DEBUG, "Annotating method %s:%s#%s%s with %s", sourceName, className, mn.name, mn.desc, sb);
