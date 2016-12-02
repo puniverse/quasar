@@ -103,7 +103,7 @@ subprojects {
             exclude group: 'org.slf4j', module: '*'
         }
         provided "org.apache.ant:ant:1.9.7"
-        compile "com.google.guava:guava:19.0"
+        compile "com.google.guava:guava:20.0"
         timewarp 'co.paralleluniverse:timewarp:0.1.0-SNAPSHOT'
         testCompile 'co.paralleluniverse:timewarp:0.1.0-SNAPSHOT'
         testCompile 'junit:junit:4.12'
@@ -459,7 +459,7 @@ project (':quasar-core') {
         compile("com.esotericsoftware:kryo:4.0.0") {
             exclude group: "org.ow2.asm", module: '*'
         }
-        compile("de.javakaffee:kryo-serializers:0.38") {
+        compile("de.javakaffee:kryo-serializers:0.41") {
             exclude group: "com.esotericsoftware", module: '*'
             exclude group: "com.esotericsoftware.kryo", module: '*'
         }
@@ -621,13 +621,13 @@ project (':quasar-actors') {
         provided project(path: ':quasar-core', configuration: "jdk${jdkVer}Archives")
         // compile 'org.mutabilitydetector:MutabilityDetector:0.9.2'
         compile "org.slf4j:slf4j-api:1.7.21"
-        compile "net.bytebuddy:byte-buddy:1.4.16"
+        compile "net.bytebuddy:byte-buddy:1.5.7"
         testRuntime("org.apache.logging.log4j:log4j-slf4j-impl:2.6.2") {
             exclude group: "org.slf4j", module: '*'
         }
         testRuntime "org.apache.logging.log4j:log4j-api:2.6.2"
         testRuntime "org.apache.logging.log4j:log4j-core:2.6.2"
-        testRuntime "com.lmax:disruptor:3.3.5" // required for log4j
+        testRuntime "com.lmax:disruptor:3.3.6" // required for log4j
     }
 }
 
