@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-/*
+ /*
  * Copyright (c) 2008-2013, Matthias Mann
  * All rights reserved.
  *
@@ -98,7 +98,6 @@ class InstrumentMethod {
     // private final boolean verifyInstrumentation; //
     // private static final int PREEMPTION_BACKBRANCH = 0;
     // private static final int PREEMPTION_CALL = 1;
-
     private static final int NUM_LOCALS = 3; // = 3 + (verifyInstrumentation ? 1 : 0); // lvarStack, lvarResumed, lvarInvocationReturnValue
     private static final int ADD_OPERANDS = 6; // 4;
 
@@ -153,7 +152,11 @@ class InstrumentMethod {
         }
     }
 
+<<<<<<< HEAD
     boolean callsSuspendables() {
+=======
+    private void collectCallsites() {
+>>>>>>> 0.7.0
         if (suspCallsBcis == null) {
             suspCallsBcis = new int[8];
             final int numIns = mn.instructions.size();
@@ -191,8 +194,6 @@ class InstrumentMethod {
             if (count < suspCallsBcis.length)
                 suspCallsBcis = Arrays.copyOf(suspCallsBcis, count);
         }
-
-        return suspCallsBcis.length > 0;
     }
 
     private static boolean isSuspendableCall(MethodDatabase db, AbstractInsnNode in) {
@@ -219,12 +220,20 @@ class InstrumentMethod {
 
     static boolean isSuspendableCall(MethodDatabase db, int type, int opcode, String owner, String name, String desc) {
         boolean susp = true;
+<<<<<<< HEAD
 
         if (type == AbstractInsnNode.METHOD_INSN) {
             if (!isSyntheticAccess(owner, name)
                     && !isReflectInvocation(owner, name)
                     && !isMethodHandleInvocation(owner, name)
                     && !isInvocationHandlerInvocation(owner, name)) {
+=======
+        if (type == AbstractInsnNode.METHOD_INSN) {
+            if (!isSyntheticAccess(owner, name)
+                && !isReflectInvocation(owner, name)
+                && !isMethodHandleInvocation(owner, name)
+                && !isInvocationHandlerInvocation(owner, name)) {
+>>>>>>> 0.7.0
                 SuspendableType st = db.isMethodSuspendable(owner, name, desc, opcode);
 
                 if (st == SuspendableType.NON_SUSPENDABLE)
@@ -289,6 +298,7 @@ class InstrumentMethod {
                     if (susp) {
                         FrameInfo fi = addCodeBlock(f, i);
                         splitTryCatch(fi);
+<<<<<<< HEAD
                     } else {
                         if (in.getType() == AbstractInsnNode.METHOD_INSN) {// not invokedynamic
                             //noinspection ConstantConditions
@@ -296,6 +306,13 @@ class InstrumentMethod {
                             db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
                             possiblyWarnAboutBlocking(min);
                         }
+=======
+                    } else if (in.getType() == AbstractInsnNode.METHOD_INSN) {// not invokedynamic
+                        //noinspection ConstantConditions
+                        final MethodInsnNode min = (MethodInsnNode) in;
+                        db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
+                        possiblyWarnAboutBlocking(min);
+>>>>>>> 0.7.0
                     }
                 }
             }
@@ -322,10 +339,16 @@ class InstrumentMethod {
     public void accept(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s:%s#%s%s", sourceName, className, mn.name, mn.desc);
 
+        collectCallsites();
         final boolean skipInstrumentation = canInstrumentationBeSkipped(suspCallsBcis);
+<<<<<<< HEAD
 
         emitInstrumentedAnn(db, mv, mn, sourceName, className, skipInstrumentation, startSourceLine, endSourceLine, suspCallsSourceLines, null);
 
+=======
+        emitInstrumentedAnn(db, mv, mn, sourceName, className, skipInstrumentation, startSourceLine, endSourceLine, suspCallsSourceLines, null);
+        
+>>>>>>> 0.7.0
         if (skipInstrumentation) {
             db.log(LogLevel.INFO, "[OPTIMIZE] Skipping instrumentation for method %s:%s#%s%s", sourceName, className, mn.name, mn.desc);
             mn.accept(mv); // Dump
@@ -566,6 +589,11 @@ class InstrumentMethod {
     }
 
     private boolean canInstrumentationBeSkipped(int[] susCallsIndexes) {
+        if (susCallsIndexes.length == 0) {
+            db.log(LogLevel.INFO, "No callsites to instrument in method %s#%s%s", className, mn.name, mn.desc);
+            return true;
+        }
+
         if (optimizationDisabled) {
             db.log(LogLevel.DEBUG, "[OPTIMIZE] Optimization disabled, not examining method %s:%s#%s%s with susCallsIndexes=%s", sourceName, className, mn.name, mn.desc, Arrays.toString(susCallsIndexes));
             return false;
@@ -622,7 +650,7 @@ class InstrumentMethod {
         //noinspection unchecked
         for (final TryCatchBlockNode tcb : (List<TryCatchBlockNode>) mn.tryCatchBlocks) {
             if (mn.instructions.indexOf(tcb.start) <= bci && mn.instructions.indexOf(tcb.end) >= bci
-                    && (THROWABLE_NAME.equals(tcb.type)
+                && (THROWABLE_NAME.equals(tcb.type)
                     || EXCEPTION_NAME.equals(tcb.type)
                     || RUNTIME_EXCEPTION_NAME.equals(tcb.type)
                     || RUNTIME_SUSPEND_EXECUTION_NAME.equals(tcb.type)
@@ -632,11 +660,16 @@ class InstrumentMethod {
         return false;
     }
 
+<<<<<<< HEAD
     static void emitInstrumentedAnn (
+=======
+    static void emitInstrumentedAnn(
+>>>>>>> 0.7.0
             MethodDatabase db, MethodVisitor mv, MethodNode mn, String sourceName, String className,
             boolean skip, int startSourceLine, int endSourceLine,
             int[] suspCallsSourceLines, int[] postInstrOffsets
     ) {
+<<<<<<< HEAD
         final StringBuilder sb = new StringBuilder();
         final AnnotationVisitor instrumentedAV = mv.visitAnnotation(INSTRUMENTED_DESC, true);
         sb.append("@").append(Instrumented.class.getSimpleName()).append("(");
@@ -695,6 +728,77 @@ class InstrumentMethod {
     }
 */
 
+=======
+        final StringBuilder sb = db.isDebug() ? new StringBuilder() : null;
+        final AnnotationVisitor instrumentedAV = mv.visitAnnotation(INSTRUMENTED_DESC, true);
+        if (sb != null)
+            sb.append("@").append(Instrumented.class.getSimpleName()).append("(");
+        
+
+        if (suspCallsSourceLines != null) {
+            final AnnotationVisitor linesAV = instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES);
+            if (sb != null)
+                sb.append(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES + "=[");
+            for (int i = 0; i < suspCallsSourceLines.length; i++) {
+                if (sb != null && i != 0)
+                    sb.append(", ");
+
+                final int l = suspCallsSourceLines[i];
+                linesAV.visit("", l);
+
+                if (sb != null)
+                    sb.append(l);
+            }
+            linesAV.visitEnd();
+            if (sb != null)
+                sb.append("],");
+        }
+
+        if (postInstrOffsets != null) {
+            final AnnotationVisitor postInstrOffsetsAV =
+                    instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR);
+            if (sb != null)
+                sb.append(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR + "=[");
+            for (int i = 0; i < postInstrOffsets.length; i++) {
+                if (sb != null && i != 0)
+                    sb.append(", ");
+
+                final int l = postInstrOffsets[i];
+                postInstrOffsetsAV.visit("", l);
+
+                if (sb != null)
+                    sb.append(l);
+            }
+            postInstrOffsetsAV.visitEnd();
+            if (sb != null)
+                sb.append("],");
+        }
+
+        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_START, startSourceLine);
+        if (sb != null)
+            sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(startSourceLine).append(",");
+
+        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_END, endSourceLine);
+        if (sb != null)
+            sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(endSourceLine).append(",");
+
+        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_OPTIMIZED, skip);
+        if (sb != null)
+            sb.append(Instrumented.FIELD_NAME_METHOD_OPTIMIZED + "=").append(skip);
+
+        instrumentedAV.visitEnd();
+        if (sb != null)
+            sb.append(")");
+
+        db.log(LogLevel.DEBUG, "Annotating method %s:%s#%s%s with %s", sourceName, className, mn.name, mn.desc, sb);
+    }
+
+    /*
+    private void dumpStack(MethodVisitor mv) {
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "dumpStack", "()V", false);
+    }
+     */
+>>>>>>> 0.7.0
     private FrameInfo addCodeBlock(Frame f, int end) {
         if (++numCodeBlocks == codeBlocks.length) {
             FrameInfo[] newArray = new FrameInfo[numCodeBlocks * 2];
@@ -795,8 +899,8 @@ class InstrumentMethod {
                         int stackIndex = frame.getStackSize() - argSize - 1;
                         Value thisValue = frame.getStack(stackIndex);
                         if (stackIndex >= 1
-                                && isNewValue(thisValue, true)
-                                && isNewValue(frame.getStack(stackIndex - 1), false)) {
+                            && isNewValue(thisValue, true)
+                            && isNewValue(frame.getStack(stackIndex - 1), false)) {
                             if (isOmitted((NewValue) thisValue))
                                 emitNewAndDup(mv, frame, stackIndex, min); // explanation in emitNewAndDup
                         } else {
@@ -832,12 +936,20 @@ class InstrumentMethod {
             mv.visitLdcInsn(value);
     }
 
+<<<<<<< HEAD
 /*
     private static void emitConst(MethodVisitor mv, String value) {
         mv.visitLdcInsn(value);
     }
 */
 
+=======
+    /*
+    private static void emitConst(MethodVisitor mv, String value) {
+        mv.visitLdcInsn(value);
+    }
+     */
+>>>>>>> 0.7.0
     private void emitNewAndDup(MethodVisitor mv, Frame frame, int stackIndex, MethodInsnNode min) {
         /*
          * This method, and the entire NewValue business has to do with dealing with the following case:
@@ -993,7 +1105,11 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "postRestore", "()V", false);
     }
 
+<<<<<<< HEAD
 /*
+=======
+    /*
+>>>>>>> 0.7.0
     private void emitPreemptionPoint(MethodVisitor mv, int type) {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         switch (type) {
@@ -1014,8 +1130,12 @@ class InstrumentMethod {
         }
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "preemptionPoint", "(I)V", false);
     }
+<<<<<<< HEAD
 */
 
+=======
+     */
+>>>>>>> 0.7.0
     private void emitStoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx, @SuppressWarnings("UnusedParameters") int lvar) throws InternalError, IndexOutOfBoundsException {
         String desc;
 
@@ -1099,7 +1219,7 @@ class InstrumentMethod {
 
     private static boolean isNullType(BasicValue v) {
         return (v == BasicValue.UNINITIALIZED_VALUE)
-                || (v.isReference() && v.getType().getInternalName().equals("null"));
+               || (v.isReference() && v.getType().getInternalName().equals("null"));
     }
 
     private static boolean isOmitted(BasicValue v) {
@@ -1232,7 +1352,11 @@ class InstrumentMethod {
         }
     }
 
+<<<<<<< HEAD
 /*
+=======
+    /*
+>>>>>>> 0.7.0
     // prints a local var
     private void println(MethodVisitor mv, String prefix, int refVar) {
         mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "err", "Ljava/io/PrintStream;");
@@ -1277,5 +1401,9 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false); // PrintStream S1
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false); // S1
     }
+<<<<<<< HEAD
 */
+=======
+     */
+>>>>>>> 0.7.0
 }

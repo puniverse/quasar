@@ -1700,11 +1700,11 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             if (!ste.getClassName().equals(Fiber.class.getName()) && !ste.getClassName().startsWith(Fiber.class.getName() + '$')
                     && !ste.getClassName().equals(Stack.class.getName()) && !SuspendableHelper.isWaiver(ste.getClassName(), ste.getMethodName())) {
                 final Class<?> clazz = ste.getDeclaringClass();
-                boolean classInstrumented = SuspendableHelper.isInstrumented(clazz);
+                final boolean classInstrumented = SuspendableHelper.isInstrumented(clazz);
                 final /*Executable*/ Member m = SuspendableHelper.lookupMethod(ste);
                 if (m != null) {
-                    boolean methodInstrumented = SuspendableHelper.isInstrumented(m);
-                    Pair<Boolean, Instrumented> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), ste.getBytecodeIndex(), stes, i);
+                    final boolean methodInstrumented = SuspendableHelper.isInstrumented(m);
+                    final Pair<Boolean, Instrumented> callSiteInstrumented = SuspendableHelper.isCallSiteInstrumented(m, ste.getLineNumber(), ste.getBytecodeIndex(), stes, i);
                     if (!classInstrumented || !methodInstrumented || !callSiteInstrumented.getFirst()) {
                         if (ok)
                             stackTrace = initTrace(i, stes);
@@ -1740,7 +1740,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private static String callSitesString(Instrumented i) {
         if (i == null)
             return "N/A";
+<<<<<<< HEAD
 
+=======
+>>>>>>> 0.7.0
         return
             "BCIs " + Arrays.toString(i.suspendableCallSitesOffsetsAfterInstr()) +
             ", lines " + Arrays.toString(i.suspendableCallSites());

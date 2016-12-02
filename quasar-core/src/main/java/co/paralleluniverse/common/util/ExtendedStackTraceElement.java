@@ -199,15 +199,14 @@ public class ExtendedStackTraceElement {
                 .append('.')
                 .append(method.getName());
         sb.append('(');
-        boolean hasParams = false;
-        for (final Class<?> type : getParameterTypes(method)) {
+        final Class<?>[] paramTypes = getParameterTypes(method);
+        for (Class<?> type : paramTypes)
             sb.append(getTypeName(type)).append(','); //.getTypeName()
-            hasParams = true;
-        }
-        if (hasParams)
+        if (paramTypes.length > 0)
             sb.delete(sb.length() - 1, sb.length()); // Remove last ','
-        sb.append("): ");
-        sb.append(getTypeName(getReturnType(method)));
+        sb.append(')');
+//        sb.append("): ");
+//        sb.append(getTypeName(getReturnType(method)));
 
         return sb.toString();
     }

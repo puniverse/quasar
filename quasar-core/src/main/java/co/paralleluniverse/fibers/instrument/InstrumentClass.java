@@ -255,15 +255,10 @@ class InstrumentClass extends ClassVisitor {
                         if (db.isDebug())
                             db.log(LogLevel.INFO, "About to instrument method %s#%s%s", className, mn.name, mn.desc);
 
-                        if (im.callsSuspendables()) {
-                            if (mn.name.charAt(0) == '<')
-                                throw new UnableToInstrumentException("special method", className, mn.name, mn.desc);
+                        if (mn.name.charAt(0) == '<')
+                            throw new UnableToInstrumentException("special method", className, mn.name, mn.desc);
 
-                            im.accept(outMV, hasAnnotation(mn));
-                        } else {
-                            db.log(LogLevel.INFO, "Nothing to instrument in method %s#%s%s", className, mn.name, mn.desc);
-                            mn.accept(outMV);
-                        }
+                        im.accept(outMV, hasAnnotation(mn));
                     } catch (AnalyzerException ex) {
                         ex.printStackTrace();
                         throw new InternalError(ex.getMessage());
