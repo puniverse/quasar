@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-/*
+ /*
  * Copyright (c) 2008-2013, Matthias Mann
  * All rights reserved.
  *
@@ -257,12 +257,10 @@ class InstrumentMethod {
                     if (susp) {
                         FrameInfo fi = addCodeBlock(f, i);
                         splitTryCatch(fi);
-                    } else {
-                        if (in.getType() == AbstractInsnNode.METHOD_INSN) {// not invokedynamic
-                            final MethodInsnNode min = (MethodInsnNode) in;
-                            db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
-                            possiblyWarnAboutBlocking(min);
-                        }
+                    } else if (in.getType() == AbstractInsnNode.METHOD_INSN) {// not invokedynamic
+                        final MethodInsnNode min = (MethodInsnNode) in;
+                        db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
+                        possiblyWarnAboutBlocking(min);
                     }
                 }
             }
@@ -732,8 +730,8 @@ class InstrumentMethod {
                         int stackIndex = frame.getStackSize() - argSize - 1;
                         Value thisValue = frame.getStack(stackIndex);
                         if (stackIndex >= 1
-                                && isNewValue(thisValue, true)
-                                && isNewValue(frame.getStack(stackIndex - 1), false)) {
+                            && isNewValue(thisValue, true)
+                            && isNewValue(frame.getStack(stackIndex - 1), false)) {
                             if (isOmitted((NewValue) thisValue))
                                 emitNewAndDup(mv, frame, stackIndex, min); // explanation in emitNewAndDup
                         } else {
@@ -1032,7 +1030,7 @@ class InstrumentMethod {
 
     static boolean isNullType(BasicValue v) {
         return (v == BasicValue.UNINITIALIZED_VALUE)
-                || (v.isReference() && v.getType().getInternalName().equals("null"));
+               || (v.isReference() && v.getType().getInternalName().equals("null"));
     }
 
     static boolean isOmitted(BasicValue v) {
