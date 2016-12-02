@@ -17,13 +17,16 @@ import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.FiberScheduler
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.strands.SuspendableCallable
-import co.paralleluniverse.strands.channels.*
+import co.paralleluniverse.strands.channels.ReceivePort
+import co.paralleluniverse.strands.channels.SelectAction
+import co.paralleluniverse.strands.channels.Selector
+import co.paralleluniverse.strands.channels.SendPort
 import java.util.concurrent.TimeUnit
 
 /**
  * @author circlespainter
  */
-@Suspendable fun <T> fiber(start: Boolean, name: String?, scheduler: FiberScheduler?, stackSize: Int, block: () -> T): Fiber<T> {
+@Suspendable fun <T> fiber(start: Boolean = true, name: String? = null, scheduler: FiberScheduler? = null, stackSize: Int = -1, block: () -> T): Fiber<T> {
     val sc = (SuspendableCallable<T> @Suspendable { block() })
     val ret =
         if (scheduler != null)
@@ -33,20 +36,6 @@ import java.util.concurrent.TimeUnit
     if (start) ret.start()
     return ret
 }
-@Suspendable fun <T> fiber(block: () -> T): Fiber<T> =
-    fiber(true, null, null, -1, block)
-@Suspendable fun <T> fiber(start: Boolean, block: () -> T): Fiber<T> =
-    fiber(start, null, null, -1, block)
-@Suspendable fun <T> fiber(name: String, block: () -> T): Fiber<T> =
-    fiber(true, name, null, -1, block)
-@Suspendable fun <T> fiber(scheduler: FiberScheduler, block: () -> T): Fiber<T> =
-    fiber(true, null, scheduler, -1, block)
-@Suspendable fun <T> fiber(name: String, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
-    fiber(true, name, scheduler, -1, block)
-@Suspendable fun <T> fiber(start: Boolean, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
-    fiber(start, null, scheduler, -1, block)
-@Suspendable fun <T> fiber(start: Boolean, name: String, scheduler: FiberScheduler, block: () -> T): Fiber<T> =
-    fiber(start, name, scheduler, -1, block)
 
 open class SelectOp<out M>(private val wrappedSA: SelectAction<out M>) {
     fun getWrappedSelectAction(): SelectAction<out M> = wrappedSA
