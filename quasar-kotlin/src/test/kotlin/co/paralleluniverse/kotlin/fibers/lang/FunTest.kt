@@ -121,7 +121,6 @@ class FunTest {
                 true
             })).start().get()
 
-    @Test fun testFunLambda2() {
-        assertTrue(callSusLambda(@Suspendable { Fiber.sleep(10) }, 1))
-    }
+    @Test fun testFunLambda2() = assertTrue(callSusLambda(@Suspendable { Fiber.sleep(10) }, 1))
+
 }
