@@ -245,7 +245,7 @@ public class MethodDatabase {
         return ce;
     }
 
-/*
+    // this method is used by Pulsar
     public synchronized Map<String, ClassEntry> getInnerClassesEntries(String className) {
         Map<String, ClassEntry> tailMap = classes.tailMap(className, true);
         HashMap<String, ClassEntry> map = new HashMap<>();
@@ -255,7 +255,6 @@ public class MethodDatabase {
         }
         return Collections.unmodifiableMap(map);
     }
-*/
 
     void recordSuspendableMethods(String className, ClassEntry entry) {
         ClassEntry oldEntry;
