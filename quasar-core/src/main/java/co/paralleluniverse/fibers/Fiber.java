@@ -1740,10 +1740,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private static String callSitesString(Instrumented i) {
         if (i == null)
             return "N/A";
-<<<<<<< HEAD
-
-=======
->>>>>>> 0.7.0
         return
             "BCIs " + Arrays.toString(i.suspendableCallSitesOffsetsAfterInstr()) +
             ", lines " + Arrays.toString(i.suspendableCallSites());

@@ -152,11 +152,7 @@ class InstrumentMethod {
         }
     }
 
-<<<<<<< HEAD
-    boolean callsSuspendables() {
-=======
     private void collectCallsites() {
->>>>>>> 0.7.0
         if (suspCallsBcis == null) {
             suspCallsBcis = new int[8];
             final int numIns = mn.instructions.size();
@@ -220,20 +216,11 @@ class InstrumentMethod {
 
     static boolean isSuspendableCall(MethodDatabase db, int type, int opcode, String owner, String name, String desc) {
         boolean susp = true;
-<<<<<<< HEAD
-
-        if (type == AbstractInsnNode.METHOD_INSN) {
-            if (!isSyntheticAccess(owner, name)
-                    && !isReflectInvocation(owner, name)
-                    && !isMethodHandleInvocation(owner, name)
-                    && !isInvocationHandlerInvocation(owner, name)) {
-=======
         if (type == AbstractInsnNode.METHOD_INSN) {
             if (!isSyntheticAccess(owner, name)
                 && !isReflectInvocation(owner, name)
                 && !isMethodHandleInvocation(owner, name)
                 && !isInvocationHandlerInvocation(owner, name)) {
->>>>>>> 0.7.0
                 SuspendableType st = db.isMethodSuspendable(owner, name, desc, opcode);
 
                 if (st == SuspendableType.NON_SUSPENDABLE)
@@ -298,21 +285,11 @@ class InstrumentMethod {
                     if (susp) {
                         FrameInfo fi = addCodeBlock(f, i);
                         splitTryCatch(fi);
-<<<<<<< HEAD
-                    } else {
-                        if (in.getType() == AbstractInsnNode.METHOD_INSN) {// not invokedynamic
-                            //noinspection ConstantConditions
-                            final MethodInsnNode min = (MethodInsnNode) in;
-                            db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
-                            possiblyWarnAboutBlocking(min);
-                        }
-=======
                     } else if (in.getType() == AbstractInsnNode.METHOD_INSN) {// not invokedynamic
                         //noinspection ConstantConditions
                         final MethodInsnNode min = (MethodInsnNode) in;
                         db.log(LogLevel.DEBUG, "Method call at instruction %d to %s#%s%s is not suspendable", i, min.owner, min.name, min.desc);
                         possiblyWarnAboutBlocking(min);
->>>>>>> 0.7.0
                     }
                 }
             }
@@ -341,14 +318,8 @@ class InstrumentMethod {
 
         collectCallsites();
         final boolean skipInstrumentation = canInstrumentationBeSkipped(suspCallsBcis);
-<<<<<<< HEAD
-
-        emitInstrumentedAnn(db, mv, mn, sourceName, className, skipInstrumentation, startSourceLine, endSourceLine, suspCallsSourceLines, null);
-
-=======
         emitInstrumentedAnn(db, mv, mn, sourceName, className, skipInstrumentation, startSourceLine, endSourceLine, suspCallsSourceLines, null);
         
->>>>>>> 0.7.0
         if (skipInstrumentation) {
             db.log(LogLevel.INFO, "[OPTIMIZE] Skipping instrumentation for method %s:%s#%s%s", sourceName, className, mn.name, mn.desc);
             mn.accept(mv); // Dump
@@ -660,75 +631,11 @@ class InstrumentMethod {
         return false;
     }
 
-<<<<<<< HEAD
-    static void emitInstrumentedAnn (
-=======
     static void emitInstrumentedAnn(
->>>>>>> 0.7.0
             MethodDatabase db, MethodVisitor mv, MethodNode mn, String sourceName, String className,
             boolean skip, int startSourceLine, int endSourceLine,
             int[] suspCallsSourceLines, int[] postInstrOffsets
     ) {
-<<<<<<< HEAD
-        final StringBuilder sb = new StringBuilder();
-        final AnnotationVisitor instrumentedAV = mv.visitAnnotation(INSTRUMENTED_DESC, true);
-        sb.append("@").append(Instrumented.class.getSimpleName()).append("(");
-
-        if (suspCallsSourceLines != null) {
-            final AnnotationVisitor linesAV = instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES);
-            sb.append(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES + "=[");
-            for (int i = 0; i < suspCallsSourceLines.length; i++) {
-                if (i != 0)
-                    sb.append(", ");
-
-                final int l = suspCallsSourceLines[i];
-                linesAV.visit("", l);
-
-                sb.append(l);
-            }
-            linesAV.visitEnd();
-            sb.append("],");
-        }
-
-        if (postInstrOffsets != null) {
-            final AnnotationVisitor postInstrOffsetsAV =
-                    instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR);
-            sb.append(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR + "=[");
-            for (int i = 0; i < postInstrOffsets.length; i++) {
-                if (i != 0)
-                    sb.append(", ");
-
-                final int l = postInstrOffsets[i];
-                postInstrOffsetsAV.visit("", l);
-
-                sb.append(l);
-            }
-            postInstrOffsetsAV.visitEnd();
-            sb.append("],");
-        }
-
-        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_START, startSourceLine);
-        sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(startSourceLine).append(",");
-
-        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_END, endSourceLine);
-        sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(endSourceLine).append(",");
-
-        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_OPTIMIZED, skip);
-        sb.append(Instrumented.FIELD_NAME_METHOD_OPTIMIZED + "=").append(skip);
-
-        instrumentedAV.visitEnd();
-        sb.append(")");
-
-        db.log(LogLevel.DEBUG, "Annotating method %s:%s#%s%s with %s", sourceName, className, mn.name, mn.desc, sb);
-    }
-
-/*
-    private void dumpStack(MethodVisitor mv) {
-        mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "dumpStack", "()V", false);
-    }
-*/
-
-=======
         final StringBuilder sb = db.isDebug() ? new StringBuilder() : null;
         final AnnotationVisitor instrumentedAV = mv.visitAnnotation(INSTRUMENTED_DESC, true);
         if (sb != null)
@@ -798,7 +705,6 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "dumpStack", "()V", false);
     }
      */
->>>>>>> 0.7.0
     private FrameInfo addCodeBlock(Frame f, int end) {
         if (++numCodeBlocks == codeBlocks.length) {
             FrameInfo[] newArray = new FrameInfo[numCodeBlocks * 2];
@@ -936,20 +842,11 @@ class InstrumentMethod {
             mv.visitLdcInsn(value);
     }
 
-<<<<<<< HEAD
-/*
-    private static void emitConst(MethodVisitor mv, String value) {
-        mv.visitLdcInsn(value);
-    }
-*/
-
-=======
     /*
     private static void emitConst(MethodVisitor mv, String value) {
         mv.visitLdcInsn(value);
     }
      */
->>>>>>> 0.7.0
     private void emitNewAndDup(MethodVisitor mv, Frame frame, int stackIndex, MethodInsnNode min) {
         /*
          * This method, and the entire NewValue business has to do with dealing with the following case:
@@ -1105,11 +1002,7 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "postRestore", "()V", false);
     }
 
-<<<<<<< HEAD
-/*
-=======
     /*
->>>>>>> 0.7.0
     private void emitPreemptionPoint(MethodVisitor mv, int type) {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         switch (type) {
@@ -1130,12 +1023,7 @@ class InstrumentMethod {
         }
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "preemptionPoint", "(I)V", false);
     }
-<<<<<<< HEAD
-*/
-
-=======
      */
->>>>>>> 0.7.0
     private void emitStoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx, @SuppressWarnings("UnusedParameters") int lvar) throws InternalError, IndexOutOfBoundsException {
         String desc;
 
@@ -1352,11 +1240,7 @@ class InstrumentMethod {
         }
     }
 
-<<<<<<< HEAD
-/*
-=======
     /*
->>>>>>> 0.7.0
     // prints a local var
     private void println(MethodVisitor mv, String prefix, int refVar) {
         mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "err", "Ljava/io/PrintStream;");
@@ -1401,9 +1285,5 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/StringBuilder", "toString", "()Ljava/lang/String;", false); // PrintStream S1
         mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false); // S1
     }
-<<<<<<< HEAD
-*/
-=======
      */
->>>>>>> 0.7.0
 }
