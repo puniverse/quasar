@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit
 open class SelectOp<out M>(private val wrappedSA: SelectAction<out M>) {
     fun getWrappedSelectAction(): SelectAction<out M> = wrappedSA
 }
-class Receive<M>(val receivePort: ReceivePort<M>) : SelectOp<M>(Selector.receive(receivePort)) {
+class Receive<M>(receivePort: ReceivePort<M>) : SelectOp<M>(Selector.receive(receivePort)) {
     @Suppress("BASE_WITH_NULLABLE_UPPER_BOUND")
     var msg: M? = null
         internal set(value) {
@@ -48,7 +48,7 @@ class Receive<M>(val receivePort: ReceivePort<M>) : SelectOp<M>(Selector.receive
         }
         get() = field
 }
-class Send<M>(val sendPort: SendPort<M>, val msg: M) : SelectOp<M>(Selector.send(sendPort, msg))
+class Send<M>(sendPort: SendPort<M>, msg: M) : SelectOp<M>(Selector.send(sendPort, msg))
 
 @Suspendable fun <R> select(actions: List<SelectOp<Any?>>, b: (SelectOp<Any?>?) -> R, priority: Boolean = false, timeout: Int = -1, unit: TimeUnit = TimeUnit.MILLISECONDS): R {
     @Suppress("UNCHECKED_CAST")
