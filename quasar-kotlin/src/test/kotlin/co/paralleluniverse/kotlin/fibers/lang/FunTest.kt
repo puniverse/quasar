@@ -14,10 +14,10 @@
 package co.paralleluniverse.kotlin.fibers.lang
 
 import co.paralleluniverse.fibers.Fiber
-import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.fibers.FiberForkJoinScheduler
-import org.junit.Assert.assertTrue
+import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.strands.SuspendableCallable
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -37,9 +37,8 @@ fun seq(f: () -> Unit, g: () -> Unit): () -> Unit {
     f1()
 }
 
-@Suspendable fun fDef(@Suppress("UNUSED_PARAMETER") def: Boolean = true) {
-    Fiber.sleep(10)
-}
+@Suspendable fun fDef(@Suppress("UNUSED_PARAMETER") def: Boolean = true) = Fiber.sleep(10)
+
 
 @Suspendable fun fQuick() {
     println("quick pre-sleep")
@@ -47,9 +46,7 @@ fun seq(f: () -> Unit, g: () -> Unit): () -> Unit {
     println("quick after-sleep")
 }
 
-@Suspendable fun fVarArg(vararg ls: Long) {
-    for (l in ls) Fiber.sleep(l)
-}
+@Suspendable fun fVarArg(vararg ls: Long) = ls.forEach { Fiber.sleep(it) }
 
 class FunTest {
     val scheduler = FiberForkJoinScheduler("test", 4, null, false)
