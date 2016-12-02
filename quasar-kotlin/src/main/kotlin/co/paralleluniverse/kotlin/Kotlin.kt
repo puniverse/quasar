@@ -48,11 +48,11 @@ class Receive<M>(receivePort: ReceivePort<M>) : SelectOp<M>(Selector.receive(rec
         }
         get() = field
 }
-class Send<M>(sendPort: SendPort<M>, msg: M) : SelectOp<M>(Selector.send(sendPort, msg))
+class Send<out M>(sendPort: SendPort<M>, msg: M) : SelectOp<M>(Selector.send(sendPort, msg))
 
 @Suspendable fun <R> select(actions: List<SelectOp<Any?>>, b: (SelectOp<Any?>?) -> R, priority: Boolean = false, timeout: Int = -1, unit: TimeUnit = TimeUnit.MILLISECONDS): R {
     @Suppress("UNCHECKED_CAST")
-    val sa = Selector.select(priority, timeout.toLong(), unit, actions.map{it.getWrappedSelectAction()}.toList() as List<SelectAction<Any?>>)
+    val sa = Selector.select(priority, timeout.toLong(), unit, actions.map{it.getWrappedSelectAction()} as List<SelectAction<Any?>>)
     if (sa != null) {
         val sOp: SelectOp<Any?> = actions[sa.index()]
         when (sOp) {
