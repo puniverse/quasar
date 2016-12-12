@@ -316,6 +316,9 @@ class InstrumentMethod {
     public void accept(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s:%s#%s%s", sourceName, className, mn.name, mn.desc);
 
+        if (mn.name.charAt(0) == '<')
+            throw new UnableToInstrumentException("special method", className, mn.name, mn.desc);
+
         collectCallsites();
         final boolean skipInstrumentation = canInstrumentationBeSkipped(suspCallsBcis);
         emitInstrumentedAnn(db, mv, mn, sourceName, className, skipInstrumentation, startSourceLine, endSourceLine, suspCallsSourceLines, null);

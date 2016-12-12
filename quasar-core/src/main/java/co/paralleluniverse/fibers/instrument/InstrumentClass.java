@@ -252,12 +252,7 @@ class InstrumentClass extends ClassVisitor {
                     final MethodVisitor outMV = makeOutMV(mn);
                     try {
                         InstrumentMethod im = new InstrumentMethod(db, sourceName, className, mn);
-                        if (db.isDebug())
-                            db.log(LogLevel.INFO, "About to instrument method %s#%s%s", className, mn.name, mn.desc);
-
-                        if (mn.name.charAt(0) == '<')
-                            throw new UnableToInstrumentException("special method", className, mn.name, mn.desc);
-
+                        db.log(LogLevel.DEBUG, "About to instrument method %s#%s%s", className, mn.name, mn.desc);
                         im.accept(outMV, hasAnnotation(mn));
                     } catch (AnalyzerException ex) {
                         ex.printStackTrace();
