@@ -204,6 +204,7 @@ public class Val<V> implements Future<V> {
         }
     }
 
+    @Suspendable
     public V get(Timeout timeout) throws InterruptedException, TimeoutException {
         return get(timeout.nanosLeft(), TimeUnit.NANOSECONDS);
     }
