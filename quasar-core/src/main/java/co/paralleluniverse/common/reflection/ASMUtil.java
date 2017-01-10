@@ -18,6 +18,9 @@ import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToSlash
 import com.google.common.io.ByteStreams;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Member;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Objects;
 import org.objectweb.asm.ClassReader;
@@ -203,7 +206,28 @@ public final class ASMUtil {
             throw new RuntimeException(e);
         }
     }
-
+    
+    public static String getDescriptor(Member m) {
+        if (m instanceof Method)
+            return Type.getMethodDescriptor((Method) m);
+        if (m instanceof Constructor)
+            return Type.getConstructorDescriptor((Constructor) m);
+        throw new IllegalArgumentException("Not an executable: " + m);
+    }
+    
+    public static String getReadableDescriptor(String descriptor) {
+        Type[] types = Type.getArgumentTypes(descriptor);
+        StringBuilder sb = new StringBuilder();
+        sb.append("(");
+        for (int i = 0; i < types.length; i++) {
+            if (i > 0)
+                sb.append(", ");
+            sb.append(types[i].getClassName());
+        }
+        sb.append(")");
+        return sb.toString();
+    }
+    
     private ASMUtil() {
     }
 }

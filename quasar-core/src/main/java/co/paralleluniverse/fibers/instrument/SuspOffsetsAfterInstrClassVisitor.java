@@ -68,9 +68,10 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                 private boolean instrumented;
                 private boolean optimized = false;
                 private int methodStart = -1, methodEnd = -1;
-
-                private List<Integer> suspOffsetsAfterInstrL = new ArrayList<>();
                 private int[] suspCallSites = new int[0];
+                private String[] suspCallSiteNames = new String[0];
+                
+                private List<Integer> suspOffsetsAfterInstrL = new ArrayList<>();
 
                 @Override
                 public AnnotationVisitor visitAnnotation(final String adesc, boolean visible) {
@@ -88,6 +89,8 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                                     optimized = (Boolean) value;
                                 else if (Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES.equals(name))
                                     suspCallSites = (int[]) value;
+                                else if (Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITE_NAMES.equals(name))
+                                    suspCallSiteNames = (String[]) value;
                                 else //noinspection StatementWithEmptyBody
                                     if (Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR.equals(name))
                                     ; // Ignore, we're filling it
@@ -145,8 +148,7 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                     if (instrumented)
                         InstrumentMethod.emitInstrumentedAnn (
                             db, outMV, mn, sourceName, className, optimized, methodStart, methodEnd,
-                            suspCallSites, toIntArray(suspOffsetsAfterInstrL)
-                        );
+                            suspCallSites, suspCallSiteNames, toIntArray(suspOffsetsAfterInstrL));
 
                     super.visitEnd();
                 }

@@ -155,8 +155,8 @@ public final class QuasarInstrumentor {
         // Phase 4, fill suspendable call offsets, event API is enough
         final OffsetClassReader r3 = new OffsetClassReader(cb);
         final ClassWriter cw3 = new ClassWriter(r3, 0);
-        final SuspOffsetsAfterInstrClassVisitor ic3 = new SuspOffsetsAfterInstrClassVisitor(cw3, db);
-        r3.accept(ic3, 0);
+        //final SuspOffsetsAfterInstrClassVisitor ic3 = new SuspOffsetsAfterInstrClassVisitor(cw3, db);
+        r3.accept(cw3, 0);
         cb = cw3.toByteArray();
 
         // DEBUG
