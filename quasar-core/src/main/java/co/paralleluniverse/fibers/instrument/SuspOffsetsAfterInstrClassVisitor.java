@@ -102,8 +102,26 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                                         throw new RuntimeException("Unexpected `@Instrumented` field: " + attrib);
                                 }
                             }
+
+                            @Override
+                            public AnnotationVisitor visitArray(String attrib) {
+                                // String[] value not handled by visit
+                                if (Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITE_NAMES.equals(attrib))
+                                    return new AnnotationVisitor(ASMAPI) {
+                                        List<String> callSites = new ArrayList<>();
+                                        
+                                        @Override
+                                        public void visit(String attrib, Object value) {
+                                            callSites.add((String) value);
+                                        }
+
+                                        @Override
+                                        public void visitEnd() {
+                                            suspCallSiteNames = callSites.toArray(new String[0]);
+                                        }
+                                    };
                                 else
-                                    throw new RuntimeException("Unexpected `@Instrumented` field: " + name);
+                                    return super.visitArray(name);
                             }
                         };
                     }
