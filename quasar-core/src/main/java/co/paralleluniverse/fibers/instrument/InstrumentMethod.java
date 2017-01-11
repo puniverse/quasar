@@ -61,8 +61,10 @@ import static co.paralleluniverse.fibers.instrument.MethodDatabase.isMethodHandl
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isReflectInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isSyntheticAccess;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
@@ -131,6 +133,7 @@ class InstrumentMethod {
     private int startSourceLine = -1;
     private int endSourceLine = -1;
     private int[] suspCallsSourceLines = new int[8];
+    private String[] suspCallsNames = new String[0];
     private int[] suspCallsBcis = null;
 
     InstrumentMethod(MethodDatabase db, String sourceName, String className, MethodNode mn) throws AnalyzerException {
@@ -158,6 +161,7 @@ class InstrumentMethod {
             final int numIns = mn.instructions.size();
             int currSourceLine = -1;
             int count = 0;
+            final Set<String> callSiteNames = new HashSet<>();
             for (int i = 0; i < numIns; i++) {
                 final Frame f = frames[i];
                 if (f != null) { // reachable ?
@@ -177,6 +181,7 @@ class InstrumentMethod {
                                 suspCallsSourceLines = Arrays.copyOf(suspCallsSourceLines, suspCallsSourceLines.length * 2);
                             suspCallsBcis[count] = i;
                             suspCallsSourceLines[count] = currSourceLine;
+                            callSiteNames.add(getSuspendableCallName(in));
                             count++;
                         } else
                             possiblyWarnAboutBlocking(in);
@@ -186,9 +191,9 @@ class InstrumentMethod {
 
             if (count < suspCallsSourceLines.length)
                 suspCallsSourceLines = Arrays.copyOf(suspCallsSourceLines, count);
-
             if (count < suspCallsBcis.length)
                 suspCallsBcis = Arrays.copyOf(suspCallsBcis, count);
+            suspCallsNames = callSiteNames.toArray(new String[0]);
         }
     }
 
@@ -233,6 +238,11 @@ class InstrumentMethod {
             susp = false;
 
         return susp;
+    }
+
+    private static String getSuspendableCallName(AbstractInsnNode in) {
+        return (in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN ? "-" : getMethodOwner1(in))
+               + "." + getMethodName(in) + getMethodDesc(in);
     }
 
     private void collectCodeBlocks() {
@@ -321,8 +331,9 @@ class InstrumentMethod {
 
         collectCallsites();
         final boolean skipInstrumentation = canInstrumentationBeSkipped(suspCallsBcis);
-        emitInstrumentedAnn(db, mv, mn, sourceName, className, skipInstrumentation, startSourceLine, endSourceLine, suspCallsSourceLines, null);
-        
+        emitInstrumentedAnn(db, mv, mn, sourceName, className, skipInstrumentation,
+                startSourceLine, endSourceLine, suspCallsSourceLines, suspCallsNames, null);
+
         if (skipInstrumentation) {
             db.log(LogLevel.INFO, "[OPTIMIZE] Skipping instrumentation for method %s:%s#%s%s", sourceName, className, mn.name, mn.desc);
             mn.accept(mv); // Dump
@@ -637,13 +648,24 @@ class InstrumentMethod {
     static void emitInstrumentedAnn(
             MethodDatabase db, MethodVisitor mv, MethodNode mn, String sourceName, String className,
             boolean skip, int startSourceLine, int endSourceLine,
-            int[] suspCallsSourceLines, int[] postInstrOffsets
-    ) {
+            int[] suspCallsSourceLines, String[] instrumentedCalls, int[] postInstrOffsets) {
+
         final StringBuilder sb = db.isDebug() ? new StringBuilder() : null;
         final AnnotationVisitor instrumentedAV = mv.visitAnnotation(INSTRUMENTED_DESC, true);
         if (sb != null)
             sb.append("@").append(Instrumented.class.getSimpleName()).append("(");
-        
+
+        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_OPTIMIZED, skip);
+        if (sb != null)
+            sb.append(Instrumented.FIELD_NAME_METHOD_OPTIMIZED + "=").append(skip).append(", ");
+
+        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_START, startSourceLine);
+        if (sb != null)
+            sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(startSourceLine).append(", ");
+
+        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_END, endSourceLine);
+        if (sb != null)
+            sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(endSourceLine).append(", ");
 
         if (suspCallsSourceLines != null) {
             final AnnotationVisitor linesAV = instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES);
@@ -654,19 +676,35 @@ class InstrumentMethod {
                     sb.append(", ");
 
                 final int l = suspCallsSourceLines[i];
-                linesAV.visit("", l);
-
+                linesAV.visit(null, l);
                 if (sb != null)
                     sb.append(l);
             }
             linesAV.visitEnd();
             if (sb != null)
-                sb.append("],");
+                sb.append("], ");
+        }
+
+        if (instrumentedCalls != null) {
+            final AnnotationVisitor instrumentedCallsAV = instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITE_NAMES);
+            if (sb != null)
+                sb.append(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITE_NAMES + "=[");
+            for (int i = 0; i < instrumentedCalls.length; i++) {
+                if (sb != null && i != 0)
+                    sb.append(", ");
+
+                final String s = instrumentedCalls[i];
+                instrumentedCallsAV.visit(null, s);
+                if (sb != null)
+                    sb.append(s);
+            }
+            instrumentedCallsAV.visitEnd();
+            if (sb != null)
+                sb.append("], ");
         }
 
         if (postInstrOffsets != null) {
-            final AnnotationVisitor postInstrOffsetsAV =
-                    instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR);
+            final AnnotationVisitor postInstrOffsetsAV = instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR);
             if (sb != null)
                 sb.append(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR + "=[");
             for (int i = 0; i < postInstrOffsets.length; i++) {
@@ -674,27 +712,14 @@ class InstrumentMethod {
                     sb.append(", ");
 
                 final int l = postInstrOffsets[i];
-                postInstrOffsetsAV.visit("", l);
-
+                postInstrOffsetsAV.visit(null, l);
                 if (sb != null)
                     sb.append(l);
             }
             postInstrOffsetsAV.visitEnd();
             if (sb != null)
-                sb.append("],");
+                sb.append("]");
         }
-
-        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_START, startSourceLine);
-        if (sb != null)
-            sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(startSourceLine).append(",");
-
-        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_END, endSourceLine);
-        if (sb != null)
-            sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(endSourceLine).append(",");
-
-        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_OPTIMIZED, skip);
-        if (sb != null)
-            sb.append(Instrumented.FIELD_NAME_METHOD_OPTIMIZED + "=").append(skip);
 
         instrumentedAV.visitEnd();
         if (sb != null)
@@ -1123,6 +1148,12 @@ class InstrumentMethod {
 
     private static String getMethodOwner(AbstractInsnNode min) {
         return min instanceof MethodInsnNode ? ((MethodInsnNode) min).owner : null;
+    }
+
+    private static String getMethodOwner1(AbstractInsnNode min) {
+        return min instanceof MethodInsnNode ? ((MethodInsnNode) min).owner
+                : min instanceof InvokeDynamicInsnNode ? ((InvokeDynamicInsnNode) min).bsm.getOwner()
+                        : null;
     }
 
     private static String getMethodName(AbstractInsnNode min) {

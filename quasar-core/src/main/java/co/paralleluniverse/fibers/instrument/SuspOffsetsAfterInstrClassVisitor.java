@@ -68,9 +68,10 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                 private boolean instrumented;
                 private boolean optimized = false;
                 private int methodStart = -1, methodEnd = -1;
-
-                private List<Integer> suspOffsetsAfterInstrL = new ArrayList<>();
                 private int[] suspCallSites = new int[0];
+                private String[] suspCallSiteNames = new String[0];
+                
+                private List<Integer> suspOffsetsAfterInstrL = new ArrayList<>();
 
                 @Override
                 public AnnotationVisitor visitAnnotation(final String adesc, boolean visible) {
@@ -79,20 +80,48 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
 
                         return new AnnotationVisitor(ASMAPI) { // Only collect info
                             @Override
-                            public void visit(String name, Object value) {
-                                if (Instrumented.FIELD_NAME_METHOD_START.equals(name))
-                                    methodStart = (Integer) value;
-                                else if (Instrumented.FIELD_NAME_METHOD_END.equals(name))
-                                    methodEnd = (Integer) value;
-                                else if (Instrumented.FIELD_NAME_METHOD_OPTIMIZED.equals(name))
-                                    optimized = (Boolean) value;
-                                else if (Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES.equals(name))
-                                    suspCallSites = (int[]) value;
-                                else //noinspection StatementWithEmptyBody
-                                    if (Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR.equals(name))
-                                    ; // Ignore, we're filling it
+                            public void visit(String attrib, Object value) {
+                                if (null != attrib)
+                                    switch (attrib) {
+                                    case Instrumented.FIELD_NAME_METHOD_START:
+                                        methodStart = (Integer) value;
+                                        break;
+                                    case Instrumented.FIELD_NAME_METHOD_END:
+                                        methodEnd = (Integer) value;
+                                        break;
+                                    case Instrumented.FIELD_NAME_METHOD_OPTIMIZED:
+                                        optimized = (Boolean) value;
+                                        break;
+                                    case Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES:
+                                        suspCallSites = (int[]) value;
+                                        break;
+                                    case Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR:
+                                        ; // Ignore, we're filling it
+                                        break;
+                                    default:
+                                        throw new RuntimeException("Unexpected `@Instrumented` field: " + attrib);
+                                }
+                            }
+
+                            @Override
+                            public AnnotationVisitor visitArray(String attrib) {
+                                // String[] value not handled by visit
+                                if (Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITE_NAMES.equals(attrib))
+                                    return new AnnotationVisitor(ASMAPI) {
+                                        List<String> callSites = new ArrayList<>();
+                                        
+                                        @Override
+                                        public void visit(String attrib, Object value) {
+                                            callSites.add((String) value);
+                                        }
+
+                                        @Override
+                                        public void visitEnd() {
+                                            suspCallSiteNames = callSites.toArray(new String[0]);
+                                        }
+                                    };
                                 else
-                                    throw new RuntimeException("Unexpected `@Instrumented` field: " + name);
+                                    return super.visitArray(name);
                             }
                         };
                     }
@@ -145,8 +174,7 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                     if (instrumented)
                         InstrumentMethod.emitInstrumentedAnn (
                             db, outMV, mn, sourceName, className, optimized, methodStart, methodEnd,
-                            suspCallSites, toIntArray(suspOffsetsAfterInstrL)
-                        );
+                            suspCallSites, suspCallSiteNames, toIntArray(suspOffsetsAfterInstrL));
 
                     super.visitEnd();
                 }

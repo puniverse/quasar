@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.FlightRecorder;
 import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
+import co.paralleluniverse.common.reflection.ASMUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.ExtendedStackTrace;
@@ -1741,8 +1742,20 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         if (i == null)
             return "N/A";
         return
-            "BCIs " + Arrays.toString(i.suspendableCallSitesOffsetsAfterInstr()) +
-            ", lines " + Arrays.toString(i.suspendableCallSites());
+            "lines " + Arrays.toString(i.suspendableCallSites())
+            + ", "
+            + " calls " + Arrays.toString(getReadableCallsites(i.suspendableCallSiteNames()))
+//          + "BCIs " + Arrays.toString(i.suspendableCallSitesOffsetsAfterInstr()) +
+            ;
+    }
+    
+    private static String[] getReadableCallsites(String[] callsites) {
+        String[] readable = new String[callsites.length];
+        for (int i = 0; i < callsites.length; i++)
+            readable[i] = SuspendableHelper.getCallsiteOwner(callsites[i]) + "."
+                          + SuspendableHelper.getCallsiteName(callsites[i])
+                          + ASMUtil.getReadableDescriptor(SuspendableHelper.getCallsiteDesc(callsites[i]));
+        return readable;
     }
 
     private static StringBuilder initTrace(int i, ExtendedStackTraceElement[] stes) {

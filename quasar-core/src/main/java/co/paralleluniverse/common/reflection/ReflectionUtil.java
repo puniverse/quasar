@@ -23,6 +23,8 @@ import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.Member;
+import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
@@ -292,6 +294,15 @@ public final class ReflectionUtil {
         return null;
     }
 
+    public static Class<?>[] getParameterTypes(Member m) {
+        // necessary prior to Java 8's Executable
+        if (m instanceof Method)
+            return ((Method) m).getParameterTypes();
+        if (m instanceof Constructor)
+            return ((Constructor) m).getParameterTypes();
+        throw new IllegalArgumentException("Not an executable: " + m);
+    }
+    
     private static final Map<Class<?>, Class<?>> primitiveWrapperMap = new HashMap<Class<?>, Class<?>>();
 
     static {
