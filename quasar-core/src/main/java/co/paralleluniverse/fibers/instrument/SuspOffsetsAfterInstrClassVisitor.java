@@ -80,20 +80,28 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
 
                         return new AnnotationVisitor(ASMAPI) { // Only collect info
                             @Override
-                            public void visit(String name, Object value) {
-                                if (Instrumented.FIELD_NAME_METHOD_START.equals(name))
-                                    methodStart = (Integer) value;
-                                else if (Instrumented.FIELD_NAME_METHOD_END.equals(name))
-                                    methodEnd = (Integer) value;
-                                else if (Instrumented.FIELD_NAME_METHOD_OPTIMIZED.equals(name))
-                                    optimized = (Boolean) value;
-                                else if (Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES.equals(name))
-                                    suspCallSites = (int[]) value;
-                                else if (Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITE_NAMES.equals(name))
-                                    suspCallSiteNames = (String[]) value;
-                                else //noinspection StatementWithEmptyBody
-                                    if (Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR.equals(name))
-                                    ; // Ignore, we're filling it
+                            public void visit(String attrib, Object value) {
+                                if (null != attrib)
+                                    switch (attrib) {
+                                    case Instrumented.FIELD_NAME_METHOD_START:
+                                        methodStart = (Integer) value;
+                                        break;
+                                    case Instrumented.FIELD_NAME_METHOD_END:
+                                        methodEnd = (Integer) value;
+                                        break;
+                                    case Instrumented.FIELD_NAME_METHOD_OPTIMIZED:
+                                        optimized = (Boolean) value;
+                                        break;
+                                    case Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES:
+                                        suspCallSites = (int[]) value;
+                                        break;
+                                    case Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR:
+                                        ; // Ignore, we're filling it
+                                        break;
+                                    default:
+                                        throw new RuntimeException("Unexpected `@Instrumented` field: " + attrib);
+                                }
+                            }
                                 else
                                     throw new RuntimeException("Unexpected `@Instrumented` field: " + name);
                             }

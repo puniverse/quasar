@@ -657,15 +657,15 @@ class InstrumentMethod {
 
         instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_OPTIMIZED, skip);
         if (sb != null)
-            sb.append(Instrumented.FIELD_NAME_METHOD_OPTIMIZED + "=").append(skip);
+            sb.append(Instrumented.FIELD_NAME_METHOD_OPTIMIZED + "=").append(skip).append(", ");
 
         instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_START, startSourceLine);
         if (sb != null)
-            sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(startSourceLine).append(",");
+            sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(startSourceLine).append(", ");
 
         instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_END, endSourceLine);
         if (sb != null)
-            sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(endSourceLine).append(",");
+            sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(endSourceLine).append(", ");
 
         if (suspCallsSourceLines != null) {
             final AnnotationVisitor linesAV = instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES);
@@ -682,7 +682,7 @@ class InstrumentMethod {
             }
             linesAV.visitEnd();
             if (sb != null)
-                sb.append("],");
+                sb.append("], ");
         }
 
         if (instrumentedCalls != null) {
@@ -700,7 +700,7 @@ class InstrumentMethod {
             }
             instrumentedCallsAV.visitEnd();
             if (sb != null)
-                sb.append("],");
+                sb.append("], ");
         }
 
         if (postInstrOffsets != null) {
@@ -718,7 +718,7 @@ class InstrumentMethod {
             }
             postInstrOffsetsAV.visitEnd();
             if (sb != null)
-                sb.append("],");
+                sb.append("]");
         }
 
         instrumentedAV.visitEnd();

@@ -63,7 +63,7 @@ public @interface Instrumented {
     String FIELD_NAME_METHOD_OPTIMIZED = "methodOptimized";
     boolean methodOptimized() default false;
     String FIELD_NAME_SUSPENDABLE_CALL_SITES = "suspendableCallSites";
-    int[] suspendableCallSites() default {};
+    int[] suspendableCallSites() default {}; // in source lines
     String FIELD_NAME_METHOD_START = "methodStart";
     int methodStart() default -1; // the source line of the start of the method
     String FIELD_NAME_METHOD_END = "methodEnd";
@@ -71,5 +71,5 @@ public @interface Instrumented {
     String FIELD_NAME_SUSPENDABLE_CALL_SITE_NAMES = "suspendableCallSiteNames";
     String[] suspendableCallSiteNames() default {};
     String FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR = "suspendableCallSitesOffsetsAfterInstr";
-    int[] suspendableCallSitesOffsetsAfterInstr() default {};
+    int[] suspendableCallSitesOffsetsAfterInstr() default {}; // in bci
 }
