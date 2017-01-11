@@ -259,6 +259,30 @@ public class Debug {
         }
     }
 
+    public static String toString(Object x) {
+        if (x == null)
+            return "null";
+        if (x instanceof boolean[])
+            return Arrays.toString((boolean[])x);
+        if (x instanceof char[])
+            return Arrays.toString((char[])x);
+        if (x instanceof byte[])
+            return Arrays.toString((byte[])x);
+        if (x instanceof short[])
+            return Arrays.toString((short[])x);
+        if (x instanceof int[])
+            return Arrays.toString((int[])x);
+        if (x instanceof long[])
+            return Arrays.toString((long[])x);
+        if (x instanceof float[])
+            return Arrays.toString((float[])x);
+        if (x instanceof double[])
+            return Arrays.toString((double[])x);
+        if (x instanceof Object[])
+            return Arrays.toString((Object[])x);
+        return x.toString();
+    }
+    
     /**
      * Print our stack trace as a cause for the specified stack trace.
      */
