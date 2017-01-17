@@ -29,23 +29,28 @@ import org.objectweb.asm.tree.MethodInsnNode;
  * @author pron
  */
 public final class Classes {
-    static final String THROWABLE_NAME = Throwable.class.getName().replace('.', '/');
-    static final String EXCEPTION_NAME = Exception.class.getName().replace('.', '/');
-    static final String RUNTIME_EXCEPTION_NAME = RuntimeException.class.getName().replace('.', '/');
-
-    static final String SUSPEND_EXECUTION_NAME = SuspendExecution.class.getName().replace('.', '/');
-    static final String RUNTIME_SUSPEND_EXECUTION_NAME = RuntimeSuspendExecution.class.getName().replace('.', '/');
-    static final String UNDECLARED_THROWABLE_NAME = UndeclaredThrowableException.class.getName().replace('.', '/');
-    static final String FIBER_CLASS_NAME = Fiber.class.getName().replace('.', '/');
-    private static final String STRAND_NAME = Strand.class.getName().replace('.', '/');
-    static final String STACK_NAME = Stack.class.getName().replace('.', '/');
-    // static final String DONT_INSTRUMENT_NAME = DontInstrument.class.getName().replace('.', '/');
-    //static final String EXCEPTION_INSTANCE_NAME = "exception_instance_not_for_user_code";
     private static final BlockingMethod BLOCKING_METHODS[] = {
         new BlockingMethod("java/lang/Thread", "sleep", "(J)V", "(JI)V"),
         new BlockingMethod("java/lang/Thread", "join", "()V", "(J)V", "(JI)V"),
-        new BlockingMethod("java/lang/Object", "wait", "()V", "(J)V", "(JI)V"),
-    };
+        new BlockingMethod("java/lang/Object", "wait", "()V", "(J)V", "(JI)V"),};
+
+    private static final Set<String> yieldMethods = new HashSet<>(Arrays.asList(new String[]{
+        "park", "yield", "parkAndUnpark", "yieldAndUnpark", "parkAndSerialize"
+    }));
+
+    // Don't load the classes
+    static final String STACK_NAME       = /*Stack.class.getName()*/ "co.paralleluniverse.fibers.Stack".replace('.', '/');
+    static final String FIBER_CLASS_NAME = /*Fiber.class.getName()*/ "co.paralleluniverse.fibers.Fiber".replace('.', '/');
+    static final String STRAND_NAME      = /*Strand.class.getName()*/"co.paralleluniverse.strands.Strand".replace('.', '/');
+
+    static final String THROWABLE_NAME         = Throwable.class.getName().replace('.', '/');
+    static final String EXCEPTION_NAME         = Exception.class.getName().replace('.', '/');
+    static final String RUNTIME_EXCEPTION_NAME = RuntimeException.class.getName().replace('.', '/');
+
+    static final String RUNTIME_SUSPEND_EXECUTION_NAME = RuntimeSuspendExecution.class.getName().replace('.', '/');
+    static final String UNDECLARED_THROWABLE_NAME      = UndeclaredThrowableException.class.getName().replace('.', '/');
+    static final String SUSPEND_EXECUTION_NAME         = SuspendExecution.class.getName().replace('.', '/');
+    
     // computed
     // static final String EXCEPTION_DESC = "L" + SUSPEND_EXECUTION_NAME + ";";
     static final String SUSPENDABLE_DESC = Type.getDescriptor(Suspendable.class);
@@ -53,15 +58,13 @@ public final class Classes {
     static final String INSTRUMENTED_DESC = Type.getDescriptor(Instrumented.class);
     static final String LAMBDA_METHOD_PREFIX = "lambda$";
 
-    private static final Set<String> yieldMethods = new HashSet<>(Arrays.asList(new String[] {
-        "park", "yield", "parkAndUnpark", "yieldAndUnpark", "parkAndSerialize"
-    }));
-
     static boolean isYieldMethod(String className, String methodName) {
         return FIBER_CLASS_NAME.equals(className) && yieldMethods.contains(methodName);
     }
 
-    /** @noinspection UnusedParameters*/
+    /**
+     * @noinspection UnusedParameters
+     */
     static boolean isAllowedToBlock(String className, String methodName) {
         return STRAND_NAME.equals(className);
     }
