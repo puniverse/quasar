@@ -13,8 +13,11 @@
  */
 package co.paralleluniverse.strands;
 
+import co.paralleluniverse.fibers.ConcurrentLinkedWaiterQueue;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberControl;
+import co.paralleluniverse.fibers.SingleConsumerWaiterQueue;
+import co.paralleluniverse.strands.queues.SingleConsumerLinkedObjectQueue;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -23,7 +26,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * @author pron
  */
 public class SimpleConditionSynchronizer extends ConditionSynchronizer implements Condition {
-    private final Queue<Strand> waiters = new ConcurrentLinkedQueue<>();
+    private final Queue<Strand> waiters = new ConcurrentLinkedWaiterQueue<>(); // new SingleConsumerWaiterQueue<>(); // new ConcurrentLinkedQueue<>(); // 
 
     public SimpleConditionSynchronizer(Object owner) {
         super(owner);

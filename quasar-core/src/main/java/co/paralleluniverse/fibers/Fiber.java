@@ -149,7 +149,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private Object fiberLocals;
     private Object inheritableFiberLocals;
     private long sleepStart;
-    private transient Future<Void> timeoutTask;
     private transient ParkAction prePark;
     private transient ParkAction postPark;
     //private boolean inExec;
@@ -157,6 +156,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private transient boolean getStackTrace;
     private volatile UncaughtExceptionHandler uncaughtExceptionHandler;
     /*final*/ transient DummyRunnable fiberRef = new DummyRunnable(this);
+    
+    // A fiber may only be blocked on a single blocker at any one time. To reduce garbage whenever we block, we reuse private nodes.
+    transient FiberTimedScheduler.ScheduledFutureTask timerNode;
+    transient ConcurrentLinkedWaiterQueue.Node waiterNode;
 
     /**
      * Creates a new fiber from the given {@link SuspendableCallable}.
@@ -202,8 +205,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
         if (USE_VAL_FOR_RESULT /*&& !isVoidResult(target)*/)
             this.result = new Val<V>();
+        initNodes();
 
         record(1, "Fiber", "<init>", "Created fiber %s", this);
+    }
+    
+    private void initNodes() {
+        this.timerNode = new FiberTimedScheduler.ScheduledFutureTask(this);
+        this.waiterNode = new ConcurrentLinkedWaiterQueue.Node(this);
     }
 
 //    private Fiber() {
@@ -264,6 +273,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     public final SuspendableCallable<V> getTarget() {
         return target;
+    }
+
+    private boolean isTimed() {
+        return timerNode.getTime() != 0;
     }
 
     @Override
@@ -703,7 +716,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             prePark.run(this);
         this.postPark = postParkAction;
         if (timeout > 0 && unit != null)
-            this.timeoutTask = scheduler.schedule(this, blocker, timeout, unit);
+            scheduler.schedule(this, blocker, timeout, unit);
 
         return task.park(blocker, postParkAction != null); // postParkActions != null iff parking for FiberAsync
     }
@@ -784,7 +797,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             //stack.dump();
             stack.resumeStack();
             runningThread = null;
-            orderedSetState(timeoutTask != null ? State.TIMED_WAITING : State.WAITING);
+            orderedSetState(isTimed() ? State.TIMED_WAITING : State.WAITING);
 
             final ParkAction ppa = postPark;
             clearRunSettings();
@@ -936,10 +949,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     private void cancelTimeoutTask() {
-        if (timeoutTask != null) {
-            timeoutTask.cancel(false);
-            timeoutTask = null;
-        }
+        if (scheduler != null)
+            scheduler.cancel(this);
     }
 
     private void installFiberDataInThread(Thread currentThread) {
@@ -1108,7 +1119,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     protected void onParked() {
     }
 
-    protected void onResume() throws SuspendExecution, InterruptedException {
+    final void onResume0() throws SuspendExecution, InterruptedException {
         if (getStackTrace) {
             try {
                 park1(null, null, 0, null);
@@ -1119,9 +1130,15 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             throw ex;
         }
 
+        
         record(1, "Fiber", "onResume", "Resuming %s", this);
         if (isRecordingLevel(2))
             record(2, "Fiber", "onResume", "Resuming %s at: %s", this, Arrays.toString(getStackTrace()));
+        onResume();
+    }
+    
+    protected void onResume() throws SuspendExecution, InterruptedException {
+        
     }
 
     final void preemptionPoint(int type) throws SuspendExecution {
@@ -1395,7 +1412,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     private void sleep1(long timeout, TimeUnit unit) throws InterruptedException, SuspendExecution {
         if (getStackTrace) { // special case because this method isn't instrumented
-            onResume();
+            onResume0();
             assert false : "shouldn't get here";
         }
         // this class's methods aren't instrumented, so we can't rely on the stack. This method will be called again when unparked
@@ -2055,8 +2072,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             // If we need to serialise thread local storage slots as well, then we have to do a swap to avoid
             // type problems. If we don't, then it's much easier to serialise things.
             if (!includeThreadLocals) {
-                Object tmpFiberLocals = f.fiberLocals;
-                Object tmpInheritableFiberLocals = f.inheritableFiberLocals;
+                final Object tmpFiberLocals = f.fiberLocals;
+                final Object tmpInheritableFiberLocals = f.inheritableFiberLocals;
                 f.fiberLocals = null;
                 f.inheritableFiberLocals = null;
                 try {
@@ -2072,8 +2089,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 final Object tmpInheritableThreadLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
                 ThreadAccess.setThreadLocals(currentThread, f.fiberLocals);
                 ThreadAccess.setInheritableThreadLocals(currentThread, f.inheritableFiberLocals);
-                Object realFiberLocals = f.fiberLocals;
-                Object realInheritableFiberLocals = f.inheritableFiberLocals;
+                final Object realFiberLocals = f.fiberLocals;
+                final Object realInheritableFiberLocals = f.inheritableFiberLocals;
                 try {
                     // Switch the type of fiberLocals here to Object[] from ThreadLocalMap, to ease serialisation.
                     // We must switch it back when we are done.
@@ -2113,7 +2130,8 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
                 f.fiberLocals = ThreadAccess.getThreadLocals(currentThread);
                 f.inheritableFiberLocals = ThreadAccess.getInheritableThreadLocals(currentThread);
-
+                f.initNodes();
+                
                 return f;
             } catch (Throwable t) {
                 t.printStackTrace();

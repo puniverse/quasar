@@ -10,10 +10,10 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-/*
+ /*
  * Based on code: 
  */
-/*
+ /*
  * Written by Doug Lea with assistance from members of JCP JSR-166
  * Expert Group and released to the public domain, as explained at
  * http://creativecommons.org/publicdomain/zero/1.0/
@@ -43,7 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class FiberTimedScheduler {
-    private static final boolean USE_LOCKFREE_DELAY_QUEUE = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.useLockFreeDelayQueue");
+    private static final boolean USE_LOCKFREE_DELAY_QUEUE = SystemProperties.isNotFalse("co.paralleluniverse.fibers.useLockFreeDelayQueue");
     private static final boolean DETECT_RUNAWAY_FIBERS = SystemProperties.isNotFalse("co.paralleluniverse.fibers.detectRunawayFibers");
 
     /**
@@ -81,7 +81,9 @@ public class FiberTimedScheduler {
                 work();
             }
         });
-        this.workQueue = USE_LOCKFREE_DELAY_QUEUE ? new SingleConsumerNonblockingProducerDelayQueue<ScheduledFutureTask>() : new co.paralleluniverse.concurrent.util.DelayQueue<ScheduledFutureTask>();
+        this.workQueue = USE_LOCKFREE_DELAY_QUEUE
+                ? new SingleConsumerNonblockingProducerDelayQueue<ScheduledFutureTask>() // new ConcurrentSkipListPriorityWaiterQueue()
+                : new co.paralleluniverse.concurrent.util.DelayQueue<ScheduledFutureTask>();
 
         this.monitor = monitor;
 
@@ -107,8 +109,25 @@ public class FiberTimedScheduler {
         if (fiber == null || unit == null)
             throw new NullPointerException();
         assert fiber.getScheduler() == scheduler;
-        ScheduledFutureTask t = new ScheduledFutureTask(fiber, blocker, triggerTime(delay, unit));
+        ScheduledFutureTask t = scheduledFutureTask(fiber, blocker, triggerTime(delay, unit));
         delayedExecute(t);
+        return t;
+    }
+    
+    public void cancel(Fiber<?> fiber) {
+        final ScheduledFutureTask t = fiber.timerNode;
+        if (t != null && t.time != 0) {
+            workQueue.remove(t);
+            t.clear();
+        }
+    }
+    
+    ScheduledFutureTask scheduledFutureTask(Fiber<?> fiber, Object blocker, long ns) {
+        ScheduledFutureTask t = fiber.timerNode;
+        if (t != null)
+            t.init(blocker, ns);
+        else
+            t = new ScheduledFutureTask(fiber, blocker, ns);
         return t;
     }
 
@@ -179,7 +198,9 @@ public class FiberTimedScheduler {
     private void run(ScheduledFutureTask task) {
         try {
             final Fiber fiber = task.fiber;
-            fiber.unpark(task.blocker);
+            final Object blocker = task.blocker;
+            task.clear();
+            fiber.unpark(blocker);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -192,15 +213,16 @@ public class FiberTimedScheduler {
         return System.nanoTime();
     }
 
-    private class ScheduledFutureTask implements Delayed, Future<Void> {
+    static class ScheduledFutureTask implements Delayed, Future<Void> {
         final Fiber<?> fiber;
-        final Object blocker;
-        /**
-         * The time the task is enabled to execute in nanoTime units
-         */
-        final long time;
-        private volatile boolean cancelled = false;
+        private Object blocker;
+        private long time; // The time the task is enabled to execute in nanoTime units
         long delay;
+        // final ConcurrentSkipListPriorityWaiterQueue.Node<ScheduledFutureTask> node = new ConcurrentSkipListPriorityWaiterQueue.Node<>(this, null);
+
+        ScheduledFutureTask(Fiber<?> fiber) {
+            this.fiber = fiber;
+        }
 
         /**
          * Creates a one-shot action with given nanoTime-based trigger time.
@@ -211,11 +233,33 @@ public class FiberTimedScheduler {
             this.time = ns;
         }
 
+        void init(Object blocker, long ns) {
+            this.blocker = blocker;
+            this.time = ns;
+            this.delay = 0;
+            // this.node.next = null;
+        }
+        
+        void clear() {
+            this.blocker = null;
+            this.time = 0;
+            this.delay = 0;
+            // this.node.next = null; -- clearing this here causes bugs
+        }
+        
         @Override
         public long getDelay(TimeUnit unit) {
             final long d = unit.convert(time - now(), NANOSECONDS);
             this.delay = -d;
             return d;
+        }
+        
+        public long getTime() {
+            return time;
+        }
+
+        private long now() {
+            return System.nanoTime();
         }
 
         @Override
@@ -235,13 +279,14 @@ public class FiberTimedScheduler {
 
         @Override
         public boolean cancel(boolean mayInterruptIfRunning) {
-            this.cancelled = true;
-            return true;
+            throw new UnsupportedOperationException();
+//            this.cancelled = true;
+//            return true;
         }
 
         @Override
         public boolean isCancelled() {
-            return cancelled;
+            return false;
         }
 
         @Override

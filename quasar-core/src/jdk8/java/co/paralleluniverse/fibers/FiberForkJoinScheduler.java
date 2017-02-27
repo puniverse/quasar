@@ -144,6 +144,11 @@ public class FiberForkJoinScheduler extends FiberScheduler {
     }
 
     @Override
+    void cancel(Fiber<?> fiber) {
+        timer.cancel(fiber);
+    }
+
+    @Override
     <V> FiberTask<V> newFiberTask(Fiber<V> fiber) {
         return new FiberForkJoinTask<V>(fiber, fjPool);
     }

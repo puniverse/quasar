@@ -142,6 +142,11 @@ public class FiberForkJoinScheduler extends FiberScheduler {
     Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit) {
         return timer.schedule(fiber, blocker, delay, unit);
     }
+    
+    @Override
+    void cancel(Fiber<?> fiber) {
+        timer.cancel(fiber);
+    }
 
     @Override
     <V> FiberTask<V> newFiberTask(Fiber<V> fiber) {

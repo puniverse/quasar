@@ -75,6 +75,8 @@ public abstract class FiberScheduler implements FiberFactory, StrandFactory {
     
     abstract Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit);
 
+    abstract void cancel(Fiber<?> fiber);
+    
     abstract Map<Thread, Fiber> getRunningFibers();
 
     protected abstract int getQueueLength();

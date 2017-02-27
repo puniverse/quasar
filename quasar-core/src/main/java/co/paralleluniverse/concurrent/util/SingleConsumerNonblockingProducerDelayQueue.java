@@ -12,6 +12,7 @@
  */
 package co.paralleluniverse.concurrent.util;
 
+import java.util.Queue;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 
@@ -22,6 +23,10 @@ import java.util.concurrent.TimeUnit;
 public class SingleConsumerNonblockingProducerDelayQueue<E extends Delayed> extends SingleConsumerNonblockingProducerQueue<E> {
     public SingleConsumerNonblockingProducerDelayQueue() {
         super(new ConcurrentSkipListPriorityQueue<E>());
+    }
+    
+    public SingleConsumerNonblockingProducerDelayQueue(Queue<E> q) {
+        super(q);
     }
 
     @Override

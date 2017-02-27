@@ -167,7 +167,7 @@ public final class Stack implements Serializable {
     }
 
     public final void postRestore() throws SuspendExecution, InterruptedException {
-        fiber.onResume();
+        fiber.onResume0();
     }
 
     public final void preemptionPoint(int type) throws SuspendExecution {

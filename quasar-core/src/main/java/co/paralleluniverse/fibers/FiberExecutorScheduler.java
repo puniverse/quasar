@@ -96,6 +96,11 @@ public class FiberExecutorScheduler extends FiberScheduler implements Executor {
     }
 
     @Override
+    void cancel(Fiber<?> fiber) {
+        timer.cancel(fiber);
+    }
+
+    @Override
     <V> FiberTask<V> newFiberTask(Fiber<V> fiber) {
         return new RunnableFiberTask<V>(fiber, this);
     }
