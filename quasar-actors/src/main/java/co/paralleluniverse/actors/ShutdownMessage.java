@@ -52,8 +52,8 @@ public class ShutdownMessage implements LifecycleMessage {
             return false;
         if (getClass() != obj.getClass())
             return false;
-        final ExitMessage other = (ExitMessage) obj;
-        if (!Objects.equals(this.requester, other.actor))
+        final ShutdownMessage other = (ShutdownMessage) obj;
+        if (!Objects.equals(this.requester, other.requester))
             return false;
         return true;
     }
