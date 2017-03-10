@@ -18,6 +18,7 @@ import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -133,13 +134,11 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
                 }
             }
         })) {
-            if (Fiber.interrupted())
-                throw new InterruptedException();// make sure we actually park and run PostParkActions
+            checkInterrupted();
         }
 
         while (!completed) { // the fiber can be awakened spuriously, in particular, from calls to getStackTrace
-            if (Fiber.interrupted())
-                throw new InterruptedException();
+            checkInterrupted();
             Fiber.park(this);
         }
 
@@ -199,16 +198,14 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
                 }
             }
         })) {
-            if (Fiber.interrupted())
-                throw new InterruptedException();// make sure we actually park and run PostParkActions
+            checkInterrupted();
         }
 
         if (timeoutNanos > 0 && deadline == 0) // must have been deserialized
             this.deadline = System.nanoTime() + timeoutNanos;
 
         while (!completed) { // the fiber can be awakened spuriously, in particular, from calls to getStackTrace
-            if (Fiber.interrupted())
-                throw new InterruptedException();
+            checkInterrupted();
 
             final long now = System.nanoTime();
             if (now >= deadline) {
@@ -221,6 +218,13 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
         }
 
         return getResult();
+    }
+    
+    private void checkInterrupted() throws InterruptedException {
+        if (Fiber.interrupted()) {
+            interrupted();
+            throw new InterruptedException();
+        }
     }
 
     /**
@@ -269,6 +273,13 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
             while (!registrationComplete)
              ; // spin
         }
+    }
+    
+    /**
+     * Called when the fiber calling {@link run} is interrupted during the call.
+     */
+    protected void interrupted() {
+        
     }
 
     /**
@@ -447,6 +458,7 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
     private static class ThreadBlockingFiberAsync<V, E extends Exception> extends FiberAsync<V, E> {
         private final ExecutorService exec;
         private final CheckedCallable<V, E> action;
+        private Future<?> fut;
 
         public ThreadBlockingFiberAsync(ExecutorService exec, CheckedCallable<V, E> action) {
             this.exec = exec;
@@ -455,7 +467,7 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
 
         @Override
         protected void requestAsync() {
-            exec.execute(new Runnable() {
+            this.fut = exec.submit(new Runnable() {
                 @Override
                 public void run() {
                     try {
@@ -471,6 +483,13 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
         @Override
         protected V requestSync() throws E, InterruptedException {
             return action.call();
+        }
+
+        @Override
+        protected void interrupted() {
+            if (fut != null)
+                fut.cancel(true);
+            super.interrupted();
         }
     }
 }

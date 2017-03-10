@@ -17,10 +17,12 @@ import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.CheckedCallable;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -311,6 +313,44 @@ public class FiberAsyncTest {
         fiber.join();
     }
 
+    @Test
+    public void whenCancelRunBlockingInterruptExecutingThread() throws Exception {
+        final AtomicBoolean started = new AtomicBoolean();
+        final AtomicBoolean interrupted = new AtomicBoolean();
+
+        Fiber fiber = new Fiber(new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                FiberAsync.runBlocking(Executors.newSingleThreadExecutor(),
+                        new CheckedCallable<Void, RuntimeException>() {
+                            @Override
+                            public Void call() throws RuntimeException {
+                                started.set(true);
+                                try {
+                                    Thread.sleep(1000);
+                                } catch (InterruptedException e) {
+                                    interrupted.set(true);
+                                }
+                                return null;
+                            }
+                        });
+            }
+        });
+
+        fiber.start();
+        Thread.sleep(100);
+        fiber.cancel(true);
+        try {
+            fiber.join(5, TimeUnit.MILLISECONDS);
+            fail("InterruptedException not thrown");
+        } catch(ExecutionException e) {
+            if (!(e.getCause() instanceof InterruptedException))
+                fail("InterruptedException not thrown");
+        }
+        assertThat(started.get(), is(true));
+        assertThat(interrupted.get(), is(true));
+    }
+    
     @Test
     public void testRunBlocking() throws Exception {
         final Fiber fiber = new Fiber(new SuspendableRunnable() {
