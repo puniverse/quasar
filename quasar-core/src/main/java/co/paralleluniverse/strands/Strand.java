@@ -56,21 +56,6 @@ public abstract class Strand {
     }
 
     /**
-     * The minimum priority that a strand can have.
-     */
-    public final static int MIN_PRIORITY = 1;
-
-    /**
-     * The default priority that is assigned to a strand.
-     */
-    public final static int NORM_PRIORITY = 5;
-
-    /**
-     * The maximum priority that a strand can have.
-     */
-    public final static int MAX_PRIORITY = 10;
-
-    /**
      * A strand's running state
      */
     public static enum State {

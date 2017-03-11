@@ -114,20 +114,22 @@ public class FiberTest implements Serializable {
             }
         });
 
-        assertThat(fiber.getPriority(), is(Strand.NORM_PRIORITY));
+        assertThat(fiber.getPriority(), is(Fiber.NORM_PRIORITY));
         
         fiber.setPriority(3);
         assertThat(fiber.getPriority(), is(3));
         
         try {
-            fiber.setPriority(Strand.MAX_PRIORITY + 1);
-            fail();
+            fiber.setPriority(Fiber.MAX_PRIORITY + 1);
+            if (Fiber.MAX_PRIORITY + 1 != Integer.MIN_VALUE) // Ignore overflow
+                fail();
         } catch (IllegalArgumentException e) {
         }
 
         try {
-            fiber.setPriority(Strand.MIN_PRIORITY - 1);
-            fail();
+            fiber.setPriority(Fiber.MIN_PRIORITY - 1);
+            if (Fiber.MIN_PRIORITY - 1 != Integer.MAX_VALUE) // Ignore underflow
+                fail();
         } catch (IllegalArgumentException e) {
         }
     }

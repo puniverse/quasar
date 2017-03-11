@@ -141,7 +141,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     // private int preemptionCredits;
     private transient Thread runningThread;
     private final SuspendableCallable<V> target;
-    private byte priority;
+    private int priority;
     private transient ClassLoader contextClassLoader;
     private transient AccessControlContext inheritedAccessControlContext;
     // These are typed as Object because they store JRE-internal ThreadLocalMap objects, which is a package private
@@ -177,7 +177,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         this.task = scheduler != null ? scheduler.newFiberTask(this) : new FiberForkJoinTask(this);
         this.initialStackSize = stackSize;
         this.stack = new Stack(this, stackSize > 0 ? stackSize : DEFAULT_STACK_SIZE);
-        this.priority = (byte)NORM_PRIORITY;
+        this.priority = NORM_PRIORITY;
 
         if (Debug.isDebug())
             record(1, "Fiber", "<init>", "Creating fiber name: %s, scheduler: %s, parent: %s, target: %s, task: %s, stackSize: %s", name, scheduler, parent, target, task, stackSize);
@@ -230,6 +230,21 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     public Fiber(String name, int stackSize, SuspendableCallable<V> target) {
         this(name, defaultScheduler(), stackSize, target);
     }
+
+    /**
+     * The minimum priority that a fiber can have.
+     */
+    public final static int MIN_PRIORITY = Integer.MIN_VALUE;
+
+    /**
+     * The default priority that is assigned to a fiber.
+     */
+    public final static int NORM_PRIORITY = 0;
+
+    /**
+     * The maximum priority that a fiber can have.
+     */
+    public final static int MAX_PRIORITY = Integer.MAX_VALUE;
 
     private static FiberScheduler defaultScheduler() {
         final Fiber parent = currentFiber();
@@ -311,7 +326,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     public Fiber setPriority(int newPriority) {
         if (newPriority > MAX_PRIORITY || newPriority < MIN_PRIORITY)
             throw new IllegalArgumentException();
-        this.priority = (byte) newPriority;
+        this.priority = newPriority;
         return this;
     }
 
