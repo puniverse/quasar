@@ -1,15 +1,7 @@
 language: java
-sudo: required
-dist: trusty
-group: edge
+sudo: false
+install: true
 before_install:
-  - sudo add-apt-repository -y ppa:webupd8team/java
-  - sudo apt-get -y update
-  - sudo apt-get -y install oracle-java7-installer
-  - sudo apt-get -y install openjdk-7-jdk
-  - sudo apt-get -y install oracle-java8-installer
-  - sudo apt-get -y install openjdk-8-jdk
-  - sudo apt-get -y install oracle-java9-installer
   - wget http://services.gradle.org/distributions/gradle-2.14.1-bin.zip
   - unzip gradle-2.14.1-bin.zip
   - export GRADLE_HOME=$PWD/gradle-2.14.1
@@ -20,8 +12,13 @@ before_install:
   - echo ${JAVA_HOME} ${JAVA_VER}
   - gradle -version
 
-install: GRADLE_OPTS="-XX:MaxPermSize=512m" gradle -q assemble
+addons:
+  apt:
+    packages:
+      - oracle-java8-installer
+
 script: GRADLE_OPTS="-XX:MaxPermSize=512m" gradle -i check
+
 jdk:
   - oraclejdk7
   - oraclejdk8
