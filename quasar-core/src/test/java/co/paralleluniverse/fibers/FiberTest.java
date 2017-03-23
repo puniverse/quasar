@@ -281,6 +281,33 @@ public class FiberTest implements Serializable {
         assertThat(tl1.get(), is("foo"));
         assertThat(tl2.get(), is("bar"));
     }
+    
+    @Test
+    public void testNoLocals() throws Exception { // shitty test
+        final ThreadLocal<String> tl1 = new ThreadLocal<>();
+        final InheritableThreadLocal<String> tl2 = new InheritableThreadLocal<>();
+        tl1.set("foo");
+        tl2.set("bar");
+
+        Fiber fiber = new Fiber(scheduler, new SuspendableRunnable() {
+            @Override
+            public void run() throws SuspendExecution, InterruptedException {
+                assertThat(tl1.get(), is(nullValue()));
+                assertThat(tl2.get(), is(nullValue()));
+
+                tl1.set("koko");
+                tl2.set("bubu");
+
+                assertThat(tl1.get(), is("koko"));
+                assertThat(tl2.get(), is("bubu"));
+            }
+        }).setNoLocals(true);
+        fiber.start();
+        fiber.join();
+
+        assertThat(tl1.get(), is("foo"));
+        assertThat(tl2.get(), is("bar"));
+    }
 
     @Test
     public void testInheritThreadLocals() throws Exception {
@@ -310,6 +337,8 @@ public class FiberTest implements Serializable {
 
         assertThat(tl1.get(), is("foo"));
     }
+    
+    
 
     @Test
     public void testThreadLocalsParallel() throws Exception {
