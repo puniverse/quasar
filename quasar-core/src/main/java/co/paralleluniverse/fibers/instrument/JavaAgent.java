@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2017, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -108,7 +108,8 @@ public class JavaAgent {
         SuspendableHelper.javaAgent = true;
 
         if (agentArguments != null) {
-            for (char c : agentArguments.toCharArray()) {
+            for (int i = 0; i < agentArguments.length(); i++) {
+                char c = agentArguments.charAt(i);
                 switch (c) {
                     case 'v':
                         instrumentor.setVerbose(true);
@@ -129,9 +130,27 @@ public class JavaAgent {
                     case 'b':
                         instrumentor.setAllowBlocking(true);
                         break;
+                        
+                    case 'x':
+                        i++;
+                        c = agentArguments.charAt(i);
+                        if (c != '(')
+                            throw new IllegalStateException("Usage: vdmcbx(exclusion;...) (verbose, debug, allow monitors, check class, allow blocking)");
+                        i++;
+                        StringBuilder sb = new StringBuilder();
+                        while(true) {
+                            c = agentArguments.charAt(i++);
+                            if (c == ')')
+                                break;
+                            sb.append(c);
+                        }
+                        String[] exclusions = sb.toString().split(";");
+                        for (String x : exclusions)
+                            instrumentor.addExcludedPackage(x);
+                        break;
 
                     default:
-                        throw new IllegalStateException("Usage: vdmcb (verbose, debug, allow monitors, check class, allow blocking)");
+                        throw new IllegalStateException("Usage: vdmcbx(exclusion;...) (verbose, debug, allow monitors, check class, allow blocking)");
                 }
             }
         }
