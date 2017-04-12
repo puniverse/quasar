@@ -25,7 +25,6 @@ import java.lang.reflect.Constructor;
 // import java.lang.reflect.Executable;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 
@@ -105,7 +104,7 @@ public final class SuspendableHelper {
                                 }
                                 if (callsiteOwner != null) {
                                     final Class<?> owner = callee.getDeclaringClass();
-                                    if (callsiteOwner.isAssignableFrom(owner)) {
+                                    if (declareInCommonAncestor(nameAndDescSuffix, owner, callsiteOwner)) {
                                         ok = true;
                                         break;
                                     }
@@ -136,6 +135,54 @@ public final class SuspendableHelper {
 
             return new Pair<>(false, null);
         }
+    }
+
+    private static boolean declareInCommonAncestor(String nameAndDescSuffix, Class<?> c1, Class<?> c2) {
+        if (nameAndDescSuffix == null || c1 == null || c2 == null)
+            return false;
+
+        if (c1.isAssignableFrom(c2))
+            return hasMethodWithDescriptor(nameAndDescSuffix, c1);
+
+        if (c2.isAssignableFrom(c1))
+            return hasMethodWithDescriptor(nameAndDescSuffix, c2);
+
+        return
+            declareInCommonAncestor(nameAndDescSuffix, c1.getSuperclass(), c2) ||
+            declareInCommonAncestor(nameAndDescSuffix, c1.getInterfaces(), c2);
+    }
+
+    private static boolean hasMethodWithDescriptor(String nameAndDescSuffix, Class<?> c) {
+        if (nameAndDescSuffix == null || c == null)
+            return false;
+
+        for (final Method m : c.getDeclaredMethods()) {
+            final String n = "." + m.getName() + ASMUtil.getDescriptor(m);
+            if (nameAndDescSuffix.equals(n))
+                return true;
+        }
+
+        if (hasMethodWithDescriptor(nameAndDescSuffix, c.getSuperclass()))
+            return true;
+
+        for (final Class<?> i : c.getInterfaces()) {
+            if (hasMethodWithDescriptor(nameAndDescSuffix, i))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static boolean declareInCommonAncestor(String nameAndDescSuffix, Class<?>[] c1s, Class<?> c2) {
+        if (nameAndDescSuffix == null || c1s == null || c2 == null)
+            return false;
+
+        for (final Class<?> c1 : c1s) {
+            if (declareInCommonAncestor(nameAndDescSuffix, c1, c2))
+                return true;
+        }
+
+        return false;
     }
 
     public static String getCallsiteOwner(String callsiteName) {
