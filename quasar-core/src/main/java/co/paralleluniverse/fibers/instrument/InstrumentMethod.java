@@ -665,7 +665,7 @@ class InstrumentMethod {
 
         instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_END, endSourceLine);
         if (sb != null)
-            sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(endSourceLine).append(", ");
+            sb.append(Instrumented.FIELD_NAME_METHOD_END + "=").append(endSourceLine).append(", ");
 
         if (suspCallsSourceLines != null) {
             final AnnotationVisitor linesAV = instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES);

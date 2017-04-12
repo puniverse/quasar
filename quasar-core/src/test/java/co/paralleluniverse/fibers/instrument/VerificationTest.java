@@ -21,8 +21,14 @@ import co.paralleluniverse.fibers.VerifyInstrumentationException;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import static org.junit.Assert.*;
 import static org.junit.Assume.*;
+
+import co.paralleluniverse.strands.channels.Channels;
+import co.paralleluniverse.strands.channels.IntChannel;
 import org.junit.Test;
 
 /**
@@ -237,5 +243,23 @@ public final class VerificationTest {
             return 4;
         }}).start();
         assertEquals(fOk.get(), new Integer(4));
+    }
+
+    @Test
+    public final void testVerifyUninstrumentedCallSiteDeclaringAndOwnerOK() throws ExecutionException, InterruptedException, SuspendExecution {
+        assumeTrue(SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation"));
+
+        // From https://github.com/puniverse/quasar/issues/255
+        final IntChannel intChannel = Channels.newIntChannel(1);
+        try {
+            new Fiber<>(new SuspendableCallable<Integer>() {
+                @Override
+                public Integer run() throws SuspendExecution, InterruptedException {
+                    return intChannel.receive();
+                }
+            }).start().join(100, TimeUnit.MILLISECONDS);
+        } catch (final TimeoutException ignored) {
+        }
+        // Should complete without verification exceptions
     }
 }
