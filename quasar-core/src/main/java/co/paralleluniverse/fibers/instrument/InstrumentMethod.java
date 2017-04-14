@@ -787,6 +787,7 @@ class InstrumentMethod {
 
                 // need to split try/catch around the suspendable call
                 if (start == fi.endInstruction) {
+                    // Starts exactly at the suspendable call => just make it start after it
                     tcb.start = fi.createAfterLabel();
                 } else {
                     if (end > fi.endInstruction) {
@@ -796,6 +797,7 @@ class InstrumentMethod {
                         mn.tryCatchBlocks.add(i + 1, tcb2);
                     }
 
+                    // Make it end before the suspendable call
                     tcb.end = fi.createBeforeLabel();
                 }
             }
