@@ -489,6 +489,11 @@ class InstrumentMethod {
                 if (yieldReturnsValue)
                     mv.visitVarInsn(Opcodes.ILOAD, lvarResumed); // ... and replace the returned value with the value of resumed
 
+                // See #211: if Fiber.park() is the last call before catch, ASM generates
+                // empty handlers (start_pc = end_pc) that won't pass ASM's nor JVM's bytecode checker because of
+                // exception_table's spec here: https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.3
+                mv.visitInsn(Opcodes.NOP);
+
                 dumpCodeBlock(mv, i, 1 /* skip the call */);
             } else {
                 final Label lbl = new Label();
