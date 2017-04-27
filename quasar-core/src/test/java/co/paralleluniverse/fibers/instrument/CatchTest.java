@@ -31,10 +31,15 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
+
+import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
 import static org.junit.Assert.*;
 import org.junit.Test;
 
@@ -158,5 +163,25 @@ public class CatchTest {
                 "C",
                 "D",
                 "E"), results);
+    }
+
+    // See #211
+    @Test
+    public void testParkBeforeCatch() throws ExecutionException, InterruptedException {
+        new Fiber(new SuspendableRunnable() {
+            @Override
+            public final void run() throws SuspendExecution, InterruptedException {
+                catchSuspendable();
+            }
+        }).start().join();
+    }
+
+    @Suspendable
+    private static void catchSuspendable() throws InterruptedException {
+        try {
+            Fiber.park(10, TimeUnit.MILLISECONDS);
+        } catch (final SuspendExecution s) {
+            throw new AssertionError(s);
+        }
     }
 }
