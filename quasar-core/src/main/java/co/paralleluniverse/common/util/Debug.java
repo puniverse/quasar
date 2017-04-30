@@ -72,7 +72,14 @@ public class Debug {
             });
         }
 
-        debugger = ManagementFactory.getRuntimeMXBean().getInputArguments().toString().contains("-agentlib:jdwp");
+        boolean have_debugger = false;
+
+        try {
+            have_debugger = ManagementFactory.getRuntimeMXBean().getInputArguments().toString().contains("-agentlib:jdwp");
+        } catch (NoClassDefFoundError e) { // We are running under a VM which does not provide a ManagementFactory (e.g. Android).
+        }
+
+        debugger = have_debugger;
     }
 
     public static boolean isDebug() {
