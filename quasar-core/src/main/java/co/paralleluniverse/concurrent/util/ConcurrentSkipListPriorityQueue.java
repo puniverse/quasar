@@ -22,6 +22,7 @@
 package co.paralleluniverse.concurrent.util;
 
 import co.paralleluniverse.common.util.UtilUnsafe;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.*;
 
 public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
@@ -289,12 +290,14 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
         head = new HeadIndex<E>(new Node<E>(null, BASE_HEADER, null),
                 null, null, 1);
     }
+    
+    private static final AtomicReferenceFieldUpdater<ConcurrentSkipListPriorityQueue,HeadIndex> headUpdater = AtomicReferenceFieldUpdater.newUpdater(ConcurrentSkipListPriorityQueue.class,HeadIndex.class,"head"); 
 
     /**
      * compareAndSet head node
      */
     private boolean casHead(HeadIndex<E> cmp, HeadIndex<E> val) {
-        return UNSAFE.compareAndSwapObject(this, headOffset, cmp, val);
+        return headUpdater.compareAndSet(this, cmp, val);
     }
 
     /* ---------------- Nodes -------------- */
@@ -1561,18 +1564,5 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     @Override
     public <T> T[] toArray(T[] a) {
         return toList(this).toArray(a);
-    }
-    // Unsafe mechanics
-    private static final sun.misc.Unsafe UNSAFE;
-    private static final long headOffset;
-
-    static {
-        try {
-            UNSAFE = UtilUnsafe.getUnsafe();
-            Class k = ConcurrentSkipListPriorityQueue.class;
-            headOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("head"));
-        } catch (Exception e) {
-            throw new Error(e);
-        }
     }
 }
