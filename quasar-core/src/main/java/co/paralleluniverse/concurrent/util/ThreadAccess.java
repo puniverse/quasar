@@ -26,12 +26,11 @@ import java.util.*;
  * @author pron
  */
 public class ThreadAccess {
-    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long targetOffset;
-    private static final long threadLocalsOffset;
-    private static final long inheritableThreadLocalsOffset;
-    private static final long contextClassLoaderOffset;
-    private static final long inheritedAccessControlContextOffset;
+    private static final Field targetField;
+    private static final Field threadLocalsField;
+    private static final Field inheritableThreadLocalsField;
+    private static final Field contextClassLoaderField;
+    private static final Field inheritedAccessControlContextField;
     private static final Class threadLocalMapClass;
     private static final Constructor threadLocalMapConstructor;
     private static final Constructor threadLocalMapInheritedConstructor;
@@ -45,17 +44,12 @@ public class ThreadAccess {
 
     static {
         try {
-            targetOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("target"));
-            threadLocalsOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("threadLocals"));
-            inheritableThreadLocalsOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("inheritableThreadLocals"));
-            contextClassLoaderOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("contextClassLoader"));
+            targetField                  = getDeclaredFieldAndEnableAccess(Thread.class,"target");
+            threadLocalsField            = getDeclaredFieldAndEnableAccess(Thread.class,"threadLocals");
+            inheritableThreadLocalsField = getDeclaredFieldAndEnableAccess(Thread.class,"inheritableThreadLocals");
+            contextClassLoaderField      = getDeclaredFieldAndEnableAccess(Thread.class,"contextClassLoader");
 
-            long _inheritedAccessControlContextOffset = -1;
-            try {
-                _inheritedAccessControlContextOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("inheritedAccessControlContext"));
-            } catch (NoSuchFieldException e) {
-            }
-            inheritedAccessControlContextOffset = _inheritedAccessControlContextOffset;
+            inheritedAccessControlContextField = maybeGetDeclaredFieldAndEnableAccess(Thread.class,"inheritedAccessControlContext");
 
             threadLocalMapClass = Class.forName("java.lang.ThreadLocal$ThreadLocalMap");
             threadLocalMapConstructor = threadLocalMapClass.getDeclaredConstructor(ThreadLocal.class, Object.class);
@@ -80,29 +74,69 @@ public class ThreadAccess {
             throw new AssertionError(ex);
         }
     }
+    
+    protected static Field getDeclaredFieldAndEnableAccess(Class klass,String fieldname) throws NoSuchFieldException {
+        Field field = klass.getDeclaredField(fieldname);
+        
+        field.setAccessible(true);
+        
+        return field;
+    }
+    
+    protected static Field maybeGetDeclaredFieldAndEnableAccess(Class klass,String fieldname) {
+        try {
+            return getDeclaredFieldAndEnableAccess(klass,fieldname);
+        } catch (NoSuchFieldException e) {
+            return null;
+        }
+    }
 
     public static Runnable getTarget(Thread thread) {
-        return (Runnable) UNSAFE.getObject(thread, targetOffset);
+        try {
+            return (Runnable) targetField.get(thread);
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
     }
 
     public static void setTarget(Thread thread, Runnable target) {
-        UNSAFE.putObject(thread, targetOffset, target);
+        try {
+            targetField.set(thread, target);
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
     }
 
     public static Object getThreadLocals(Thread thread) {
-        return UNSAFE.getObject(thread, threadLocalsOffset);
+        try {
+            return threadLocalsField.get(thread);
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
     }
 
     public static void setThreadLocals(Thread thread, Object threadLocals) {
-        UNSAFE.putObject(thread, threadLocalsOffset, threadLocals);
+        try {
+            threadLocalsField.set(thread, threadLocals);
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
     }
 
     public static Object getInheritableThreadLocals(Thread thread) {
-        return UNSAFE.getObject(thread, inheritableThreadLocalsOffset);
+        try {
+            return inheritableThreadLocalsField.get(thread);
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
     }
 
     public static void setInheritableThreadLocals(Thread thread, Object inheritableThreadLocals) {
-        UNSAFE.putObject(thread, inheritableThreadLocalsOffset, inheritableThreadLocals);
+        try {
+            inheritableThreadLocalsField.set(thread, inheritableThreadLocals);
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
     }
 
     private static Object createThreadLocalMap(ThreadLocal tl, Object firstValue) {
@@ -201,21 +235,37 @@ public class ThreadAccess {
     }
 
     public static ClassLoader getContextClassLoader(Thread thread) {
-        return (ClassLoader) UNSAFE.getObject(thread, contextClassLoaderOffset);
-    }
+        try {
+            return (ClassLoader) contextClassLoaderField.get(thread);
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
+   }
 
     public static void setContextClassLoader(Thread thread, ClassLoader classLoader) {
-        UNSAFE.putObject(thread, contextClassLoaderOffset, classLoader);
+        try {
+            contextClassLoaderField.set(thread, classLoader);
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
     }
 
     public static AccessControlContext getInheritedAccessControlContext(Thread thread) {
-        if (inheritedAccessControlContextOffset < 0)
-            return null;
-        return (AccessControlContext) UNSAFE.getObject(thread, inheritedAccessControlContextOffset);
+        try {
+            if (inheritedAccessControlContextField==null)
+                return null;
+            return (AccessControlContext) inheritedAccessControlContextField.get(thread);
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
     }
 
     public static void setInheritedAccessControlContext(Thread thread, AccessControlContext accessControlContext) {
-        if (inheritedAccessControlContextOffset >= 0)
-            UNSAFE.putObject(thread, inheritedAccessControlContextOffset, accessControlContext);
+        try {
+            if (inheritedAccessControlContextField!=null)
+                inheritedAccessControlContextField.set(thread, accessControlContext);
+        } catch (IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
     }
 }
