@@ -346,7 +346,7 @@ public class FiberTimedScheduler {
      * be cancelled.
      */
     public void shutdown() {
-        assert false;
+//      assert false;
         mainLock.lock();
         try {
             if (state < SHUTDOWN)
