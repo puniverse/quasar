@@ -43,6 +43,7 @@ import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.After;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
 
@@ -65,6 +66,11 @@ public class ActorTest {
 
     public ActorTest() {
         scheduler = new FiberForkJoinScheduler("test", 4, null, false);
+    }
+
+    @After
+    public void tearDown() {
+    	  scheduler.shutdown();
     }
 
     private <Message, V> Actor<Message, V> spawnActor(Actor<Message, V> actor) {

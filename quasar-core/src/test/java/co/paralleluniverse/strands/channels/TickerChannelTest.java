@@ -50,6 +50,11 @@ public class TickerChannelTest {
         scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 
+    @After
+    public void tearDown() {
+        scheduler.shutdown();
+    }
+
     @Test
     public void testMultipleConsumersAlwaysAscending() throws Exception {
         final Channel<Integer> sch = Channels.newChannel(bufferSize, Channels.OverflowPolicy.DISPLACE);

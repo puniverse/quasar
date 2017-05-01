@@ -82,6 +82,11 @@ public class GeneralSelectorTest {
         fiber = true;
     }
 
+    @After
+    public void tearDown() {
+        scheduler.shutdown();
+    }
+
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{

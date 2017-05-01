@@ -51,6 +51,11 @@ public class FiberAsyncTest {
         scheduler = new FiberForkJoinScheduler("test", 4, null, false);
     }
 
+    @After
+    public void tearDown() {
+        scheduler.shutdown();
+    }
+
     interface MyCallback {
         void call(String str);
 

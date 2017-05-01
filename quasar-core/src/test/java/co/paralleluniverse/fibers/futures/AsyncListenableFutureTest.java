@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import java.util.concurrent.ExecutionException;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
@@ -45,6 +46,11 @@ public class AsyncListenableFutureTest {
 
     public AsyncListenableFutureTest() {
         scheduler = new FiberForkJoinScheduler("test", 4, null, false);
+    }
+
+    @After
+    public void tearDown() {
+        scheduler.shutdown();
     }
 
     @Test
