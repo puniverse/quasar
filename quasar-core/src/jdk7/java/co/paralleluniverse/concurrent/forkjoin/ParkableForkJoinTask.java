@@ -34,7 +34,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     public static final boolean CAPTURE_UNPARK_STACK = Debug.isDebug() || SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.captureUnparkStackTrace");
     public static final Object EMERGENCY_UNBLOCKER = new Object();
-    public static final Park PARK = new Park();
+    public static final Park PARK = Park.create();
     public static final int RUNNABLE = 0;
     public static final int LEASED = 1;
     public static final int PARKED = -1;
@@ -382,9 +382,27 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             super(null, null, false, false);
         }
 
+        protected Park(String message,Throwable cause) { // Just to provide a means for ParkJava1_6 to call its super-constructor. 
+            super(message,cause);
+        }
+        
         @Override
         public synchronized Throwable fillInStackTrace() {
             return this;
+        }
+        
+        public static Park create() {
+            try {
+                return new Park();
+            } catch (NoSuchMethodError e) {  // We do not run JDK 1.7 or higher and hence do not have a constructor Error(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) we could call.
+                return new ParkJava1_6();    // Hence we need to fallback to a JDK 1.6 implementation.
+            }
+        }
+    }
+    
+    public static class ParkJava1_6 extends Park {
+        private ParkJava1_6() {
+            super(null, null);
         }
     }
 
