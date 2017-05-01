@@ -21,7 +21,6 @@
  */
 package co.paralleluniverse.concurrent.util;
 
-import co.paralleluniverse.common.util.UtilUnsafe;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.*;
 
@@ -449,11 +448,13 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
             this.right = right;
         }
 
+        private static final AtomicReferenceFieldUpdater<Index,Index> rightUpdater = AtomicReferenceFieldUpdater.newUpdater(Index.class,Index.class,"right"); 
+
         /**
          * compareAndSet right field
          */
         final boolean casRight(Index<V> cmp, Index<V> val) {
-            return UNSAFE.compareAndSwapObject(this, rightOffset, cmp, val);
+            return rightUpdater.compareAndSet(this, cmp, val);
         }
 
         /**
@@ -490,19 +491,6 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
          */
         final boolean unlink(Index<V> succ) {
             return !indexesDeletedNode() && casRight(succ, succ.right);
-        }
-        // Unsafe mechanics
-        private static final sun.misc.Unsafe UNSAFE;
-        private static final long rightOffset;
-
-        static {
-            try {
-                UNSAFE = UtilUnsafe.getUnsafe();
-                Class k = Index.class;
-                rightOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("right"));
-            } catch (Exception e) {
-                throw new Error(e);
-            }
         }
     }
 
