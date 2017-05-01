@@ -54,6 +54,9 @@ public abstract class FiberScheduler implements FiberFactory, StrandFactory {
                 throw new RuntimeException("Unsupported monitor type: " + monitorType);
         }
     }
+    
+    public void shutdown() {
+    }
 
     public String getName() {
         return name;
