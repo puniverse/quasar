@@ -355,6 +355,11 @@ public class FiberTimedScheduler {
             mainLock.unlock();
         }
     }
+    
+    public void finalize() throws Throwable {
+        shutdown();
+        super.finalize();
+    }
 
     /**
      * Attempts to stop all actively executing tasks, halts the
