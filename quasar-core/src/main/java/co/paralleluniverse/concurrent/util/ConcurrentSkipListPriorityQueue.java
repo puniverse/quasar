@@ -339,18 +339,22 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
             this.next = next;
         }
 
+        private static final AtomicReferenceFieldUpdater<Node,Object> valueUpdater = AtomicReferenceFieldUpdater.newUpdater(Node.class,Object.class,"value"); 
+ 
         /**
          * compareAndSet value field
          */
         boolean casValue(Object cmp, Object val) {
-            return UNSAFE.compareAndSwapObject(this, valueOffset, cmp, val);
+            return valueUpdater.compareAndSet(this, cmp, val);
         }
+
+        private static final AtomicReferenceFieldUpdater<Node,Node>   nextUpdater  = AtomicReferenceFieldUpdater.newUpdater(Node.class,Node.class,"next"); 
 
         /**
          * compareAndSet next field
          */
         boolean casNext(Node<V> cmp, Node<V> val) {
-            return UNSAFE.compareAndSwapObject(this, nextOffset, cmp, val);
+            return nextUpdater.compareAndSet(this, cmp, val);
         }
 
         /**
@@ -420,21 +424,6 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
             if (v == this || v == BASE_HEADER)
                 return null;
             return (V) v;
-        }
-        // UNSAFE mechanics
-        private static final sun.misc.Unsafe UNSAFE;
-        private static final long valueOffset;
-        private static final long nextOffset;
-
-        static {
-            try {
-                UNSAFE = UtilUnsafe.getUnsafe();
-                Class k = Node.class;
-                valueOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("value"));
-                nextOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("next"));
-            } catch (Exception e) {
-                throw new Error(e);
-            }
         }
     }
 
