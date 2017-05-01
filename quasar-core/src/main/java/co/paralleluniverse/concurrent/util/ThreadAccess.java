@@ -108,7 +108,13 @@ public class ThreadAccess {
     private static Object createThreadLocalMap(ThreadLocal tl, Object firstValue) {
         try {
             return threadLocalMapConstructor.newInstance(tl, firstValue);
-        } catch (ReflectiveOperationException ex) {
+//      } catch (ReflectiveOperationException ex) { // ReflectiveOperationException is not accessible in JDK 1.6, so we need to list InvocationTargetException, InstantiationException, IllegalAccessException individually
+//          throw new AssertionError(ex);
+        } catch (InvocationTargetException ex) {
+            throw new AssertionError(ex);
+        } catch (InstantiationException ex) {
+            throw new AssertionError(ex);
+        } catch (IllegalAccessException ex) {
             throw new AssertionError(ex);
         }
     }
@@ -116,7 +122,13 @@ public class ThreadAccess {
     public static Object createInheritedMap(Object inheritableThreadLocals) {
         try {
             return threadLocalMapInheritedConstructor.newInstance(inheritableThreadLocals);
-        } catch (ReflectiveOperationException ex) {
+//      } catch (ReflectiveOperationException ex) { // ReflectiveOperationException is not accessible in JDK 1.6, so we need to list InvocationTargetException, InstantiationException, IllegalAccessException individually
+//          throw new AssertionError(ex);
+        } catch (InvocationTargetException ex) {
+            throw new AssertionError(ex);
+        } catch (InstantiationException ex) {
+            throw new AssertionError(ex);
+        } catch (IllegalAccessException ex) {
             throw new AssertionError(ex);
         }
     }
@@ -155,7 +167,9 @@ public class ThreadAccess {
             threadLocalMapSizeField.setInt(clone, threadLocalMapSizeField.getInt(orig));
             threadLocalMapThresholdField.setInt(clone, threadLocalMapThresholdField.getInt(orig));
             return clone;
-        } catch (ReflectiveOperationException ex) {
+//      } catch (ReflectiveOperationException ex) { // ReflectiveOperationException is not accessible in JDK 1.6, but actually just IllegalAccessException is declared to be thrown.   
+//          throw new AssertionError(ex);
+        } catch (IllegalAccessException ex) {
             throw new AssertionError(ex);
         }
     }
