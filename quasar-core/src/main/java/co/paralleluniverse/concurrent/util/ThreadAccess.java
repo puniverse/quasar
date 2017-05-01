@@ -51,11 +51,9 @@ public class ThreadAccess {
 
             inheritedAccessControlContextField = maybeGetDeclaredFieldAndEnableAccess(Thread.class,"inheritedAccessControlContext");
 
-            threadLocalMapClass = Class.forName("java.lang.ThreadLocal$ThreadLocalMap");
-            threadLocalMapConstructor = threadLocalMapClass.getDeclaredConstructor(ThreadLocal.class, Object.class);
-            threadLocalMapConstructor.setAccessible(true);
-            threadLocalMapInheritedConstructor = threadLocalMapClass.getDeclaredConstructor(threadLocalMapClass);
-            threadLocalMapInheritedConstructor.setAccessible(true);
+            threadLocalMapClass                = Class.forName("java.lang.ThreadLocal$ThreadLocalMap");
+            threadLocalMapConstructor          = getDeclaredConstructorAndEnableAccess(threadLocalMapClass,ThreadLocal.class,Object.class);
+            threadLocalMapInheritedConstructor = getDeclaredConstructorAndEnableAccess(threadLocalMapClass,threadLocalMapClass);
 //            threadLocalMapSet = threadLocalMapClass.getDeclaredMethod("set", ThreadLocal.class, Object.class);
 //            threadLocalMapSet.setAccessible(true);
             threadLocalMapTableField = threadLocalMapClass.getDeclaredField("table");
@@ -73,6 +71,14 @@ public class ThreadAccess {
         } catch (Exception ex) {
             throw new AssertionError(ex);
         }
+    }
+    
+    protected static Constructor getDeclaredConstructorAndEnableAccess(Class klass,Class<?>... parameterTypes) throws NoSuchMethodException {
+        Constructor constructor = klass.getDeclaredConstructor(parameterTypes);
+        
+        constructor.setAccessible(true);
+        
+        return constructor;
     }
     
     protected static Field getDeclaredFieldAndEnableAccess(Class klass,String fieldname) throws NoSuchFieldException {
