@@ -24,7 +24,7 @@ import jsr166e.ForkJoinPool;
 import jsr166e.ForkJoinTask;
 import jsr166e.ForkJoinWorkerThread;
 
-import sun.misc.Unsafe;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
 /**
  *
@@ -324,8 +324,10 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         this.state = state;
     }
 
+    private static final AtomicIntegerFieldUpdater<ParkableForkJoinTask> stateUpdater = AtomicIntegerFieldUpdater.newUpdater(ParkableForkJoinTask.class,"state"); 
+
     boolean compareAndSetState(int expect, int update) {
-        return UNSAFE.compareAndSwapInt(this, stateOffset, expect, update);
+        return stateUpdater.compareAndSet(this, expect, update);
     }
 
     @Override
@@ -365,16 +367,6 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     public static void record(String method, String format, Object arg1, Object arg2, Object arg3, Object arg4, Object arg5) {
         if (RECORDER != null)
             RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
-    }
-    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long stateOffset;
-
-    static {
-        try {
-            stateOffset = UNSAFE.objectFieldOffset(ParkableForkJoinTask.class.getDeclaredField("state"));
-        } catch (Exception ex) {
-            throw new AssertionError(ex);
-        }
     }
 
     public static class Park extends Error {
