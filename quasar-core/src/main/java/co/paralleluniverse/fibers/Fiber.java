@@ -23,7 +23,6 @@ import co.paralleluniverse.common.util.ExtendedStackTraceElement;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.common.util.SystemProperties;
-import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
@@ -50,6 +49,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Registration;
 import com.esotericsoftware.kryo.Serializer;
@@ -1843,23 +1843,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         stack.resetStack();
     }
 
-    private static final sun.misc.Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long stateOffset;
-
-    static {
-        try {
-            stateOffset = UNSAFE.objectFieldOffset(Fiber.class.getDeclaredField("state"));
-        } catch (Exception ex) {
-            throw new AssertionError(ex);
-        }
-    }
+    private static final AtomicReferenceFieldUpdater<Fiber,State> stateUpdater = AtomicReferenceFieldUpdater.newUpdater(Fiber.class,State.class,"state"); 
 
     private boolean casState(State expected, State update) {
-        return UNSAFE.compareAndSwapObject(this, stateOffset, expected, update);
+        return stateUpdater.compareAndSet(this, expected, update);
     }
 
     private void orderedSetState(State value) {
-        UNSAFE.putOrderedObject(this, stateOffset, value);
+        stateUpdater.lazySet(this, value);
     }
 
     //<editor-fold defaultstate="collapsed" desc="Recording">
