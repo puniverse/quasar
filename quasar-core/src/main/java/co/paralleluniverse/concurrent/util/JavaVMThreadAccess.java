@@ -25,24 +25,24 @@ import java.util.*;
  *
  * @author pron
  */
-public class ThreadAccess {
-    private static final Field targetField;
-    private static final Field threadLocalsField;
-    private static final Field inheritableThreadLocalsField;
-    private static final Field contextClassLoaderField;
-    private static final Field inheritedAccessControlContextField;
-    private static final Class threadLocalMapClass;
-    private static final Constructor threadLocalMapConstructor;
-    private static final Constructor threadLocalMapInheritedConstructor;
+public class JavaVMThreadAccess extends ThreadAccess {
+    private final Field targetField;
+    private final Field threadLocalsField;
+    private final Field inheritableThreadLocalsField;
+    private final Field contextClassLoaderField;
+    private final Field inheritedAccessControlContextField;
+    private final Class threadLocalMapClass;
+    private final Constructor threadLocalMapConstructor;
+    private final Constructor threadLocalMapInheritedConstructor;
 //    private static final Method threadLocalMapSet;
-    private static final Field threadLocalMapTableField;
-    private static final Field threadLocalMapSizeField;
-    private static final Field threadLocalMapThresholdField;
-    private static final Class threadLocalMapEntryClass;
-    private static final Constructor threadLocalMapEntryConstructor;
-    private static final Field threadLocalMapEntryValueField;
+    private final Field threadLocalMapTableField;
+    private final Field threadLocalMapSizeField;
+    private final Field threadLocalMapThresholdField;
+    private final Class threadLocalMapEntryClass;
+    private final Constructor threadLocalMapEntryConstructor;
+    private final Field threadLocalMapEntryValueField;
 
-    static {
+    protected JavaVMThreadAccess() {
         try {
             targetField                  = getDeclaredFieldAndEnableAccess(Thread.class,"target");
             threadLocalsField            = getDeclaredFieldAndEnableAccess(Thread.class,"threadLocals");
@@ -68,31 +68,7 @@ public class ThreadAccess {
         }
     }
     
-    protected static Constructor getDeclaredConstructorAndEnableAccess(Class klass,Class<?>... parameterTypes) throws NoSuchMethodException {
-        Constructor constructor = klass.getDeclaredConstructor(parameterTypes);
-        
-        constructor.setAccessible(true);
-        
-        return constructor;
-    }
-    
-    protected static Field getDeclaredFieldAndEnableAccess(Class klass,String fieldname) throws NoSuchFieldException {
-        Field field = klass.getDeclaredField(fieldname);
-        
-        field.setAccessible(true);
-        
-        return field;
-    }
-    
-    protected static Field maybeGetDeclaredFieldAndEnableAccess(Class klass,String fieldname) {
-        try {
-            return getDeclaredFieldAndEnableAccess(klass,fieldname);
-        } catch (NoSuchFieldException e) {
-            return null;
-        }
-    }
-
-    public static Runnable getTarget(Thread thread) {
+    public Runnable getTarget(Thread thread) {
         try {
             return (Runnable) targetField.get(thread);
         } catch (IllegalAccessException e) {
@@ -100,7 +76,7 @@ public class ThreadAccess {
         }
     }
 
-    public static void setTarget(Thread thread, Runnable target) {
+    public void setTarget(Thread thread, Runnable target) {
         try {
             targetField.set(thread, target);
         } catch (IllegalAccessException e) {
@@ -108,7 +84,7 @@ public class ThreadAccess {
         }
     }
 
-    public static Object getThreadLocals(Thread thread) {
+    public Object getThreadLocals(Thread thread) {
         try {
             return threadLocalsField.get(thread);
         } catch (IllegalAccessException e) {
@@ -116,7 +92,7 @@ public class ThreadAccess {
         }
     }
 
-    public static void setThreadLocals(Thread thread, Object threadLocals) {
+    public void setThreadLocals(Thread thread, Object threadLocals) {
         try {
             threadLocalsField.set(thread, threadLocals);
         } catch (IllegalAccessException e) {
@@ -124,7 +100,7 @@ public class ThreadAccess {
         }
     }
 
-    public static Object getInheritableThreadLocals(Thread thread) {
+    public Object getInheritableThreadLocals(Thread thread) {
         try {
             return inheritableThreadLocalsField.get(thread);
         } catch (IllegalAccessException e) {
@@ -132,7 +108,7 @@ public class ThreadAccess {
         }
     }
 
-    public static void setInheritableThreadLocals(Thread thread, Object inheritableThreadLocals) {
+    public void setInheritableThreadLocals(Thread thread, Object inheritableThreadLocals) {
         try {
             inheritableThreadLocalsField.set(thread, inheritableThreadLocals);
         } catch (IllegalAccessException e) {
@@ -140,7 +116,7 @@ public class ThreadAccess {
         }
     }
 
-    private static Object createThreadLocalMap(ThreadLocal tl, Object firstValue) {
+    private Object createThreadLocalMap(ThreadLocal tl, Object firstValue) {
         try {
             return threadLocalMapConstructor.newInstance(tl, firstValue);
 //      } catch (ReflectiveOperationException ex) { // ReflectiveOperationException is not accessible in JDK 1.6, so we need to list InvocationTargetException, InstantiationException, IllegalAccessException individually
@@ -154,7 +130,7 @@ public class ThreadAccess {
         }
     }
 
-    public static Object createInheritedMap(Object inheritableThreadLocals) {
+    public Object createInheritedMap(Object inheritableThreadLocals) {
         try {
             return threadLocalMapInheritedConstructor.newInstance(inheritableThreadLocals);
 //      } catch (ReflectiveOperationException ex) { // ReflectiveOperationException is not accessible in JDK 1.6, so we need to list InvocationTargetException, InstantiationException, IllegalAccessException individually
@@ -168,7 +144,7 @@ public class ThreadAccess {
         }
     }
 
-//    public static void set(Thread t, ThreadLocal tl, Object value) {
+//    public void set(Thread t, ThreadLocal tl, Object value) {
 //        Object map = getThreadLocals(t);
 //        if (map != null)
 //            set(map, tl, value);
@@ -176,7 +152,7 @@ public class ThreadAccess {
 //            setThreadLocals(t, createThreadLocalMap(tl, value));
 //    }
 //
-//    private static void set(Object map, ThreadLocal tl, Object value) {
+//    private void set(Object map, ThreadLocal tl, Object value) {
 //        try {
 //            threadLocalMapSet.invoke(map, tl, value);
 //        } catch (ReflectiveOperationException e) {
@@ -185,7 +161,7 @@ public class ThreadAccess {
 //    }
 
     // createInheritedMap works only for InheritableThreadLocals
-    public static Object cloneThreadLocalMap(Object orig) {
+    public Object cloneThreadLocalMap(Object orig) {
         try {
             Object clone = createThreadLocalMap(new ThreadLocal(), null);
 
@@ -209,7 +185,7 @@ public class ThreadAccess {
         }
     }
 
-    private static Object cloneThreadLocalMapEntry(Object entry) {
+    private Object cloneThreadLocalMapEntry(Object entry) {
         try {
             final ThreadLocal key = ((Reference<ThreadLocal>) entry).get();
             final Object value = threadLocalMapEntryValueField.get(entry);
@@ -219,7 +195,7 @@ public class ThreadAccess {
         }
     }
 
-    public static Map<ThreadLocal, Object> toMap(Object threadLocalMap) {
+    public Map<ThreadLocal, Object> toMap(Object threadLocalMap) {
         try {
             final Map<ThreadLocal, Object> map = new HashMap<>();
             Object table = threadLocalMapTableField.get(threadLocalMap);
@@ -235,7 +211,7 @@ public class ThreadAccess {
         }
     }
 
-    public static ClassLoader getContextClassLoader(Thread thread) {
+    public ClassLoader getContextClassLoader(Thread thread) {
         try {
             return (ClassLoader) contextClassLoaderField.get(thread);
         } catch (IllegalAccessException e) {
@@ -243,7 +219,7 @@ public class ThreadAccess {
         }
    }
 
-    public static void setContextClassLoader(Thread thread, ClassLoader classLoader) {
+    public void setContextClassLoader(Thread thread, ClassLoader classLoader) {
         try {
             contextClassLoaderField.set(thread, classLoader);
         } catch (IllegalAccessException e) {
@@ -251,7 +227,7 @@ public class ThreadAccess {
         }
     }
 
-    public static AccessControlContext getInheritedAccessControlContext(Thread thread) {
+    public AccessControlContext getInheritedAccessControlContext(Thread thread) {
         try {
             if (inheritedAccessControlContextField==null)
                 return null;
@@ -261,7 +237,7 @@ public class ThreadAccess {
         }
     }
 
-    public static void setInheritedAccessControlContext(Thread thread, AccessControlContext accessControlContext) {
+    public void setInheritedAccessControlContext(Thread thread, AccessControlContext accessControlContext) {
         try {
             if (inheritedAccessControlContextField!=null)
                 inheritedAccessControlContextField.set(thread, accessControlContext);
