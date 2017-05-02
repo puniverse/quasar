@@ -63,11 +63,9 @@ public class ThreadAccess {
             threadLocalMapThresholdField = threadLocalMapClass.getDeclaredField("threshold");
             threadLocalMapThresholdField.setAccessible(true);
 
-            threadLocalMapEntryClass = Class.forName("java.lang.ThreadLocal$ThreadLocalMap$Entry");
-            threadLocalMapEntryConstructor = threadLocalMapEntryClass.getDeclaredConstructor(ThreadLocal.class, Object.class);
-            threadLocalMapEntryConstructor.setAccessible(true);
-            threadLocalMapEntryValueField = threadLocalMapEntryClass.getDeclaredField("value");
-            threadLocalMapEntryValueField.setAccessible(true);
+            threadLocalMapEntryClass           = Class.forName("java.lang.ThreadLocal$ThreadLocalMap$Entry");
+            threadLocalMapEntryConstructor     = getDeclaredConstructorAndEnableAccess(threadLocalMapEntryClass,ThreadLocal.class,Object.class);
+            threadLocalMapEntryValueField      = getDeclaredFieldAndEnableAccess(threadLocalMapEntryClass,"value");
         } catch (Exception ex) {
             throw new AssertionError(ex);
         }
