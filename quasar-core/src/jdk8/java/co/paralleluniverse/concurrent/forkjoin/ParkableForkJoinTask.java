@@ -18,7 +18,7 @@ import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.common.util.UtilUnsafe;
-import co.paralleluniverse.concurrent.util.ThreadAccess;
+import static co.paralleluniverse.concurrent.util.ThreadAccess.ThreadAccess;
 import co.paralleluniverse.fibers.Fiber;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;

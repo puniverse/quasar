@@ -24,7 +24,7 @@ import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.common.util.VisibleForTesting;
-import co.paralleluniverse.concurrent.util.ThreadAccess;
+import static co.paralleluniverse.concurrent.util.ThreadAccess.ThreadAccess;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler.FiberForkJoinTask;
 import co.paralleluniverse.fibers.instrument.SuspendableHelper;
