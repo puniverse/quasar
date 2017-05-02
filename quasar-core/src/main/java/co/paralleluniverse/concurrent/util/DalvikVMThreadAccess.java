@@ -25,7 +25,7 @@ import java.util.*;
  *
  * @author pron
  */
-public class JavaVMThreadAccess extends ThreadAccess {
+public class DalvikVMThreadAccess extends ThreadAccess {
     private final Field targetField;
     private final Field threadLocalsField;
     private final Field inheritableThreadLocalsField;
@@ -42,7 +42,7 @@ public class JavaVMThreadAccess extends ThreadAccess {
     private final Constructor threadLocalMapEntryConstructor;
     private final Field threadLocalMapEntryValueField;
 
-    protected JavaVMThreadAccess() {
+    protected DalvikVMThreadAccess() {
         try {
             targetField                  = getDeclaredFieldAndEnableAccess(Thread.class,"target");
             threadLocalsField            = getDeclaredFieldAndEnableAccess(Thread.class,"threadLocals");

@@ -26,7 +26,15 @@ import java.util.*;
  * @author pron
  */
 public abstract class ThreadAccess {
-    public static final JavaVMThreadAccess ThreadAccess = new JavaVMThreadAccess();
+    public static final ThreadAccess ThreadAccess = loadThreadAccess();
+    
+    private static ThreadAccess loadThreadAccess() {
+    	  try {
+    	  	  return new JavaVMThreadAccess();
+    	  } catch (AssertionError e) {
+    	  	  return new DalvikVMThreadAccess();
+    	  }
+    }
     
     protected static Constructor getDeclaredConstructorAndEnableAccess(Class klass,Class<?>... parameterTypes) throws NoSuchMethodException {
         Constructor constructor = klass.getDeclaredConstructor(parameterTypes);
