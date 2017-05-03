@@ -44,6 +44,14 @@ public abstract class ThreadAccess {
         return constructor;
     }
     
+    protected static Method getDeclaredMethodAndEnableAccess(Class klass,String name,Class<?>... parameterTypes) throws NoSuchMethodException {
+        Method method = klass.getDeclaredMethod(name,parameterTypes);
+        
+        method.setAccessible(true);
+        
+        return method;
+    }
+    
     protected static Field getDeclaredFieldAndEnableAccess(Class klass,String fieldname) throws NoSuchFieldException {
         Field field = klass.getDeclaredField(fieldname);
         
