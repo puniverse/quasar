@@ -12,7 +12,7 @@
  */
 package co.paralleluniverse.concurrent.util;
 
-import java.util.concurrent.ThreadLocalRandom;
+import co.paralleluniverse.concurrent.util.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;

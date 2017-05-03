@@ -17,7 +17,7 @@ package co.paralleluniverse.concurrent.util;
 
 import java.util.Queue;
 import java.util.concurrent.DelayQueue;
-import java.util.concurrent.ThreadLocalRandom;
+import co.paralleluniverse.concurrent.util.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 /**

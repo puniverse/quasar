@@ -14,7 +14,7 @@
 package co.paralleluniverse.concurrent.util;
 
 import java.util.Queue;
-import java.util.concurrent.ThreadLocalRandom;
+import co.paralleluniverse.concurrent.util.ThreadLocalRandom;
 import org.openjdk.jmh.Main;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Group;

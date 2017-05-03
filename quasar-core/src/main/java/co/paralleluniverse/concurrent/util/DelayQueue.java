@@ -23,7 +23,7 @@ package co.paralleluniverse.concurrent.util;
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Delayed;
-import java.util.concurrent.ThreadLocalRandom;
+import co.paralleluniverse.concurrent.util.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.*;
 

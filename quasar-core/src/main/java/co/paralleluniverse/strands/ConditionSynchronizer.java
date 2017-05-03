@@ -18,7 +18,7 @@ import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.SuspendExecution;
-import java.util.concurrent.ThreadLocalRandom;
+import co.paralleluniverse.concurrent.util.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 /**

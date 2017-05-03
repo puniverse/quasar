@@ -25,7 +25,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Random;
+import co.paralleluniverse.concurrent.util.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import sun.misc.Unsafe;
@@ -501,7 +502,7 @@ public class Selector<Message> implements Synchronization {
     }
 
     private static int[] randomIntArray(int n) {
-        final ThreadLocalRandom random = ThreadLocalRandom.current();
+        final Random random = ThreadLocalRandom.current();
         final int[] a = new int[n];
         for (int i = 1; i < n; i++) {
             int x = random.nextInt(i);
