@@ -32,9 +32,9 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import jsr166e.ConcurrentHashMapV8;
-import jsr166e.ForkJoinPool;
-import jsr166e.ForkJoinTask;
+import jersey.repackaged.jsr166e.ConcurrentHashMapV8;
+import jersey.repackaged.jsr166e.ForkJoinPool;
+import jersey.repackaged.jsr166e.ForkJoinTask;
 
 /**
  * A {@code ForkJoinPool} based scheduler for fibers.

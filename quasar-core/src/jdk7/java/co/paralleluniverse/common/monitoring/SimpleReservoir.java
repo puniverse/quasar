@@ -15,8 +15,8 @@ package co.paralleluniverse.common.monitoring;
 import com.codahale.metrics.Reservoir;
 import com.codahale.metrics.Snapshot;
 import java.io.OutputStream;
-import jsr166e.LongAdder;
-import jsr166e.LongMaxUpdater;
+import jersey.repackaged.jsr166e.LongAdder;
+import jersey.repackaged.jsr166e.LongMaxUpdater;
 
 /**
  * This is a false reservoir that merely records the precise max and min, as well as an approximate mean.

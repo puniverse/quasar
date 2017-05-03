@@ -20,9 +20,9 @@ import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.common.util.UtilUnsafe;
 import static co.paralleluniverse.concurrent.util.ThreadAccess.ThreadAccess;
 import co.paralleluniverse.fibers.Fiber;
-import jsr166e.ForkJoinPool;
-import jsr166e.ForkJoinTask;
-import jsr166e.ForkJoinWorkerThread;
+import jersey.repackaged.jsr166e.ForkJoinPool;
+import jersey.repackaged.jsr166e.ForkJoinTask;
+import jersey.repackaged.jsr166e.ForkJoinWorkerThread;
 
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
@@ -305,7 +305,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     protected void submit() {
-        assert Thread.currentThread() instanceof jsr166e.ForkJoinWorkerThread;
+        assert Thread.currentThread() instanceof ForkJoinWorkerThread;
         fork();
     }
 

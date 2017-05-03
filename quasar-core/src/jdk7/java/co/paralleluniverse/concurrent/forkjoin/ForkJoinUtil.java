@@ -13,7 +13,7 @@
 package co.paralleluniverse.concurrent.forkjoin;
 
 import java.util.concurrent.ExecutorService;
-import jsr166e.ForkJoinTask;
+import jersey.repackaged.jsr166e.ForkJoinTask;
 
 public final class ForkJoinUtil {
     public static ExecutorService getPool() {

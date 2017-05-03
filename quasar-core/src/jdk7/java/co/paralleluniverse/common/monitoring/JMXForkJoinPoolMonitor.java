@@ -23,7 +23,7 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
-import jsr166e.ForkJoinPool;
+import jersey.repackaged.jsr166e.ForkJoinPool;
 
 /**
  *

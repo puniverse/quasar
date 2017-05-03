@@ -12,8 +12,8 @@
  */
 package co.paralleluniverse.concurrent.forkjoin;
 
-import jsr166e.ForkJoinPool;
-import jsr166e.ForkJoinWorkerThread;
+import jersey.repackaged.jsr166e.ForkJoinPool;
+import jersey.repackaged.jsr166e.ForkJoinWorkerThread;
 
 /**
  *

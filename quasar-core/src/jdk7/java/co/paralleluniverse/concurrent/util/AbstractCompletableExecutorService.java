@@ -15,7 +15,7 @@ package co.paralleluniverse.concurrent.util;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.Callable;
 import java.util.concurrent.RunnableFuture;
-import jsr166e.CompletableFuture;
+import jersey.repackaged.jsr166e.CompletableFuture;
 
 /**
  *

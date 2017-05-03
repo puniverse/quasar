@@ -16,7 +16,7 @@ import co.paralleluniverse.common.monitoring.ForkJoinPoolMonitor;
 import co.paralleluniverse.fibers.FibersMonitor;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.atomic.AtomicInteger;
-import jsr166e.ForkJoinPool;
+import jersey.repackaged.jsr166e.ForkJoinPool;
 
 /**
  *

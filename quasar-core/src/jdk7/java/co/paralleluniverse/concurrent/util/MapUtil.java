@@ -13,7 +13,7 @@
 package co.paralleluniverse.concurrent.util;
 
 import java.util.concurrent.ConcurrentMap;
-import jsr166e.ConcurrentHashMapV8;
+import jersey.repackaged.jsr166e.ConcurrentHashMapV8;
 
 public final class MapUtil {
     public static <K, V> ConcurrentMap<K, V> newConcurrentHashMap() {
