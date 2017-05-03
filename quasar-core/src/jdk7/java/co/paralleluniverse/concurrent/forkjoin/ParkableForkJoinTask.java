@@ -404,6 +404,10 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         private ParkJava1_6() {
             super(null, null);
         }
+
+        public void setStackTrace(StackTraceElement[] stackTrace) {
+            throw new AssertionError("Cannot set stack trace "+stackTrace+" to singleton throwable.");
+        }
     }
 
     private static final class DummyRunnable implements Runnable {
