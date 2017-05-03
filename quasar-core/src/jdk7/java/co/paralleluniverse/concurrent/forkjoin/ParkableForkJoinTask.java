@@ -400,6 +400,11 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         }
     }
     
+    /*
+        Note that there will be only one singleton instance of this class, possibly being thrown by multiple threads simultaneously.
+        However, this should not pose any problems, as the Java VM spec does not specify that the "athrow" instruction changes any field of the Throwable object.
+        Starting with Java 1.7, exception handler code may call addSuppressed(), but under Java 1.7, this class should not be in use in the first place.
+    */
     public static class ParkJava1_6 extends Park {
         private ParkJava1_6() {
             super(null, null);
