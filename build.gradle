@@ -579,6 +579,7 @@ project (':quasar-core') {
     }
 
     javadoc {
+        options.encoding = 'UTF-8'
         if (project.ext.java8) {
             source = sourceSets.jdk8.allJava
         } else {
