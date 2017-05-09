@@ -443,40 +443,66 @@ public class SupervisorTest {
         AtomicInteger started = new AtomicInteger();
         AtomicInteger terminated = new AtomicInteger();
 
+        System.out.println("1");
+
         final Supervisor sup = new SupervisorActor(RestartStrategy.ALL_FOR_ONE,
                 new ChildSpec("actor1", ChildMode.PERMANENT, 5, 1, TimeUnit.SECONDS, 3, ActorSpec.of(Actor3.class, "actor1", started, terminated))).spawn();
 
         ActorRef<Integer> a;
 
+        System.out.println("2");
+
         a = getChild(sup, "actor1", 1000);
         a.send(3);
         a.send(4);
 
+        System.out.println("3");
+
         assertThat(LocalActor.<Integer>get(a), is(7));
+
+        System.out.println("4");
 
         a = getChild(sup, "actor1", 1000);
         a.send(70);
         a.send(80);
 
+        System.out.println("5");
+
         try {
             LocalActor.<Integer>get(a);
+            System.out.println("6");
             fail();
         } catch (ExecutionException e) {
         }
+
+        System.out.println("7");
 
         a = getChild(sup, "actor1", 1000);
         a.send(7);
         a.send(8);
 
+        System.out.println("8");
+
         assertThat(LocalActor.<Integer>get(a), is(15));
 
+        System.out.println("9");
+
         Thread.sleep(100); // give the actor time to start the GenServer
+
+        System.out.println("10");
 
         sup.shutdown();
         LocalActor.join(sup);
 
+        System.out.println("11");
+
         assertThat(started.get(), is(4));
+
+        System.out.println("12");
+
         assertThat(terminated.get(), is(4));
+
+        System.out.println("13");
     }
 
     static class Message1 {
