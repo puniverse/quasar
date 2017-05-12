@@ -347,6 +347,7 @@ public class FiberAsyncTest {
             if (!(e.getCause() instanceof InterruptedException))
                 fail("InterruptedException not thrown");
         }
+        Thread.sleep(100);
         assertThat(started.get(), is(true));
         assertThat(interrupted.get(), is(true));
     }
