@@ -17,7 +17,9 @@ subprojects {
     sourceCompatibility = '1.7'
     targetCompatibility = '1.7'
 
-    [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+    tasks.withType(JavaCompile) {
+        options.encoding = 'UTF-8'
+    }
 
     group               = "co.paralleluniverse"
     version             = "0.7.8-SNAPSHOT"
@@ -579,6 +581,7 @@ project (':quasar-core') {
     }
 
     javadoc {
+        options.encoding = 'UTF-8'
         if (project.ext.java8) {
             source = sourceSets.jdk8.allJava
         } else {
