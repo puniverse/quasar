@@ -60,6 +60,10 @@ public class GlxGlobalRegistry extends ActorRegistry {
         INSTANCE = this;
     }
 
+    public GlxGlobalRegistry(co.paralleluniverse.galaxy.Grid grid) {
+        this.grid = new Grid(grid);
+    }
+
     @Override
     public <Message> void register(Actor<Message, ?> actor, ActorRef<Message> actorRef) throws SuspendExecution {
         final String rootName = actorRef.getName();
