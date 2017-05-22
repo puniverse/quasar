@@ -118,8 +118,12 @@ public abstract class ActorImpl<Message> implements java.io.Serializable {
     protected abstract void addLifecycleListener(LifecycleListener listener);
 
     protected abstract void removeLifecycleListener(LifecycleListener listener);
-
+    
     protected abstract void removeObserverListeners(ActorRef actor);
+
+    protected abstract void linked(ActorRef actor);
+
+    protected abstract void unlinked(ActorRef actor);
 
     protected LifecycleListener getLifecycleListener() {
         if (lifecycleListener == null) // maybe benign race

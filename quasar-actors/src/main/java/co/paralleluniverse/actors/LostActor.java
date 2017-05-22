@@ -71,4 +71,14 @@ class LostActor extends ActorImpl<Object> {
     protected void removeObserverListeners(ActorRef actor) {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    protected void linked(ActorRef actor) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected void unlinked(ActorRef actor) {
+        throw new UnsupportedOperationException();
+    }
 }

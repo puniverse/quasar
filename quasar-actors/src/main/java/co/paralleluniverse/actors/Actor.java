@@ -89,7 +89,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     private transient volatile ActorRef<Message> wrapperRef;
     private transient /*final*/ AtomicReference<Class<?>> classRef;
     private final Set<LifecycleListener> lifecycleListeners = Collections.newSetFromMap(MapUtil.<LifecycleListener, Boolean>newConcurrentHashMap());
-    private final Set<ActorImpl> observed = Collections.newSetFromMap(MapUtil.<ActorImpl, Boolean>newConcurrentHashMap());
+    private final Set<ActorRef> observed = Collections.newSetFromMap(MapUtil.<ActorRef, Boolean>newConcurrentHashMap());
     private volatile V result;
     private volatile Throwable exception;
     private volatile Throwable deathCause;
@@ -770,9 +770,11 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         if (m instanceof ExitMessage) {
             ExitMessage exit = (ExitMessage) m;
             removeObserverListeners(exit.getActor());
-            if (exit.getWatch() == null)
+            if (!observed.remove(exit.getActor()))
+                return null;
+            if (exit.getWatch() == null) {
                 throw new LifecycleException(m);
-            else if (forwardWatch)
+            } else if (forwardWatch)
                 return (Message) m; // this is a false cast! forwardWatch must only be used in untyped languages
         }
         return null;
@@ -881,7 +883,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             throw (RuntimeException) exception;
         }
     }
-
+    
     /**
      * Links this actor to another.
      *
@@ -900,12 +902,20 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         if (this.isDone()) {
             other1.getLifecycleListener().dead(ref, getDeathCause());
         } else {
+            observed.add(other);
             addLifecycleListener(other1.getLifecycleListener());
-            other1.addLifecycleListener(this.getLifecycleListener());
+            
+            other1.linked(myRef());
         }
         return this;
     }
 
+    @Override
+    protected void linked(ActorRef actor) {
+        observed.add(actor);
+        addLifecycleListener(getActorRefImpl(actor).getLifecycleListener());
+    }
+    
     /**
      * Un-links this actor from another. This operation is symmetric.
      *
@@ -916,9 +926,18 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     public final Actor unlink(ActorRef other) {
         final ActorImpl other1 = getActorRefImpl(other);
         record(1, "Actor", "unlink", "Uninking actors %s, %s", this, other1);
+        
+        observed.remove(other);
         removeLifecycleListener(other1.getLifecycleListener());
-        other1.removeLifecycleListener(this.getLifecycleListener());
+        
+        other1.unlinked(myRef());
         return this;
+    }
+    
+    @Override
+    protected void unlinked(ActorRef actor) {
+        observed.remove(actor);
+        removeLifecycleListener(getActorRefImpl(actor).getLifecycleListener());
     }
 
     /**
@@ -941,8 +960,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         final LifecycleListener listener = new ActorLifecycleListener(myRef(), id);
         record(1, "Actor", "watch", "Actor %s to watch %s (listener: %s)", this, other, listener);
         final ActorImpl other1 = getActorRefImpl(other);
+        observed.add(other);
         other1.addLifecycleListener(listener);
-        observed.add(other1);
         return id;
     }
 
@@ -957,8 +976,8 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         final LifecycleListener listener = new ActorLifecycleListener(myRef(), watchId);
         record(1, "Actor", "unwatch", "Actor %s to stop watching %s (listener: %s)", this, other, listener);
         final ActorImpl other1 = getActorRefImpl(other);
+        observed.remove(other);
         other1.removeLifecycleListener(listener);
-        observed.remove(getActorRefImpl(other));
     }
 
     /**
@@ -1041,19 +1060,12 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
             } catch (Exception e) {
                 record(1, "Actor", "die", "Actor %s notifying listener %s of death failed with excetpion %s", this, listener, e);
             }
-
-            // avoid memory leak in links:
-            if (listener instanceof ActorLifecycleListener) {
-                ActorLifecycleListener l = (ActorLifecycleListener) listener;
-                if (l.getId() == null) // link
-                    l.getObserver().getImpl().removeObserverListeners(myRef());
-            }
         }
 
         // avoid memory leaks:
         lifecycleListeners.clear();
-        for (ActorImpl a : observed)
-            a.removeObserverListeners(myRef());
+        for (ActorRef a : observed)
+            getActorRefImpl(a).removeObserverListeners(myRef());
         observed.clear();
     }
 
