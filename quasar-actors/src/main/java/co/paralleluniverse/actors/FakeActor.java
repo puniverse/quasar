@@ -191,19 +191,10 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
             } catch (Exception e) {
                 record(1, "Actor", "die", "Actor %s notifying listener %s of death failed with excetpion %s", this, listener, e);
             }
-
-            // avoid memory leak in links:
-            if (listener instanceof ActorLifecycleListener) {
-                ActorLifecycleListener l = (ActorLifecycleListener) listener;
-                if (l.getId() == null) // link
-                    l.getObserver().getImpl().removeObserverListeners(ref());
-            }
         }
 
         // avoid memory leaks:
         lifecycleListeners.clear();
-        for (ActorImpl a : observed)
-            a.removeObserverListeners(ref());
         observed.clear();
     }
 
