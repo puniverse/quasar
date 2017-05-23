@@ -23,6 +23,7 @@ import co.paralleluniverse.fibers.FiberScheduler;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.StrandFactoryBuilder;
+import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.SendPort;
 import com.google.common.base.Function;
@@ -533,6 +534,43 @@ public class ActorTest {
     }
 
     @Test
+    public void whenUnlinkedAfterDeathButBeforeReceiveThenExitMessageIgnored() throws Exception {
+        final Channel<Object>
+            sync1 = Channels.newChannel(1),
+            sync2 = Channels.newChannel(1);
+        final Object ping = new Object();
+
+        final Actor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+            @Override
+            protected final Void doRun() throws SuspendExecution, InterruptedException {
+                sync1.receive();
+                return null;
+            }
+        });
+
+        final Actor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+            @Override
+            protected final Void doRun() throws SuspendExecution, InterruptedException {
+                try {
+                    sync2.receive();
+                    tryReceive();
+                } catch (final LifecycleException e) {
+                    fail();
+                }
+                return null;
+            }
+        });
+
+        actor1.link(actor2.ref());   // Link actor 1 and 2
+        sync1.send(ping);            // Let actor 1 go ahead
+        actor1.join();               // Wait for actor 1 to terminate
+
+        actor1.unlink(actor2.ref()); // Unlink actor 1 and 2
+        sync2.send(ping);            // Let actor 2 go ahead and check the mailbox
+        actor2.join();               // Wait for actor 2 to terminate
+    }
+
+    @Test
     public void testWatch() throws Exception {
         Actor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
             @Override
@@ -566,6 +604,51 @@ public class ActorTest {
         actor2.join();
 
         assertThat(handlerCalled.get(), is(true));
+    }
+
+    @Test
+    public void whenUnwatchedAfterDeathButBeforeReceiveThenExitMessageIgnored() throws Exception {
+        final Channel<Object>
+            sync1 = Channels.newChannel(1),
+            sync2 = Channels.newChannel(1);
+        final Object ping = new Object();
+
+        final Actor<Message, Void> actor1 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+            @Override
+            protected final Void doRun() throws SuspendExecution, InterruptedException {
+                sync1.receive();
+                return null;
+            }
+        });
+
+        final AtomicBoolean handlerCalled = new AtomicBoolean(false);
+
+        final Actor<Message, Void> actor2 = spawnActor(new BasicActor<Message, Void>(mailboxConfig) {
+            @Override
+            protected final Void doRun() throws SuspendExecution, InterruptedException {
+                sync2.receive();
+                final Message m = receive(200, TimeUnit.MILLISECONDS);
+                assertThat(m, is(nullValue()));
+                return null;
+            }
+
+            @Override
+            protected final Message handleLifecycleMessage(LifecycleMessage m) {
+                super.handleLifecycleMessage(m);
+                handlerCalled.set(true);
+                return null;
+            }
+        });
+
+        final Object watchId = actor1.watch(actor2.ref());  // Watch actor 2
+        sync1.send(ping);                                   // Let actor 1 go ahead
+        actor1.join();                                      // Wait for actor 1 to terminate
+
+        actor1.unwatch(actor2.ref(), watchId);              // Unwatch actor 2
+        sync2.send(ping);                                   // Let actor 2 go ahead and check the mailbox
+        actor2.join();                                      // Wait for actor 2 to terminate
+
+        assertThat(handlerCalled.get(), is(false));
     }
 
     @Test
