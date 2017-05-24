@@ -899,20 +899,17 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     public final Actor link(ActorRef other) {
         final ActorImpl other1 = getActorRefImpl(other);
         record(1, "Actor", "link", "Linking actors %s, %s", this, other1);
-        if (this.isDone()) {
-            other1.getLifecycleListener().dead(ref, getDeathCause());
-        } else {
-            observed.add(other);
-            addLifecycleListener(other1.getLifecycleListener());
-            
-            other1.linked(myRef());
-        }
+
+        this.linked(other);
+        other1.linked(myRef());
+        
         return this;
     }
 
     @Override
     protected void linked(ActorRef actor) {
-        observed.add(actor);
+        if (!this.isDone())
+            observed.add(actor);
         addLifecycleListener(getActorRefImpl(actor).getLifecycleListener());
     }
     
