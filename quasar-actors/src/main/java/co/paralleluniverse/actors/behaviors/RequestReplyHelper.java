@@ -144,6 +144,8 @@ public final class RequestReplyHelper {
     public static <V> V call(final ActorRef actor, RequestMessage<V> m, long timeout, TimeUnit unit) throws TimeoutException, InterruptedException, SuspendExecution {
         assert !actor.equals(LocalActor.self()) : "Can't \"call\" self - deadlock guaranteed";
 
+        m.setCall(true);
+
         if (m.getFrom() == null || LocalActor.isInstance(m.getFrom(), TempActor.class))
             m.setFrom(from());
 
@@ -177,7 +179,6 @@ public final class RequestReplyHelper {
                     return (m instanceof ResponseMessage && id.equals(((ResponseMessage) m).getId())) ? m : null;
                 }
             });
-            currentActor.unlink(actor); // no need to unlink in case of receiver death, so not done in finally block
 
             if (response instanceof ErrorResponseMessage)
                 throw Exceptions.rethrow(((ErrorResponseMessage) response).getError());
@@ -231,6 +232,7 @@ public final class RequestReplyHelper {
      */
     public static <V> void reply(RequestMessage<V> req, V result) throws SuspendExecution {
         req.getFrom().send(new ValueResponseMessage<V>(req.getId(), result));
+        unlinkCall(req);
     }
 
     /**
@@ -246,6 +248,13 @@ public final class RequestReplyHelper {
      */
     public static void replyError(RequestMessage<?> req, Throwable e) throws SuspendExecution {
         req.getFrom().send(new ErrorResponseMessage(req.getId(), e));
+        unlinkCall(req);
+    }
+
+    static void unlinkCall(RequestMessage<?> req) {
+        final Actor<Object, Object> currActor = Actor.currentActor();
+        if (req.isCall() && currActor != null)
+            currActor.unlink(req.getFrom());
     }
 
     private static ActorRef getCurrentActor() {

@@ -297,6 +297,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
     public final void reply(ActorRef<?> to, Object id, V value) throws SuspendExecution {
         verifyInActor();
         ((ActorRef) to).send(new ValueResponseMessage<V>(id, value));
+        currentActor().unlink(to);
     }
 
     /**
@@ -315,6 +316,7 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
     public final void replyError(ActorRef<?> to, Object id, Throwable error) throws SuspendExecution {
         verifyInActor();
         ((ActorRef) to).send(new ErrorResponseMessage(id, error));
+        currentActor().unlink(to);
     }
 
     /**
