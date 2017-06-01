@@ -470,12 +470,13 @@ public class SupervisorTest {
 
         assertThat(LocalActor.<Integer>get(a), is(15));
 
-        Thread.sleep(100); // give the actor time to start the GenServer
+        Thread.sleep(300); // give the actor time to start the GenServer
 
         sup.shutdown();
         LocalActor.join(sup);
 
         assertThat(started.get(), is(4));
+
         assertThat(terminated.get(), is(4));
     }
 

@@ -26,6 +26,7 @@ import java.beans.ConstructorProperties;
 public abstract class RequestMessage<V> extends ActorMessage implements FromMessage, IdMessage {
     private ActorRef from;
     private Object id;
+    private boolean call;
 
     /**
      * Constructs a new {@code RequestMessage}.
@@ -102,6 +103,20 @@ public abstract class RequestMessage<V> extends ActorMessage implements FromMess
      */
     void setFrom(ActorRef from) {
         this.from = from;
+    }
+
+    /**
+     * Called only by RequestReplyHelper
+     */
+    boolean isCall() {
+        return call;
+    }
+
+    /**
+     * Called only by RequestReplyHelper
+     */
+    void setCall(boolean call) {
+        this.call = call;
     }
 
     @Override
