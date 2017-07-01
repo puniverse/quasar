@@ -15,12 +15,15 @@
 
 package actors
 
-import co.paralleluniverse.actors.*
+import co.paralleluniverse.actors.ActorRef
+import co.paralleluniverse.actors.ActorRegistry
+import co.paralleluniverse.actors.LocalActor
 import co.paralleluniverse.fibers.Suspendable
+import co.paralleluniverse.kotlin.Actor
+import co.paralleluniverse.kotlin.register
+import co.paralleluniverse.kotlin.spawn
 import org.junit.Test
 import java.util.concurrent.TimeUnit
-import co.paralleluniverse.kotlin.Actor
-import co.paralleluniverse.kotlin.*
 
 /**
  * @author circlespainter
@@ -35,7 +38,7 @@ data class Msg(val txt: String, val from: ActorRef<Any?>)
 class Ping(val n: Int) : Actor() {
     @Suspendable override fun doRun() {
         val pong: ActorRef<Any> = ActorRegistry.getActor("pong")
-        for(i in 1..n) {
+        (1..n).forEach {
             pong.send(Msg("ping", self()))          // Fiber-blocking
             receive {                               // Fiber-blocking, always consume the message
                 when (it) {
@@ -49,7 +52,7 @@ class Ping(val n: Int) : Actor() {
     }
 }
 
-class Pong() : Actor() {
+class Pong : Actor() {
     @Suspendable override fun doRun() {
         while (true) {
             // snippet Kotlin Actors example

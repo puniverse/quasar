@@ -13,12 +13,12 @@
  */
 package co.paralleluniverse.kotlin.fibers.lang
 
-import org.junit.Test
-import org.junit.Assert.*
-import co.paralleluniverse.fibers.Suspendable
-import co.paralleluniverse.fibers.FiberForkJoinScheduler
 import co.paralleluniverse.fibers.Fiber
+import co.paralleluniverse.fibers.FiberForkJoinScheduler
+import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.strands.SuspendableCallable
+import org.junit.Assert.assertTrue
+import org.junit.Test
 import kotlin.reflect.KProperty
 
 /**
@@ -41,14 +41,10 @@ class OOTest {
             return "$thisRef, thank you for delegating '${prop.name}' to me!"
         }
         @Suppress("UNUSED_PARAMETER")
-        @Suspendable operator fun setValue(thisRef: Any?, prop: KProperty<*>, value: String) {
-            Fiber.sleep(1)
-        }
+        @Suspendable operator fun setValue(thisRef: Any?, prop: KProperty<*>, value: String) = Fiber.sleep(1)
     }
 
-    @Suspendable fun outerDoSleep() {
-        Fiber.sleep(2)
-    }
+    @Suspendable fun outerDoSleep() = Fiber.sleep(2)
 
     open class Base (val data: Int = 0) {
         // NOT SUPPORTED: Kotlin's initializers are named <init> and we don't instrument those. Not an issue
@@ -121,7 +117,7 @@ class OOTest {
     }
     */
 
-    class Data() : DerivedDerived2(), BaseTrait2 {
+    class Data : DerivedDerived2(), BaseTrait2 {
         @Suspendable override fun doSleep() {
             super<BaseTrait2>.doSleep()
         }
