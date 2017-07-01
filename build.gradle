@@ -209,7 +209,7 @@ subprojects {
 
             systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
             systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
-            systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+            // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
             jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
 
             // jvmArgs '-XX:+UnlockCommercialFeatures', '-XX:+FlightRecorder', '-XX:StartFlightRecording=duration=60s,filename=recording.jfr,settings=heap'
