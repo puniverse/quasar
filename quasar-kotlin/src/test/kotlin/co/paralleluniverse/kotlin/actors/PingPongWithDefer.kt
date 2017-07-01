@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2017, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -40,8 +40,8 @@ fun now(): String = "[${sdfDate.format(Date())}]"
 class Ping(val n: Int) : Actor() {
     @Suspendable override fun doRun() {
         val pong: ActorRef<Any> = ActorRegistry.getActor("pong")
-        (1..n).forEach {
-            val msg = Msg("ping$it", self())
+        for (i in 1..n) {
+            val msg = Msg("ping$i", self())
             println("${now()} Ping sending '$msg' to '$pong'")
             pong.send(msg)          // Fiber-blocking
             println("${now()} Ping sent '$msg' to '$pong'")

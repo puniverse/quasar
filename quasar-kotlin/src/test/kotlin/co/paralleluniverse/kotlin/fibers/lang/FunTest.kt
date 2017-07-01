@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2017, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -46,7 +46,10 @@ fun seq(f: () -> Unit, g: () -> Unit): () -> Unit {
     println("quick after-sleep")
 }
 
-@Suspendable fun fVarArg(vararg ls: Long) = ls.forEach { Fiber.sleep(it) }
+@Suspendable fun fVarArg(vararg ls: Long) {
+    for (l in ls)
+        Fiber.sleep(l)
+}
 
 class FunTest {
     val scheduler = FiberForkJoinScheduler("test", 4, null, false)
@@ -122,5 +125,4 @@ class FunTest {
             })).start().get()
 
     @Test fun testFunLambda2() = assertTrue(callSusLambda(@Suspendable { Fiber.sleep(10) }, 1))
-
 }
