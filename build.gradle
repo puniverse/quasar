@@ -41,7 +41,7 @@ subprojects {
     ext.quasarJar = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}${ext.java8 ? "-jdk8" : ""}.jar" // project(':quasar-core').jar.archivePath
 
     ext.asmVer    = '5.1'
-    ext.kotlinVer = '1.0.5-2'
+    ext.kotlinVer = '1.1.3'
 
     if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
         println "sonatype username or password not set"
@@ -209,13 +209,13 @@ subprojects {
 
             systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
             systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
-            // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
+            systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
             jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
 
             // jvmArgs '-XX:+UnlockCommercialFeatures', '-XX:+FlightRecorder', '-XX:StartFlightRecording=duration=60s,filename=recording.jfr,settings=heap'
         }
     }
-    debug.debug = true;
+    debug.debug = true
 
     project.afterEvaluate {
         run.dependsOn project(':quasar-core').tasks["jdk${project.ext.jdkVer}ShadowJar"]

@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2017, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -21,7 +21,9 @@ import co.paralleluniverse.strands.channels.ReceivePort
 import co.paralleluniverse.strands.channels.SelectAction
 import co.paralleluniverse.strands.channels.Selector
 import co.paralleluniverse.strands.channels.SendPort
+import co.paralleluniverse.strands.concurrent.ReentrantLock
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.Lock
 
 /**
  * @author circlespainter
@@ -62,8 +64,65 @@ class Send<out M>(sendPort: SendPort<M>, msg: M) : SelectOp<M>(Selector.send(sen
     } else
         return b(null)
 }
-@Suspendable fun <R> select(vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =   select(actions.toList(), b)
+// TODO With Java 7 compiler (unsupported as of Kotlin 1.1) the bytecode seemingly references the wrong method w.r.t. the ones found by instrumentation!
+@Suspendable fun <R> select(vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R = select(actions.toList(), b)
 @Suspendable fun <R> select(timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
     select(actions.toList(), b, false, timeout, unit)
-@Suspendable fun <R> select(priority: Boolean, timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
+@Suppress("unused") @Suspendable fun <R> select(priority: Boolean, timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
     select(actions.toList(), b, priority, timeout, unit)
+
+private object UNINITIALIZED_VALUE
+
+private inline fun <R> withLock(lock: Lock, block: () -> R): R {
+    @Suppress("NON_PUBLIC_CALL_FROM_PUBLIC_INLINE", "INVISIBLE_MEMBER")
+
+    lock.lock()
+    try {
+        return block()
+    }
+    finally {
+        lock.unlock()
+    }
+}
+
+private class InitializedLazyImpl<out T>(override val value: T) : Lazy<T>, java.io.Serializable {
+    override fun isInitialized(): Boolean = true
+    override fun toString(): String = value.toString()
+}
+
+private class FiberLockedLazyImpl<out T>(initializer: () -> T, lock: Lock? = null) : Lazy<T>, java.io.Serializable {
+    private var initializer: (() -> T)? = initializer
+    @Volatile private var _value: Any? = UNINITIALIZED_VALUE
+    // final field is required to enable safe publication of constructed instance
+    private val lock = lock ?: ReentrantLock()
+
+    override val value: T
+        @Suspendable get() {
+            val _v1 = _value
+            if (_v1 !== UNINITIALIZED_VALUE) {
+                @Suppress("UNCHECKED_CAST")
+                return _v1 as T
+            }
+
+            return withLock(lock) {
+                val _v2 = _value
+                if (_v2 !== UNINITIALIZED_VALUE) {
+                    @Suppress("UNCHECKED_CAST") (_v2 as T)
+                }
+                else {
+                    val typedValue = initializer!!()
+                    _value = typedValue
+                    initializer = null
+                    typedValue
+                }
+            }
+        }
+
+    override fun isInitialized(): Boolean = _value !== UNINITIALIZED_VALUE
+
+    override fun toString(): String = if (isInitialized()) value.toString() else "Lazy value not initialized yet."
+
+    private fun writeReplace(): Any = InitializedLazyImpl(value)
+}
+
+fun <T> quasarLazy(initializer: () -> T): Lazy<T> = FiberLockedLazyImpl(initializer)

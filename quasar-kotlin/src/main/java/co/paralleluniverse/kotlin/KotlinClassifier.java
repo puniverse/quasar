@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2017, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -31,26 +31,47 @@ public class KotlinClassifier implements SuspendableClassifier {
     private static final String[] excludePrefixes;
 
     static {
-        final ArrayList<String[]> res = new ArrayList<>();
+        final ArrayList<String[]> supersList = new ArrayList<>();
 
-        // Kotlin reflection support
-        res.add(sa("kotlin/reflect/KCallable", "call", "callBy"));
-        res.add(sa("kotlin/reflect/KProperty0", "get"));
-        res.add(sa("kotlin/reflect/KMutableProperty0", "set"));
-        res.add(sa("kotlin/reflect/KProperty1", "get"));
-        res.add(sa("kotlin/reflect/KMutableProperty1", "set"));
-        res.add(sa("kotlin/reflect/KProperty2", "get"));
-        res.add(sa("kotlin/reflect/KMutableProperty2", "set"));
+        // Kotlin properties reflection support
+        supersList.add(sa("kotlin/reflect/KCallable", "call", "callBy"));
+        supersList.add(sa("kotlin/reflect/full/KCallable", "call", "callBy"));
+
+        supersList.add(sa("kotlin/reflect/KProperty0", "get"));
+        supersList.add(sa("kotlin/reflect/full/KProperty0", "get"));
+        supersList.add(sa("kotlin/reflect/KMutableProperty0", "set"));
+        supersList.add(sa("kotlin/reflect/full/KMutableProperty0", "set"));
+
+        supersList.add(sa("kotlin/reflect/KProperty1", "get"));
+        supersList.add(sa("kotlin/reflect/full/KProperty1", "get"));
+        supersList.add(sa("kotlin/reflect/KMutableProperty1", "set"));
+        supersList.add(sa("kotlin/reflect/full/KMutableProperty1", "set"));
+
+        supersList.add(sa("kotlin/reflect/KProperty2", "get"));
+        supersList.add(sa("kotlin/reflect/full/KProperty2", "get"));
+        supersList.add(sa("kotlin/reflect/KMutableProperty2", "set"));
+        supersList.add(sa("kotlin/reflect/full/KMutableProperty2", "set"));
+
+        supersList.add(sa("kotlin/reflect/KObservableProperty", "beforeChange", "afterChange"));
+        supersList.add(sa("kotlin/reflect/full/KObservableProperty", "beforeChange", "afterChange"));
+
+        // Observable properties
+        supersList.add(sa("kotlin/properties/ObservableProperty", "beforeChange", "afterChange"));
+        supersList.add(sa("kotlin/properties/ReadWriteProperty", "getValue", "setValue"));
+
+        // Kotlin Lazy
+        supersList.add(sa("kotlin/Lazy", "getValue"));
 
         // Kotlin functions support
         for (int i = 0; i <= 22; i++)
-            res.add(sa("kotlin/jvm/functions/Function" + i, "invoke"));
+            supersList.add(sa("kotlin/jvm/functions/Function" + i, "invoke"));
 
         // Kotlin M14 doesn't seem to add `@Suspendable` to the generated `run` when passing a `@Suspendable` lambda
-        res.add(sa("co/paralleluniverse/strands/SuspendableCallable", "run"));
-        res.add(sa("co/paralleluniverse/strands/SuspendableRunnable", "run"));
+        supersList.add(sa("co/paralleluniverse/strands/SuspendableCallable", "run"));
+        supersList.add(sa("co/paralleluniverse/strands/SuspendableRunnable", "run"));
 
-        supers = res.toArray(new String[0][0]);
+        supers = supersList.toArray(new String[0][0]);
+
 
         // Class prefixes that are known not to suspend
         excludePrefixes = new String[] {
@@ -68,10 +89,13 @@ public class KotlinClassifier implements SuspendableClassifier {
         boolean isInterface, String className, String superClassName, String[] interfaces,
         String methodName, String methodDesc, String methodSignature, String[] methodExceptions
     ) {
+        if (className == null)
+            return null;
+
         for (final String[] s : supers) {
             if (className.equals(s[0]))
                 for (int i = 1; i < s.length; i++) {
-                    if (methodName.matches(s[i])) {
+                    if (methodName != null && methodName.matches(s[i])) {
                         if (db.isVerbose())
                             db.getLog().log(LogLevel.INFO, KotlinClassifier.class.getName() + ": " + className + "." + methodName + " supersOrEqual " + s[0] + "." + s[i]);
                         return MethodDatabase.SuspendableType.SUSPENDABLE_SUPER;
@@ -80,26 +104,30 @@ public class KotlinClassifier implements SuspendableClassifier {
         }
 
         // Don't consider Kotlin user files without inner classes
-        if (className != null && !className.startsWith(PKG_PREFIX)
+        if (!className.startsWith(PKG_PREFIX)
             && !(className.contains("$") && sourceName != null && sourceName.toLowerCase().endsWith(".kt")))
             return null;
 
         // Exclude packages known not to suspend
         for (final String s : excludePrefixes) {
-            if (className != null && className.startsWith(s))
+            if (className.startsWith(s))
                 return null;
         }
 
         for (final String[] s : supers) {
             if (SimpleSuspendableClassifier.extendsOrImplements(s[0], db, className, superClassName, interfaces))
                 for (int i = 1; i < s.length; i++) {
-                    if (methodName.matches(s[i])) {
+                    if (methodName != null && methodName.matches(s[i])) {
                         if (db.isVerbose())
                             db.getLog().log(LogLevel.INFO, KotlinClassifier.class.getName() + ": " + className + "." + methodName + " extends " + s[0] + "." + s[i]);
                         return MethodDatabase.SuspendableType.SUSPENDABLE;
                     }
                 }
         }
+
+        // Java7 compilation scheme
+        if (methodName != null && methodName.contains("access$"))
+            return MethodDatabase.SuspendableType.SUSPENDABLE;
 
         return null;
     }

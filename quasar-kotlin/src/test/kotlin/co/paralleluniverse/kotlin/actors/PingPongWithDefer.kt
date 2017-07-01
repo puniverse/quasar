@@ -50,7 +50,7 @@ class Ping(val n: Int) : Actor() {
             println("${now()} Ping sent garbage 'aaa' to '$pong'")
             println("${now()} Ping receiving without timeout")
             receive {                           // Fiber-blocking
-                println("${now()} Ping received '$it' (${it.javaClass})")
+                println("${now()} Ping received '$it' (${it?.javaClass})")
                 when (it) {
                     is String -> {
                         if (!it.startsWith("pong")) {
@@ -78,7 +78,7 @@ class Pong : Actor() {
         while (true) {
             println("${now()} Pong receiving with 1 sec timeout")
             receive(1, SECONDS) {  // Fiber-blocking
-                println("${now()} Pong received '$it' ('${it.javaClass}')")
+                println("${now()} Pong received '$it' ('${it?.javaClass}')")
                 when (it) {
                     is Msg -> {
                         if (it.txt.startsWith("ping")) {

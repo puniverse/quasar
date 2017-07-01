@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2017, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -39,7 +39,9 @@ abstract class Actor : KotlinActorSupport<Any?, Any?>() {
     /**
      * Higher-order selective receive
      */
-    inline protected fun receive(proc: (Any) -> Any?) {
+    @Suppress("unused")
+    // TODO Was "(Any) -> Any?" but in 1.1 the compiler would call the base Java method and not even complain about ambiguity! Investigate and possibly report
+    inline protected fun receive(proc: (Any?) -> Any?) {
         receive(-1, null, proc)
     }
 
@@ -53,7 +55,8 @@ abstract class Actor : KotlinActorSupport<Any?, Any?>() {
     /**
      * Higher-order selective receive
      */
-    inline protected fun receive(timeout: Long, unit: TimeUnit?, proc: (Any) -> Any?) {
+    // TODO Was "(Any) -> Any?" but in 1.1 the compiler would call the base Java method and not even complain about ambiguity! Investigate and possibly report
+    inline protected fun receive(timeout: Long, unit: TimeUnit?, proc: (Any?) -> Any?) {
         assert(JActor.currentActor<Any?, Any?>() == null || JActor.currentActor<Any?, Any?>() == this)
 
         val mailbox = mailbox()

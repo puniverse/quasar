@@ -93,6 +93,7 @@ class FiberAsyncTest {
     }
 
     companion object {
+        // TODO With Java 7 compiler (unsupported as of Kotlin 1.1) the resulting bytecode calls the wrong one! Investigate and possibly report
         @Suspendable private fun callService(service: Service): String {
             return object : MyFiberAsync() {
                 override fun requestAsync() {

@@ -1,28 +1,43 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVer"
-    }
+plugins {
+    id "org.jetbrains.kotlin.jvm" version "1.1.1" // TODO 1.1.2+ doesn't work anymore! Investigate and possibly reports
 }
 
-apply plugin: 'kotlin'
+sourceCompatibility = '1.7'
+targetCompatibility = '1.7'
+
+if (ext.java8) {
+    sourceSets {
+        test {
+            java {
+                srcDirs += 'src/jdk8test/java/'
+            }
+        }
+    }
+    compileTestJava {
+        sourceCompatibility = '1.8'
+        targetCompatibility = '1.8'
+    }
+}
 
 dependencies {
     provided project(path: ':quasar-core', configuration: "jdk${jdkVer}Archives")
     compile project(':quasar-actors')
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVer"
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVer" // "-jre7", "-jre8"
     compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVer"
+
+    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVer"
+    testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlinVer"
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions {
+        jvmTarget = "1.6" // "1.8"
+    }
 }
 
 classes {
     doLast {
         scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtime])
     }
-}
-
-sourceSets {
-    main.java.srcDirs += 'src/main/kotlin'
 }
