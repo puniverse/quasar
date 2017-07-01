@@ -71,6 +71,12 @@ class Send<out M>(sendPort: SendPort<M>, msg: M) : SelectOp<M>(Selector.send(sen
 @Suppress("unused") @Suspendable fun <R> select(priority: Boolean, timeout: Int, unit: TimeUnit, vararg actions: SelectOp<Any?>, b: (SelectOp<Any?>?) -> R): R =
     select(actions.toList(), b, priority, timeout, unit)
 
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// The following is adapted from https://github.com/JetBrains/kotlin/blob/v1.1.3/libraries/stdlib/src/kotlin/util/Lazy.kt#L108
+// See the NOTICE file
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 private object UNINITIALIZED_VALUE
 
 private inline fun <R> withLock(lock: Lock, block: () -> R): R {

@@ -17,6 +17,7 @@ import co.paralleluniverse.fibers.SuspendExecution
 import co.paralleluniverse.fibers.Suspendable
 
 // See https://github.com/puniverse/quasar/issues/275
+// @FunctionalInterface // Commented out as unnecessary and would need split for JDK8
 interface KotlinSamInterface {
     @Suspendable
     @Throws(SuspendExecution::class)
