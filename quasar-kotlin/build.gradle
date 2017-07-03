@@ -16,10 +16,10 @@ compileTestKotlin {
 }
 
 dependencies {
-    provided project(path: ':quasar-core', configuration: "jdk${jdkVer}Archives")
+    provided project(path: ':quasar-core', configuration: "jdk7Archives")
     compile project(':quasar-actors')
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVer" // "-jre7", "-jre8"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlinVer" // "-jre7", "-jre8"
     compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVer"
 
     testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVer"

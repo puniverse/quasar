@@ -120,6 +120,8 @@ Add the following Maven/Gradle dependencies:
 | Clustering       | `co.paralleluniverse:quasar-galaxy:{{site.version}}`
 | Reactive Streams | `co.paralleluniverse:quasar-reactive-streams:{{site.version}}`
 | Kotlin           | `co.paralleluniverse:quasar-kotlin:{{site.version}}`
+| Kotlin (JDK8)    | `co.paralleluniverse:quasar-kotlin-jdk8:{{site.version}}`
+
 
 ### Instrumenting Your Code {#instrumentation}
 

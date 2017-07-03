@@ -1,0 +1,60 @@
+plugins {
+    id "org.jetbrains.kotlin.jvm" version "1.1.1" // TODO 1.1.2+ doesn't work anymore! Investigate and possibly report
+}
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+ext.qk = project(':quasar-kotlin')
+
+sourceSets {
+    main {
+        java {
+            srcDirs = qk.sourceSets['main'].java.srcDirs
+        }
+        kotlin {
+            srcDirs = qk.sourceSets['main'].kotlin.srcDirs
+        }
+        resources {
+            srcDirs = qk.sourceSets['main'].resources.srcDirs
+        }
+    }
+    test {
+        java {
+            srcDirs = qk.sourceSets['test'].java.srcDirs
+        }
+        kotlin {
+            srcDirs = qk.sourceSets['test'].kotlin.srcDirs
+
+        }
+        resources {
+            srcDirs = qk.sourceSets['test'].resources.srcDirs
+        }
+    }
+}
+
+print sourceSets['main'].output.classesDir
+print sourceSets['main'].output.resourcesDir
+
+dependencies {
+    provided project(path: ':quasar-core', configuration: "jdk8Archives")
+    compile project(':quasar-actors')
+
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVer" // "-jre7", "-jre8"
+    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVer"
+
+    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVer"
+    testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlinVer"
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+
+classes {
+    doLast {
+        scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtime])
+    }
+}

@@ -134,7 +134,7 @@ subprojects {
 
     compileJava.dependsOn processResources
     compileJava {
-        if(project.name != 'quasar-kotlin') {
+        if(project.name != 'quasar-kotlin' && project.name != 'quasar-kotlin-jdk8') {
             doLast {
                 scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtime])
             }
