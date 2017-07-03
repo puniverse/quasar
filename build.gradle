@@ -9,7 +9,7 @@ buildscript {
     }
 }
 
-ext.java8 = System.properties['java.version'].startsWith('1.8')
+ext.java8 = gradle.ext.java8 // See settings.gradle
 
 subprojects {
     apply plugin: 'java'
