@@ -257,7 +257,7 @@ class InstrumentClass extends ClassVisitor {
                     } catch (UnableToInstrumentException e) {
                         db.log(LogLevel.WARNING, "UnableToInstrumentException encountered when instrumenting %s#%s%s: %s", 
                                 className, mn.name, mn.desc, e.getMessage());
-                        mn.accept(makeOutMV(mn));
+                        mn.accept(outMV);
                     } catch (AnalyzerException ex) {
                         ex.printStackTrace();
                         throw new InternalError(ex.getMessage());
