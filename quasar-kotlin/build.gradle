@@ -2,24 +2,15 @@ plugins {
     id "org.jetbrains.kotlin.jvm" version "1.1.1" // TODO 1.1.2+ doesn't work anymore! Investigate and possibly report
 }
 
-sourceCompatibility = '1.7'
-targetCompatibility = '1.7'
 
-compileTestJava {
-    sourceCompatibility = '1.8'
-    targetCompatibility = '1.8'
-}
-
-compileTestKotlin {
-    sourceCompatibility = '1.8'
-    targetCompatibility = '1.8'
-}
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
 
 dependencies {
-    provided project(path: ':quasar-core', configuration: "jdk7Archives")
+    provided project(path: ':quasar-core', configuration: "jdk8Archives")
     compile project(':quasar-actors')
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlinVer" // "-jre7", "-jre8"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVer"
     compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVer"
 
     testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVer"
@@ -28,7 +19,7 @@ dependencies {
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
     kotlinOptions {
-        jvmTarget = "1.6" // "1.8"
+        jvmTarget = "1.8"
     }
 }
 

@@ -13,8 +13,7 @@ Add the following Maven/Gradle dependencies:
 | Clustering       | `co.paralleluniverse:quasar-galaxy:0.7.8`
 | Reactive Streams | `co.paralleluniverse:quasar-reactive-streams:0.7.8`
 | Disruptor Channels| `co.paralleluniverse:quasar-disruptor:0.7.8`
-| Kotlin           | `co.paralleluniverse:quasar-kotlin:0.7.8`
-| Kotlin (JDK8)    | `co.paralleluniverse:quasar-kotlin-jdk8:0.7.8`
+| Kotlin (JDK8+)   | `co.paralleluniverse:quasar-kotlin:0.7.8`
 
 Or, build from sources by running:
 
