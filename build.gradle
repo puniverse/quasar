@@ -164,9 +164,11 @@ subprojects {
             jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
         }
 
-        jvmArgs "-Xbootclasspath/a:${configurations.timewarp.singleFile}"
-        if (System.getenv("TRAVIS") == 'true') {
-            jvmArgs "-javaagent:${configurations.timewarp.singleFile}=3" // slow clock down x3
+        if (project.name != 'quasar-kotlin') { // TODO investigate why kotlin-plugin 1.1.2+ doesn't like it
+            jvmArgs "-Xbootclasspath/a:${configurations.timewarp.singleFile}"
+            if (System.getenv("TRAVIS") == 'true') {
+                jvmArgs "-javaagent:${configurations.timewarp.singleFile}=3" // slow clock down x3
+            }
         }
 
         jvmArgs "-Xmx2048m"
