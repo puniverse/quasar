@@ -9,20 +9,28 @@ buildscript {
 
 apply plugin: 'kotlin'
 
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
 dependencies {
-    provided project(path: ':quasar-core', configuration: "jdk${jdkVer}Archives")
+    provided project(path: ':quasar-core', configuration: "jdk8Archives")
     compile project(':quasar-actors')
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVer"
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVer"
     compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVer"
+
+    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVer"
+    testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlinVer"
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
 }
 
 classes {
     doLast {
         scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtime])
     }
-}
-
-sourceSets {
-    main.java.srcDirs += 'src/main/kotlin'
 }

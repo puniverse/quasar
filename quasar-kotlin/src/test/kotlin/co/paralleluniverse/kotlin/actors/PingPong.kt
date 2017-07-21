@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2017, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -15,12 +15,15 @@
 
 package actors
 
-import co.paralleluniverse.actors.*
+import co.paralleluniverse.actors.ActorRef
+import co.paralleluniverse.actors.ActorRegistry
+import co.paralleluniverse.actors.LocalActor
 import co.paralleluniverse.fibers.Suspendable
+import co.paralleluniverse.kotlin.Actor
+import co.paralleluniverse.kotlin.register
+import co.paralleluniverse.kotlin.spawn
 import org.junit.Test
 import java.util.concurrent.TimeUnit
-import co.paralleluniverse.kotlin.Actor
-import co.paralleluniverse.kotlin.*
 
 /**
  * @author circlespainter
@@ -49,7 +52,7 @@ class Ping(val n: Int) : Actor() {
     }
 }
 
-class Pong() : Actor() {
+class Pong : Actor() {
     @Suspendable override fun doRun() {
         while (true) {
             // snippet Kotlin Actors example

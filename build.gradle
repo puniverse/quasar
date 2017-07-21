@@ -9,7 +9,7 @@ buildscript {
     }
 }
 
-ext.java8 = System.properties['java.version'].startsWith('1.8')
+ext.java8 = gradle.ext.java8 // See settings.gradle
 
 subprojects {
     apply plugin: 'java'
@@ -22,7 +22,7 @@ subprojects {
     }
 
     group               = "co.paralleluniverse"
-    version             = "0.7.8"
+    version             = "0.7.9-SNAPSHOT"
     status              = "integration"
     description         = "Fibers, Channels and Actors for the JVM"
     ext.url             = "http://puniverse.github.com/quasar"
@@ -41,7 +41,7 @@ subprojects {
     ext.quasarJar = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}${ext.java8 ? "-jdk8" : ""}.jar" // project(':quasar-core').jar.archivePath
 
     ext.asmVer    = '5.1'
-    ext.kotlinVer = '1.0.2'
+    ext.kotlinVer = '1.1.3-2'
 
     if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
         println "sonatype username or password not set"
@@ -134,7 +134,7 @@ subprojects {
 
     compileJava.dependsOn processResources
     compileJava {
-        if(project.name != 'quasar-kotlin') {
+        if (project.name != 'quasar-kotlin') {
             doLast {
                 scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtime])
             }
@@ -164,9 +164,11 @@ subprojects {
             jvmArgs "-javaagent:${quasarJar}" // =vdmc (verbose, debug, allow monitors, check class)
         }
 
-        jvmArgs "-Xbootclasspath/a:${configurations.timewarp.singleFile}"
-        if (System.getenv("TRAVIS") == 'true') {
-            jvmArgs "-javaagent:${configurations.timewarp.singleFile}=3" // slow clock down x3
+        if (project.name != 'quasar-kotlin') { // TODO investigate why kotlin-plugin 1.1.2+ doesn't like it
+            jvmArgs "-Xbootclasspath/a:${configurations.timewarp.singleFile}"
+            if (System.getenv("TRAVIS") == 'true') {
+                jvmArgs "-javaagent:${configurations.timewarp.singleFile}=3" // slow clock down x3
+            }
         }
 
         jvmArgs "-Xmx2048m"
@@ -215,7 +217,7 @@ subprojects {
             // jvmArgs '-XX:+UnlockCommercialFeatures', '-XX:+FlightRecorder', '-XX:StartFlightRecording=duration=60s,filename=recording.jfr,settings=heap'
         }
     }
-    debug.debug = true;
+    debug.debug = true
 
     project.afterEvaluate {
         run.dependsOn project(':quasar-core').tasks["jdk${project.ext.jdkVer}ShadowJar"]

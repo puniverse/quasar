@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2017, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -13,16 +13,15 @@
  */
 package co.paralleluniverse.kotlin
 
-import co.paralleluniverse.actors.KotlinActorSupport
-import java.util.concurrent.TimeUnit
-import co.paralleluniverse.actors.LifecycleMessage
-import co.paralleluniverse.actors.Actor as JActor
-import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.actors.ActorRef
 import co.paralleluniverse.actors.ExitMessage
+import co.paralleluniverse.actors.KotlinActorSupport
+import co.paralleluniverse.actors.LifecycleMessage
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.strands.SuspendableCallable
 import co.paralleluniverse.strands.queues.QueueIterator
+import java.util.concurrent.TimeUnit
+import co.paralleluniverse.actors.Actor as JActor
 
 /**
  * Ported from {@link co.paralleluniverse.actors.SelectiveReceiveHelper}
@@ -40,7 +39,9 @@ abstract class Actor : KotlinActorSupport<Any?, Any?>() {
     /**
      * Higher-order selective receive
      */
-    inline protected fun receive(proc: (Any) -> Any?) {
+    @Suppress("unused")
+    // TODO Was "(Any) -> Any?" but in 1.1 the compiler would call the base Java method and not even complain about ambiguity! Investigate and possibly report
+    inline protected fun receive(proc: (Any?) -> Any?) {
         receive(-1, null, proc)
     }
 
@@ -54,7 +55,8 @@ abstract class Actor : KotlinActorSupport<Any?, Any?>() {
     /**
      * Higher-order selective receive
      */
-    inline protected fun receive(timeout: Long, unit: TimeUnit?, proc: (Any) -> Any?) {
+    // TODO Was "(Any) -> Any?" but in 1.1 the compiler would call the base Java method and not even complain about ambiguity! Investigate and possibly report
+    inline protected fun receive(timeout: Long, unit: TimeUnit?, proc: (Any?) -> Any?) {
         assert(JActor.currentActor<Any?, Any?>() == null || JActor.currentActor<Any?, Any?>() == this)
 
         val mailbox = mailbox()
@@ -64,11 +66,11 @@ abstract class Actor : KotlinActorSupport<Any?, Any?>() {
 
         val start = if (timeout > 0) System.nanoTime() else 0
         var now: Long
-        var left = if (unit != null) unit.toNanos(timeout) else 0
+        var left = unit?.toNanos(timeout) ?: 0
         val deadline = start + left
 
         monitorResetSkippedMessages()
-        var i: Int = 0
+        val i: Int = 0
         val it: QueueIterator<Any> = mailboxQueue().iterator()
         while (true) {
             if (flightRecorder != null)
@@ -139,7 +141,7 @@ abstract class Actor : KotlinActorSupport<Any?, Any?>() {
     }
 
     protected fun defer() {
-        throw DeferException;
+        throw DeferException
     }
 }
 
