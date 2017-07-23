@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2017, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -13,14 +13,17 @@
  */
 package co.paralleluniverse.kotlin.actors
 
-import co.paralleluniverse.actors.*
+import co.paralleluniverse.actors.ActorRef
+import co.paralleluniverse.actors.ActorRegistry
+import co.paralleluniverse.actors.LocalActor
 import co.paralleluniverse.fibers.Suspendable
-import org.junit.Test
-import java.util.concurrent.TimeUnit.*
 import co.paralleluniverse.kotlin.Actor
-import co.paralleluniverse.kotlin.*
+import co.paralleluniverse.kotlin.register
+import co.paralleluniverse.kotlin.spawn
+import org.junit.Test
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.TimeUnit.SECONDS
 
 /**
  * @author circlespainter
@@ -37,7 +40,7 @@ fun now(): String = "[${sdfDate.format(Date())}]"
 class Ping(val n: Int) : Actor() {
     @Suspendable override fun doRun() {
         val pong: ActorRef<Any> = ActorRegistry.getActor("pong")
-        for(i in 1..n) {
+        for (i in 1..n) {
             val msg = Msg("ping$i", self())
             println("${now()} Ping sending '$msg' to '$pong'")
             pong.send(msg)          // Fiber-blocking
@@ -47,7 +50,7 @@ class Ping(val n: Int) : Actor() {
             println("${now()} Ping sent garbage 'aaa' to '$pong'")
             println("${now()} Ping receiving without timeout")
             receive {                           // Fiber-blocking
-                println("${now()} Ping received '$it' (${it.javaClass})")
+                println("${now()} Ping received '$it' (${it?.javaClass})")
                 when (it) {
                     is String -> {
                         if (!it.startsWith("pong")) {
@@ -68,14 +71,14 @@ class Ping(val n: Int) : Actor() {
     }
 }
 
-class Pong() : Actor() {
+class Pong : Actor() {
     @Suspendable override fun doRun() {
         var discardGarbage = false
 
         while (true) {
             println("${now()} Pong receiving with 1 sec timeout")
             receive(1, SECONDS) {  // Fiber-blocking
-                println("${now()} Pong received '$it' ('${it.javaClass}')")
+                println("${now()} Pong received '$it' ('${it?.javaClass}')")
                 when (it) {
                     is Msg -> {
                         if (it.txt.startsWith("ping")) {

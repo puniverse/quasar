@@ -20,19 +20,20 @@ import co.paralleluniverse.fibers.FiberForkJoinScheduler
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.strands.Strand
 import co.paralleluniverse.strands.SuspendableRunnable
+import org.hamcrest.CoreMatchers.equalTo
+import org.junit.Assert.assertThat
+import org.junit.Assert.fail
+import org.junit.Test
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
-import org.junit.Test
-import org.junit.Assert.*
-import org.hamcrest.CoreMatchers.*
 
 /**
  * @author pron
  * @author circlespainter
  */
 class FiberAsyncTest {
-    private val scheduler = FiberForkJoinScheduler("test", 4, null, false);
+    private val scheduler = FiberForkJoinScheduler("test", 4, null, false)
 
     private interface MyCallback {
         fun call(str: String)
@@ -55,47 +56,48 @@ class FiberAsyncTest {
     private val executor = Executors.newFixedThreadPool(1)
     private val asyncService = object : Service {
         override fun registerCallback(callback: MyCallback) {
-            executor.submit({
+            executor.submit {
                 try {
                     Strand.sleep(50)
                     callback.call("async result!")
                 } catch (ex: InterruptedException) {
                     throw RuntimeException(ex)
                 }
-            })
+            }
         }
     }
     private val longAsyncService = object : Service {
         override fun registerCallback(callback: MyCallback) {
-            executor.submit({
+            executor.submit {
                 try {
                     Strand.sleep(2000)
                     callback.call("async result!")
                 } catch (ex: InterruptedException) {
                     throw RuntimeException(ex)
                 }
-            })
+            }
 
         }
     }
     private val badAsyncService = object : Service {
         override fun registerCallback(callback: MyCallback) {
-            executor.submit({
+            executor.submit {
                 try {
-                    Strand.sleep(20);
+                    Strand.sleep(20)
                     callback.fail(RuntimeException("async exception!"))
                 } catch (ex: InterruptedException) {
                     throw RuntimeException(ex)
                 }
-            })
+            }
         }
     }
 
     companion object {
+        // TODO With Java 7 compiler (unsupported as of Kotlin 1.1) the resulting bytecode calls the wrong one! Investigate and possibly report
         @Suspendable private fun callService(service: Service): String {
             return object : MyFiberAsync() {
                 override fun requestAsync() {
-                    service.registerCallback(this);
+                    service.registerCallback(this)
                 }
             }.run()
         }
@@ -158,7 +160,7 @@ class FiberAsyncTest {
         val fiber = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
             try {
                 callService(badAsyncService)
-                fail();
+                fail()
             } catch (e: Exception) {
                 assertThat(e.message, equalTo("async exception!"))
             }
@@ -196,7 +198,7 @@ class FiberAsyncTest {
             }
         }).start()
 
-        fiber.join();
+        fiber.join()
     }
 
     @Test
@@ -261,11 +263,11 @@ class FiberAsyncTest {
                 })
                 assertThat(res, equalTo("ok"))
             } catch (e: TimeoutException) {
-                fail();
+                fail()
             }
-        }).start();
+        }).start()
 
-        fiber.join();
+        fiber.join()
     }
 
     @Test
@@ -275,11 +277,11 @@ class FiberAsyncTest {
                 FiberAsync.runBlocking(Executors.newCachedThreadPool(), 100, TimeUnit.MILLISECONDS, CheckedCallable<kotlin.String, java.lang.InterruptedException> @Suspendable {
                     Strand.sleep(300)
                     "ok"
-                });
-                fail();
+                })
+                fail()
             } catch (e: TimeoutException) {}
-        }).start();
+        }).start()
 
-        fiber.join();
+        fiber.join()
     }
 }

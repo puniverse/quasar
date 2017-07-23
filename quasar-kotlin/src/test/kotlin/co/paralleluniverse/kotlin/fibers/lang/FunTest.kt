@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2017, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -14,10 +14,10 @@
 package co.paralleluniverse.kotlin.fibers.lang
 
 import co.paralleluniverse.fibers.Fiber
-import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.fibers.FiberForkJoinScheduler
-import org.junit.Assert.assertTrue
+import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.strands.SuspendableCallable
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -37,9 +37,7 @@ fun seq(f: () -> Unit, g: () -> Unit): () -> Unit {
     f1()
 }
 
-@Suspendable fun fDef(@Suppress("UNUSED_PARAMETER") def: Boolean = true) {
-    Fiber.sleep(10)
-}
+@Suspendable fun fDef(@Suppress("UNUSED_PARAMETER") def: Boolean = true) = Fiber.sleep(10)
 
 @Suspendable fun fQuick() {
     println("quick pre-sleep")
@@ -48,7 +46,8 @@ fun seq(f: () -> Unit, g: () -> Unit): () -> Unit {
 }
 
 @Suspendable fun fVarArg(vararg ls: Long) {
-    for (l in ls) Fiber.sleep(l)
+    for (l in ls)
+        Fiber.sleep(l)
 }
 
 class FunTest {
@@ -112,7 +111,7 @@ class FunTest {
 
     @Test fun testFunLambda() {
         assertTrue(Fiber(scheduler, SuspendableCallable<kotlin.Boolean> @Suspendable {
-            (@Suspendable { ignored : Int -> Fiber.sleep(10) })(1)
+            (@Suspendable { _ : Int -> Fiber.sleep(10) })(1)
             true
         }).start().get())
     }
@@ -124,7 +123,14 @@ class FunTest {
                 true
             })).start().get()
 
-    @Test fun testFunLambda2() {
-        assertTrue(callSusLambda(@Suspendable { Fiber.sleep(10) }, 1))
+    @Test fun testFunLambda2() = assertTrue(callSusLambda(@Suspendable { Fiber.sleep(10) }, 1))
+
+    @Test fun testFunAnon() {
+        assertTrue(Fiber(scheduler, SuspendableCallable<kotlin.Boolean> @Suspendable {
+            (@Suspendable fun(_ : Int) { Fiber.sleep(10) })(1)
+            true
+        }).start().get())
     }
+
+    @Test fun testFunAnon2() = assertTrue(callSusLambda(@Suspendable fun(_ : Int) { Fiber.sleep(10) }, 1))
 }

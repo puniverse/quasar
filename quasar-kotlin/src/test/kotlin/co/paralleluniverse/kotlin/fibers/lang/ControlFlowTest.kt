@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015-2016, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2015-2017, Parallel Universe Software Co. All rights reserved.
  *
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -13,13 +13,13 @@
  */
 package co.paralleluniverse.kotlin.fibers.lang
 
-import org.junit.Test
-import org.junit.Assert.*
-import co.paralleluniverse.fibers.FiberForkJoinScheduler
 import co.paralleluniverse.fibers.Fiber
-import co.paralleluniverse.strands.SuspendableRunnable
+import co.paralleluniverse.fibers.FiberForkJoinScheduler
 import co.paralleluniverse.fibers.Suspendable
+import co.paralleluniverse.strands.SuspendableRunnable
 import co.paralleluniverse.strands.channels.Channels
+import org.junit.Assert.assertEquals
+import org.junit.Test
 import java.util.concurrent.TimeUnit
 
 /**
@@ -27,14 +27,14 @@ import java.util.concurrent.TimeUnit
  * @author circlespainter
  */
 class ControlFlowTest {
-    private val scheduler = FiberForkJoinScheduler("test", 4, null, false);
+    private val scheduler = FiberForkJoinScheduler("test", 4, null, false)
 
     @Test
     fun testForAndWhile() {
-        val ch = Channels.newIntChannel(0);
+        val ch = Channels.newIntChannel(0)
         val vals = listOf(0, 1)
         val fiberSend = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
-            for(v in vals)
+            for (v in vals)
                 ch.send(v)
             ch.close()
         }).start()
@@ -53,10 +53,10 @@ class ControlFlowTest {
 
     @Test
     fun testWhen() {
-        val ch = Channels.newIntChannel(0);
+        val ch = Channels.newIntChannel(0)
         val vals = listOf(1, 101)
         val fiberSend = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
-            for(v in vals)
+            for (v in vals)
                 ch.send(v)
             ch.close()
         }).start()
@@ -83,10 +83,11 @@ class ControlFlowTest {
 
     @Test
     fun testHOFun() {
-        val ch = Channels.newIntChannel(0);
+        val ch = Channels.newIntChannel(0)
         val vals = listOf(0, 1)
         val fiberSend = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {
-            vals.forEach { ch.send(it) }
+            for (v in vals)
+                ch.send(v)
             ch.close()
         }).start()
         val fiberReceive = Fiber<Void>(scheduler, SuspendableRunnable @Suspendable {

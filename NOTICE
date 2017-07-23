@@ -46,6 +46,13 @@ This product depends on 'ByteBuddy', Runtime Code Generation for Java:
     * LICENSE: Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0.html)
     * HOMEPAGE: http://bytebuddy.net/
 
+This product includes code derived from the Kotlin 1.1 standard library ("Lazy.kt"), which was released
+with the following comments:
+
+    Copyright 2010-2017 JetBrains s.r.o.
+    * LICENSE: Apache 2.0 (http://www.apache.org/licenses/LICENSE-2.0.html)
+    * HOMEPAGE: http://kotlin-lang.org
+
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
 AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
 IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
