@@ -143,13 +143,13 @@ public final class Stack implements Serializable {
             fiber.record(2, "Stack", "pushMethod     ", "%s %d %d", Thread.currentThread().getStackTrace()[2], entry, sp /*Arrays.toString(fiber.getStackTrace())*/);
     }
 
-    public final void popMethod() {
+    public final void popMethod(int slots) {
         pushed = false;
 
         final int oldSP = sp;
         final int idx = oldSP - FRAME_RECORD_SIZE;
         final long record = dataLong[idx];
-        final int slots = getNumSlots(record);
+        // final int slots = getNumSlots(record);
         final int newSP = idx - getPrevNumSlots(record);
         
         // clear frame record (probably unnecessary)
@@ -157,7 +157,7 @@ public final class Stack implements Serializable {
 //        for (int i = 0; i < FRAME_RECORD_SIZE; i++)
 //            dataLong[idx + i] = 0L;
         // help GC
-        for (int i = oldSP; i < oldSP + slots; i++)
+        for (int i = oldSP; i < oldSP + slots && i < dataObject.length; i++)
             dataObject[i] = null;
 
         sp = newSP;

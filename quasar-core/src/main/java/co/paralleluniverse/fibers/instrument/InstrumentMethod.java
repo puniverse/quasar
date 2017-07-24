@@ -124,6 +124,7 @@ class InstrumentMethod {
     private int numCodeBlocks;
 
     private int additionalLocals;
+    private int maxRefSlots;
 
     private boolean warnedAboutMonitors;
     private int warnedAboutBlocking;
@@ -150,6 +151,7 @@ class InstrumentMethod {
             this.lvarInvocationReturnValue = mn.maxLocals + 2;
             // this.lvarSuspendableCalled = (verifyInstrumentation ? mn.maxLocals + 3 : -1);
             this.firstLocal = ((mn.access & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC) ? 0 : 1;
+            this.maxRefSlots = 0;
         } catch (UnsupportedOperationException ex) {
             throw new AnalyzerException(null, ex.getMessage(), ex);
         }
@@ -746,6 +748,7 @@ class InstrumentMethod {
         }
         FrameInfo fi = new FrameInfo(f, firstLocal, end, mn.instructions, db);
         codeBlocks[numCodeBlocks] = fi;
+        this.maxRefSlots = Math.max(maxRefSlots, fi.numObjSlots);
         return fi;
     }
 
@@ -936,7 +939,8 @@ class InstrumentMethod {
         mv.visitJumpInsn(Opcodes.IFNULL, lbl);
 
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "popMethod", "()V", false);
+        emitConst(mv, maxRefSlots);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "popMethod", "(I)V", false);
 
         // DUAL
         mv.visitLabel(lbl);
