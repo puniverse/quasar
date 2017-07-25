@@ -14,7 +14,6 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.common.util.Debug;
-import co.paralleluniverse.common.util.Strings;
 import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import org.objectweb.asm.ClassReader;
@@ -31,8 +30,6 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.regex.Pattern;
 
@@ -43,7 +40,7 @@ public final class QuasarInstrumentor {
     @SuppressWarnings("WeakerAccess")
     public static final int ASMAPI = Opcodes.ASM5;
 
-    private final static String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClassesStartingWith");
+    private final static String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClasses");
     private static final boolean allowJdkInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.allowJdkInstrumentation");
     private WeakHashMap<ClassLoader, MethodDatabase> dbForClassloader = new WeakHashMap<>();
     private boolean check;
@@ -114,11 +111,7 @@ public final class QuasarInstrumentor {
             log(LogLevel.INFO, "TRANSFORM: %s %s", className,
                 (db.getClassEntry(className) != null && db.getClassEntry(className).requiresInstrumentation()) ? "request" : "");
 
-            // DEBUG
-            if (EXAMINED_CLASS != null && className.startsWith(EXAMINED_CLASS)) {
-                writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-1-preinstr.class", cb);
-                // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
-            }
+            examine(className, "quasar-1-preinstr", cb);
         } else {
             log(LogLevel.INFO, "TRANSFORM: null className");
         }
@@ -130,11 +123,7 @@ public final class QuasarInstrumentor {
         r1.accept(ic1, 0);
         cb = cw1.toByteArray();
 
-        // DEBUG
-        if (EXAMINED_CLASS != null && className != null && className.startsWith(EXAMINED_CLASS)) {
-            writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-2.class", cb);
-            // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
-        }
+        examine(className, "quasar-2", cb);
 
         // Phase 2, instrument, tree API
         final ClassReader r2 = new ClassReader(cb);
@@ -155,11 +144,7 @@ public final class QuasarInstrumentor {
             }
         }
 
-        // DEBUG
-        if (EXAMINED_CLASS != null && className != null && className.startsWith(EXAMINED_CLASS)) {
-            writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-4.class", cb);
-            // cv1 = new TraceClassVisitor(cv, new PrintWriter(System.err));
-        }
+        examine(className, "quasar-4", cb);
 
         // Phase 4, fill suspendable call offsets, event API is enough
         final OffsetClassReader r3 = new OffsetClassReader(cb);
@@ -170,8 +155,7 @@ public final class QuasarInstrumentor {
 
         // DEBUG
         if (EXAMINED_CLASS != null) {
-            if (className != null && className.startsWith(EXAMINED_CLASS))
-                writeToFile(className.replace('/', '.') + "-" + new Date().getTime() + "-quasar-5-final.class", cb);
+            examine(className, "quasar-5-final", cb);
 
             if (check) {
                 ClassReader r4 = new ClassReader(cb);
@@ -183,6 +167,14 @@ public final class QuasarInstrumentor {
         return cb;
     }
 
+    private void examine(String className, String suffix, byte[] data) {
+        if (EXAMINED_CLASS != null && className != null && className.contains(EXAMINED_CLASS)) {
+            final String filename = className.replace('/', '.') + "-" + new Date().getTime() + "-" + suffix + ".class";
+            writeToFile(filename, data);
+//            return new TraceClassVisitor(cv, new PrintWriter(new File(filename)));
+        }
+    }
+    
     @SuppressWarnings("WeakerAccess")
     public synchronized MethodDatabase getMethodDatabase(ClassLoader loader) {
         if (loader == null)
