@@ -1033,8 +1033,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
         if (getName() == null)
             throw new IllegalArgumentException("name is null");
         ActorRegistry.unregister(this);
-        if (monitor != null)
-            this.monitor.setActor(null);
+        stopMonitor();
         this.registered = false;
         return this;
     }
