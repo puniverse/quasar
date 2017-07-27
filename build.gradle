@@ -104,7 +104,7 @@ subprojects {
         compile("io.dropwizard.metrics:metrics-core:3.2.3") {
             exclude group: 'org.slf4j', module: '*'
         }
-        provided "org.apache.ant:ant:1.10.1"
+        provided "org.apache.ant:ant:1.9.9"
         compile "com.google.guava:guava:20.0"
         timewarp 'co.paralleluniverse:timewarp:0.1.0-SNAPSHOT'
         testCompile 'co.paralleluniverse:timewarp:0.1.0-SNAPSHOT'
