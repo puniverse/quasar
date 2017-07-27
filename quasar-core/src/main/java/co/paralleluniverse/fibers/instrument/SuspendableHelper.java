@@ -118,7 +118,7 @@ public final class SuspendableHelper {
                     }
                 }
             }
-            if (sourceLine >= 0) { // check by source line
+            else if (sourceLine >= 0) { // check by source line
                 final int[] scs = i.suspendableCallSites();
                 for (int j : scs) {
                     if (j == sourceLine) {
