@@ -104,8 +104,8 @@ subprojects {
         compile("io.dropwizard.metrics:metrics-core:3.2.3") {
             exclude group: 'org.slf4j', module: '*'
         }
-        provided "org.apache.ant:ant:1.9.9"
-        compile "com.google.guava:guava:20.0"
+        provided "org.apache.ant:ant:1.9.9" // version 1.10 and upwards requires JDK 8
+        compile "com.google.guava:guava:20.0" // version 21.0 and upwards requires JDK 8
         timewarp 'co.paralleluniverse:timewarp:0.1.0-SNAPSHOT'
         testCompile 'co.paralleluniverse:timewarp:0.1.0-SNAPSHOT'
         testCompile 'junit:junit:4.12'
@@ -696,7 +696,7 @@ project (':quasar-reactive-streams') {
             exclude group: "junit", module: "*"
             exclude group: "org.testng", module: "testng"
         }
-        testCompile('org.testng:testng:6.11') {
+        testCompile('org.testng:testng:6.12') {
             exclude group: "com.google.guava", module: "*"
             exclude group: "junit", module: "*"
         }
