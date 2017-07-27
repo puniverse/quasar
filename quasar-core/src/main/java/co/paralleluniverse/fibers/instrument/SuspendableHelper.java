@@ -78,62 +78,55 @@ public final class SuspendableHelper {
             return new Pair<>(true, null);
         } else {
             final Instrumented i = getAnnotation(m, Instrumented.class);
-            if (i != null) {
-                if (calleeSte != null && i.suspendableCallSiteNames() != null) {
-                    final Member callee = calleeSte.getMethod();
-                    if (callee == null) {
-                        boolean ok = false;
-                        final String methodName = "." + calleeSte.getMethodName() + "(";
-                        for (String callsite : i.suspendableCallSiteNames()) {
-                            if (callsite.contains(methodName)) {
-                                ok = true;
-                                break;
-                            }
-                        }
-                        return new Pair(ok, i);
-                    } else {
-                        final String nameAndDescSuffix = "." + callee.getName() + ASMUtil.getDescriptor(callee);
-                        boolean ok = false;
-                        final String[] callsites = i.suspendableCallSiteNames();
-                        for (String callsite : callsites) {
-                            if (callsite.endsWith(nameAndDescSuffix)) {
-                                Class<?> callsiteOwner = null;
-                                try {
-                                    callsiteOwner = Class.forName(getCallsiteOwner(callsite));
-                                } catch (ClassNotFoundException e) {
-                                }
-                                if (callsiteOwner != null) {
-                                    final Class<?> owner = callee.getDeclaringClass();
-                                    if (declareInCommonAncestor(nameAndDescSuffix, owner, callsiteOwner)) {
-                                        ok = true;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        return new Pair(ok, i);
-                    }
-                }
-                // bcis turn out to be brittle
-//                else if (bci >= 0) { // Prefer BCI matching as it's unambiguous
-//                    final int[] scs = i.suspendableCallSitesOffsetsAfterInstr();
-//                    for (int j : scs) {
-//                        if (j == bci)
-//                            return new Pair<>(true, i);
-//                    }
-//                } 
-                else if (sourceLine >= 0){
-                    final int[] scs = i.suspendableCallSites();
-                    for (int j : scs) {
-                        if (j == sourceLine)
-                            return new Pair<>(true, i);
-                    }
-                }
-
+            if (i == null)
                 return new Pair<>(false, i);
+            
+            if (calleeSte != null && i.suspendableCallSiteNames() != null) { // check by callsite name (fails for bootstrapped lambdas)
+                final Member callee = calleeSte.getMethod();
+                if (callee == null) {
+                    final String methodName = "." + calleeSte.getMethodName() + "(";
+                    for (String callsite : i.suspendableCallSiteNames()) {
+                        if (callsite.contains(methodName)) {
+                            return new Pair(true, i);
+                        }
+                    }
+                } else {
+                    final String nameAndDescSuffix = "." + callee.getName() + ASMUtil.getDescriptor(callee);
+                    final String[] callsites = i.suspendableCallSiteNames();
+                    for (String callsite : callsites) {
+                        if (callsite.endsWith(nameAndDescSuffix)) {
+                            Class<?> callsiteOwner = null;
+                            try {
+                                callsiteOwner = Class.forName(getCallsiteOwner(callsite));
+                            } catch (ClassNotFoundException e) {
+                            }
+                            if (callsiteOwner != null) {
+                                final Class<?> owner = callee.getDeclaringClass();
+                                if (declareInCommonAncestor(nameAndDescSuffix, owner, callsiteOwner)) {
+                                    return new Pair(true, i);
+                                }
+                            }
+                        }
+                    }
+                }
             }
-
-            return new Pair<>(false, null);
+            if (bci >= 0) { // check by bci; may be brittle
+                final int[] scs = i.suspendableCallSitesOffsetsAfterInstr();
+                for (int j : scs) {
+                    if (j == bci) {
+                        return new Pair<>(true, i);
+                    }
+                }
+            }
+            if (sourceLine >= 0) { // check by source line
+                final int[] scs = i.suspendableCallSites();
+                for (int j : scs) {
+                    if (j == sourceLine) {
+                        return new Pair<>(true, i);
+                    }
+                }
+            }
+            return new Pair<>(false, i);
         }
     }
 
