@@ -113,17 +113,15 @@ public final class SuspendableHelper {
             if (bci >= 0) { // check by bci; may be brittle
                 final int[] scs = i.suspendableCallSitesOffsetsAfterInstr();
                 for (int j : scs) {
-                    if (j == bci) {
+                    if (j == bci)
                         return new Pair<>(true, i);
-                    }
                 }
             }
             else if (sourceLine >= 0) { // check by source line
                 final int[] scs = i.suspendableCallSites();
                 for (int j : scs) {
-                    if (j == sourceLine) {
+                    if (j == sourceLine)
                         return new Pair<>(true, i);
-                    }
                 }
             }
             return new Pair<>(false, i);
