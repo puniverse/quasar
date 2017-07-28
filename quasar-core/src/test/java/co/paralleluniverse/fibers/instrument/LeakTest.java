@@ -40,6 +40,7 @@ public class LeakTest implements SuspendableRunnable {
         
         TestsHelper.exec(co);
         TestsHelper.exec(co);
+        TestsHelper.exec(co);
         
         Field stackField = Fiber.class.getDeclaredField("stack");
         stackField.setAccessible(true);
@@ -48,8 +49,8 @@ public class LeakTest implements SuspendableRunnable {
         List<Object> stack = Arrays.asList((Object[])objectsField.get(stackField.get(co)));
         
 //        System.out.println(stack);
-        assertThat(stack, not(hasItem(leaked)));
-        // assertThat(stack, everyItem(nullValue())); -- brittle
+//        assertThat(stack, not(hasItem(leaked)));
+        assertThat(stack, everyItem(nullValue()));
         
 //        WeakReference<String> ref = new WeakReference<>(leaked);
 //        leaked = null;
