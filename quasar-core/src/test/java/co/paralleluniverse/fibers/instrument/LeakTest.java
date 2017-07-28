@@ -49,8 +49,8 @@ public class LeakTest implements SuspendableRunnable {
         List<Object> stack = Arrays.asList((Object[])objectsField.get(stackField.get(co)));
         
 //        System.out.println(stack);
-//        assertThat(stack, not(hasItem(leaked)));
-        assertThat(stack, everyItem(nullValue()));
+        assertThat(stack, not(hasItem(leaked)));
+//        assertThat(stack, everyItem(nullValue()));
         
 //        WeakReference<String> ref = new WeakReference<>(leaked);
 //        leaked = null;
