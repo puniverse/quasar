@@ -94,4 +94,8 @@ public abstract class FiberScheduler implements FiberFactory, StrandFactory {
     abstract <V> FiberTask<V> newFiberTask(Fiber<V> fiber);
     
     public abstract Executor getExecutor();
+
+    public void unregisterMonitor() {
+        fibersMonitor.unregister();
+    }
 }
