@@ -17,6 +17,7 @@ import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.resourceToClass;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.concurrent.util.MapUtil;
+import co.paralleluniverse.common.util.SystemProperties;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import java.io.IOException;
@@ -79,7 +80,7 @@ public class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notif
 
         instance = new ActorLoader("co.paralleluniverse:type=ActorLoader");
 
-        String moduleDirName = System.getProperty(MODULE_DIR_PROPERTY);
+        String moduleDirName = SystemProperties.getLocalProperty(MODULE_DIR_PROPERTY);
         if (moduleDirName != null) {
             Path mdir = Paths.get(moduleDirName);
             try {

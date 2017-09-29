@@ -16,6 +16,7 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.common.monitoring.Counter;
 import co.paralleluniverse.common.monitoring.MonitoringServices;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.common.util.SystemProperties;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,7 +55,7 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
     private final Counter activeCount = new Counter();
 
     private JMXActorsMonitor() {
-        this.mbeanName = "co.paralleluniverse:type=Actors";
+        this.mbeanName = "co.paralleluniverse:type=" + SystemProperties.prefixWithName("Actors");
         registerMBean(true);
         lastCollectTime = nanoTime();
     }
@@ -69,7 +70,7 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
         } catch (InstanceAlreadyExistsException ex) {
             if (retry) {
                 try {
-                    ManagementFactory.getPlatformMBeanServer().unregisterMBean(new ObjectName(name));
+                    ManagementFactory.getPlatformMBeanServer().unregisterMBean(new ObjectName(mbeanName));
                 } catch (InstanceNotFoundException | MalformedObjectNameException | MBeanRegistrationException ex2) {
                     throw new AssertionError(ex);
                 }

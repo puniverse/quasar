@@ -33,7 +33,7 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class Debug {
     private static final boolean debugMode = SystemProperties.isEmptyOrTrue("co.paralleluniverse.debugMode");
-    private static final String FLIGHT_RECORDER_DUMP_FILE = System.getProperty("co.paralleluniverse.flightRecorderDumpFile");
+    private static final String FLIGHT_RECORDER_DUMP_FILE = SystemProperties.getLocalProperty("co.paralleluniverse.flightRecorderDumpFile");
     private static final FlightRecorder flightRecorder = (debugMode && SystemProperties.isEmptyOrTrue("co.paralleluniverse.globalFlightRecorder") ? new FlightRecorder("PUNIVERSE-FLIGHT-RECORDER") : null);
     private static boolean recordStackTraces = false;
     private static final boolean assertionsEnabled;

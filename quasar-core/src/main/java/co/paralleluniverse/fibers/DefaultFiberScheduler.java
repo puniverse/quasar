@@ -14,6 +14,8 @@
 package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.MonitorType;
+import co.paralleluniverse.common.util.SystemProperties;
+
 import java.lang.Thread.UncaughtExceptionHandler;
 
 /**
@@ -51,8 +53,8 @@ public class DefaultFiberScheduler {
 
         // get overrides
         try {
-            String pp = System.getProperty(PROPERTY_PARALLELISM);
-            String hp = System.getProperty(PROPERTY_EXCEPTION_HANDLER);
+            String pp = SystemProperties.getLocalProperty(PROPERTY_PARALLELISM);
+            String hp = SystemProperties.getLocalProperty(PROPERTY_EXCEPTION_HANDLER);
 //            String fp = System.getProperty(PROPERTY_THREAD_FACTORY);
 //            if (fp != null)
 //                fac = ((ForkJoinPool.ForkJoinWorkerThreadFactory) ClassLoader.getSystemClassLoader().loadClass(fp).newInstance());
@@ -68,11 +70,11 @@ public class DefaultFiberScheduler {
         if (par > MAX_CAP)
             par = MAX_CAP;
 
-        String mt = System.getProperty(PROPERTY_MONITOR_TYPE);
+        String mt = SystemProperties.getLocalProperty(PROPERTY_MONITOR_TYPE);
         if (mt != null)
             monitorType = MonitorType.valueOf(mt.toUpperCase());
 
-        String dfis = System.getProperty(PROPERTY_DETAILED_FIBER_INFO);
+        String dfis = SystemProperties.getLocalProperty(PROPERTY_DETAILED_FIBER_INFO);
         if (dfis != null)
             detailedFiberInfo = Boolean.valueOf(dfis);
 

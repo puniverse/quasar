@@ -12,6 +12,8 @@
  */
 package co.paralleluniverse.common.monitoring;
 
+import co.paralleluniverse.common.util.SystemProperties;
+
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.util.Date;
@@ -69,7 +71,7 @@ public final class MonitoringServices implements MonitoringServicesMXBean {
     private void registerMBean(boolean retry) {
         try {
             MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-            ObjectName mxbeanName = new ObjectName("co.paralleluniverse:name=MonitoringServices");
+            ObjectName mxbeanName = new ObjectName("co.paralleluniverse:name=" + SystemProperties.prefixWithName("MonitoringServices"));
             mbs.registerMBean(this, mxbeanName);
         } catch (InstanceAlreadyExistsException ex) {
             if (retry) {

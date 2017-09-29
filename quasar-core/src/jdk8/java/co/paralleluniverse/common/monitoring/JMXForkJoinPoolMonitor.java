@@ -12,6 +12,8 @@
  */
 package co.paralleluniverse.common.monitoring;
 
+import co.paralleluniverse.common.util.SystemProperties;
+
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.ForkJoinPool;
 import javax.management.InstanceAlreadyExistsException;
@@ -33,7 +35,7 @@ public class JMXForkJoinPoolMonitor extends ForkJoinPoolMonitor implements ForkJ
     public JMXForkJoinPoolMonitor(String name, ForkJoinPool fjPool) {
         super(name, fjPool);
         //super(ForkJoinPoolMXBean.class, true, new NotificationBroadcasterSupport());
-        this.mbeanName = "co.paralleluniverse:type=ForkJoinPool,name=" + name;
+        this.mbeanName = "co.paralleluniverse:type=ForkJoinPool,name=" + SystemProperties.prefixWithName(name);
         registerMBean(true);
     }
 

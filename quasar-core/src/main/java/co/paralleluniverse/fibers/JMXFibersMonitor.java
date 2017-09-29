@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.Counter;
 import co.paralleluniverse.common.monitoring.MonitoringServices;
+import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.strands.Strand;
 import java.lang.management.ManagementFactory;
 import java.util.Collection;
@@ -58,7 +59,7 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
     public JMXFibersMonitor(String name, FiberScheduler scheduler, boolean detailedInfo) {
         super(FibersMXBean.class, true, new NotificationBroadcasterSupport());
         this.scheduler = scheduler;
-        this.mbeanName = "co.paralleluniverse:type=Fibers,name=" + name;
+        this.mbeanName = "co.paralleluniverse:type=Fibers,name=" + SystemProperties.prefixWithName(name);
         registerMBean(true);
         lastCollectTime = nanoTime();
         this.details = detailedInfo ? new FibersDetailedMonitor() : null;

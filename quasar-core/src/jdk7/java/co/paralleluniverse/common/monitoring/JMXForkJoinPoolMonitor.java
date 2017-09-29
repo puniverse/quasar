@@ -23,6 +23,8 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
+
+import co.paralleluniverse.common.util.SystemProperties;
 import jsr166e.ForkJoinPool;
 
 /**
@@ -36,7 +38,7 @@ public class JMXForkJoinPoolMonitor extends ForkJoinPoolMonitor implements ForkJ
     public JMXForkJoinPoolMonitor(String name, ForkJoinPool fjPool) {
         super(name, fjPool);
         //super(ForkJoinPoolMXBean.class, true, new NotificationBroadcasterSupport());
-        this.mbeanName = "co.paralleluniverse:type=ForkJoinPool,name=" + name;
+        this.mbeanName = "co.paralleluniverse:type=ForkJoinPool,name=" + SystemProperties.prefixWithName(name);
         registerMBean(true);
     }
 
