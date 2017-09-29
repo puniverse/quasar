@@ -47,7 +47,7 @@ public final class MonitoringServices implements MonitoringServicesMXBean {
     private int structuralTimerListeners;
 
     private MonitoringServices() {
-        registerMBean();
+        registerMBean(true);
         perfTimerListeners = 0;
         structuralTimerListeners = 0;
 
@@ -66,19 +66,28 @@ public final class MonitoringServices implements MonitoringServicesMXBean {
         }
     }
 
-    private void registerMBean() {
+    private void registerMBean(boolean retry) {
         try {
             MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
             ObjectName mxbeanName = new ObjectName("co.paralleluniverse:name=MonitoringServices");
             mbs.registerMBean(this, mxbeanName);
         } catch (InstanceAlreadyExistsException ex) {
-            throw new RuntimeException(ex);
+            if (retry) {
+                try {
+                    ManagementFactory.getPlatformMBeanServer().unregisterMBean(new ObjectName("co.paralleluniverse:name=MonitoringServices"));
+                } catch (InstanceNotFoundException | MalformedObjectNameException | MBeanRegistrationException ex2) {
+                    throw new AssertionError(ex);
+                }
+                registerMBean(false);
+            } else {
+                throw new RuntimeException(ex);
+            }
         } catch (MBeanRegistrationException ex) {
             ex.printStackTrace();
         } catch (NotCompliantMBeanException ex) {
             throw new AssertionError(ex);
         } catch (MalformedObjectNameException ex) {
-            throw new AssertionError(ex);
+            throw new RuntimeException(ex);
         }
     }
 

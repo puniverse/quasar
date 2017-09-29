@@ -37,14 +37,23 @@ public class SimpleMBean {
                 + (kind != null ? ",kind=" + kind : "");
     }
 
-    protected void registerMBean() {
+    protected void registerMBean(boolean retry) {
         try {
             MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
             ObjectName mxbeanName = new ObjectName(name);
             mbs.registerMBean(this, mxbeanName);
             this.registered = true;
         } catch (InstanceAlreadyExistsException ex) {
-            throw new RuntimeException(ex);
+            if (retry) {
+                try {
+                    ManagementFactory.getPlatformMBeanServer().unregisterMBean(new ObjectName(name));
+                } catch (InstanceNotFoundException | MalformedObjectNameException | MBeanRegistrationException ex2) {
+                    throw new AssertionError(ex);
+                }
+                registerMBean(false);
+            } else {
+                throw new RuntimeException(ex);
+            }
         } catch (MBeanRegistrationException ex) {
             ex.printStackTrace();
         } catch (NotCompliantMBeanException ex) {

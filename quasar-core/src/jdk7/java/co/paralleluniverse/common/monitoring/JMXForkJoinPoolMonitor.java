@@ -37,17 +37,26 @@ public class JMXForkJoinPoolMonitor extends ForkJoinPoolMonitor implements ForkJ
         super(name, fjPool);
         //super(ForkJoinPoolMXBean.class, true, new NotificationBroadcasterSupport());
         this.mbeanName = "co.paralleluniverse:type=ForkJoinPool,name=" + name;
-        registerMBean();
+        registerMBean(true);
     }
 
-    protected void registerMBean() {
+    protected void registerMBean(boolean retry) {
         try {
             final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
             final ObjectName mxbeanName = new ObjectName(mbeanName);
             mbs.registerMBean(this, mxbeanName);
             this.registered = true;
         } catch (InstanceAlreadyExistsException ex) {
-            throw new RuntimeException(ex);
+            if (retry) {
+                try {
+                    ManagementFactory.getPlatformMBeanServer().unregisterMBean(new ObjectName(mbeanName));
+                } catch (InstanceNotFoundException | MalformedObjectNameException | MBeanRegistrationException ex2) {
+                    throw new AssertionError(ex);
+                }
+                registerMBean(false);
+            } else {
+                throw new RuntimeException(ex);
+            }
         } catch (MBeanRegistrationException ex) {
             ex.printStackTrace();
         } catch (NotCompliantMBeanException ex) {

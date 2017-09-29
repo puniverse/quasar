@@ -41,7 +41,7 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
         super(null, name, "FlightRecorder", null);
         startTimestamp = System.nanoTime();
         startWallTime = System.currentTimeMillis();
-        registerMBean();
+        registerMBean(true);
     }
 
     public void clear() {
