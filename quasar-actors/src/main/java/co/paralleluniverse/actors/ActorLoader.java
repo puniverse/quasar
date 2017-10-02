@@ -78,7 +78,7 @@ public class ActorLoader extends ClassLoader implements ActorLoaderMXBean, Notif
     static {
         ClassLoader.registerAsParallelCapable();
 
-        instance = new ActorLoader("co.paralleluniverse:type=ActorLoader");
+        instance = new ActorLoader("co.paralleluniverse:type=" + SystemProperties.prefixWithName("ActorLoader"));
 
         String moduleDirName = SystemProperties.getLocalProperty(MODULE_DIR_PROPERTY);
         if (moduleDirName != null) {
