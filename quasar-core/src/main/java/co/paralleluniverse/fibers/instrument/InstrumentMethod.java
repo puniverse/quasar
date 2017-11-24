@@ -60,27 +60,15 @@ import static co.paralleluniverse.fibers.instrument.MethodDatabase.isInvocationH
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isMethodHandleInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isReflectInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isSyntheticAccess;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
+
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.tree.AbstractInsnNode;
-import org.objectweb.asm.tree.AnnotationNode;
-import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.InvokeDynamicInsnNode;
-import org.objectweb.asm.tree.JumpInsnNode;
-import org.objectweb.asm.tree.LabelNode;
-import org.objectweb.asm.tree.LineNumberNode;
-import org.objectweb.asm.tree.LocalVariableNode;
-import org.objectweb.asm.tree.MethodInsnNode;
-import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.TryCatchBlockNode;
+import org.objectweb.asm.tree.*;
 import org.objectweb.asm.tree.analysis.Analyzer;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
 import org.objectweb.asm.tree.analysis.BasicValue;
@@ -144,6 +132,7 @@ class InstrumentMethod {
         this.mn = mn;
 
         try {
+            upgradeForeach(mn);
             Analyzer a = new TypeAnalyzer(db);
             this.frames = a.analyze(className, mn);
             this.lvarStack = mn.maxLocals;
@@ -155,6 +144,147 @@ class InstrumentMethod {
         } catch (UnsupportedOperationException ex) {
             throw new AnalyzerException(null, ex.getMessage(), ex);
         }
+    }
+
+    public void upgradeForeach(MethodNode mn) {
+        ListIterator<AbstractInsnNode> it = mn.instructions.iterator();
+        int i = 0;
+        while(it.hasNext()) {
+            AbstractInsnNode instr = it.next();
+            if(instr.getType() == AbstractInsnNode.METHOD_INSN
+                    && (instr.getOpcode() == Opcodes.INVOKEVIRTUAL
+                    || instr.getOpcode() == Opcodes.INVOKEINTERFACE)) {
+                MethodInsnNode mCall = (MethodInsnNode) instr;
+                if(mCall.name.equals("iterator")
+                        // we can't check the return type here because Eclipse makes it Iterator
+                        // but javac respects subtypes (but only here)
+//                        && mCall.desc.equals("()Ljava/util/Iterator;")
+                        ) {
+                    checkForeach(mCall);
+                }
+            }
+        }
+    }
+
+    private void checkForeach(MethodInsnNode iteratorCall) {
+        // iterable.iterator(): invoke iterator(), store, jump to test [only Eclipse]
+        AbstractInsnNode mCallPlus1 = iteratorCall.getNext();
+        if(mCallPlus1 == null
+                || mCallPlus1.getType() != AbstractInsnNode.VAR_INSN
+                || mCallPlus1.getOpcode() != Opcodes.ASTORE)
+            return;
+        VarInsnNode mCallStore = (VarInsnNode) mCallPlus1;
+        int iteratorVarIndex = mCallStore.var;
+        AbstractInsnNode mCallPlus2 = mCallPlus1.getNext();
+        if(mCallPlus2 == null)
+            return;
+
+        boolean testBeforeNext;
+        AbstractInsnNode testInstr;
+        if(mCallPlus2.getType() == AbstractInsnNode.JUMP_INSN
+                && mCallPlus2.getOpcode() == Opcodes.GOTO){
+            testBeforeNext = true;
+            // jump to the hasNext() test: load, invoke hasNext(), ifne to body
+            JumpInsnNode jumpToTest = (JumpInsnNode) mCallPlus2;
+            testInstr = getJumpTarget(jumpToTest.label);
+        }else{
+            // continue hasNext() test: label, load, invoke hasNext(), ifeq to end
+            testBeforeNext = false;
+            if(mCallPlus2.getType() != AbstractInsnNode.LABEL)
+                return;
+            testInstr = mCallPlus2.getNext();
+        }
+
+        if(testInstr == null
+                || testInstr.getType() != AbstractInsnNode.VAR_INSN
+                || testInstr.getOpcode() != Opcodes.ALOAD)
+            return;
+        VarInsnNode testLoad = (VarInsnNode) testInstr;
+        if(testLoad.var != iteratorVarIndex)
+            return;
+        AbstractInsnNode testLoadPlus1 = testLoad.getNext();
+        if(testLoadPlus1 == null
+                || testLoadPlus1.getType() != AbstractInsnNode.METHOD_INSN
+                || testLoadPlus1.getOpcode() != Opcodes.INVOKEINTERFACE)
+            return;
+        MethodInsnNode hasNextCall = (MethodInsnNode) testLoadPlus1;
+        if(!hasNextCall.name.equals("hasNext")
+                || !hasNextCall.owner.equals("java/util/Iterator")
+                || !hasNextCall.desc.equals("()Z"))
+            return;
+        AbstractInsnNode testLoadPlus2 = hasNextCall.getNext();
+        if(testLoadPlus2 == null
+            || testLoadPlus2.getType() != AbstractInsnNode.JUMP_INSN)
+            return;
+        if(testBeforeNext && testLoadPlus2.getOpcode() != Opcodes.IFNE)
+            return;
+        if(!testBeforeNext && testLoadPlus2.getOpcode() != Opcodes.IFEQ)
+            return;
+
+        // Now check body: load, invoke next()
+        JumpInsnNode jumpToBody = (JumpInsnNode) testLoadPlus2;
+        AbstractInsnNode bodyInstr = testBeforeNext ? getJumpTarget(jumpToBody.label) : jumpToBody.getNext();
+        if(bodyInstr == null
+                || bodyInstr.getType() != AbstractInsnNode.VAR_INSN
+                || bodyInstr.getOpcode() != Opcodes.ALOAD)
+            return;
+        VarInsnNode bodyLoad = (VarInsnNode) bodyInstr;
+        if(bodyLoad.var != iteratorVarIndex)
+            return;
+        AbstractInsnNode bodyLoadPlus1 = bodyLoad.getNext();
+        if(bodyLoadPlus1 == null
+                || bodyLoadPlus1.getType() != AbstractInsnNode.METHOD_INSN
+                || bodyLoadPlus1.getOpcode() != Opcodes.INVOKEINTERFACE)
+            return;
+        MethodInsnNode nextCall = (MethodInsnNode) bodyLoadPlus1;
+        if(!nextCall.name.equals("next")
+                || !nextCall.owner.equals("java/util/Iterator")
+                || !nextCall.desc.equals("()Ljava/lang/Object;"))
+            return;
+
+        MethodDatabase.ClassEntry iterableClassEntry = db.getOrLoadClassEntry(iteratorCall.owner);
+        if(iterableClassEntry == null)
+            return;
+        if(!iterableClassEntry.implementsInterface("java/lang/Iterable", db))
+            return;
+        MethodDatabase.ClassEntry methodOwnerClass = iterableClassEntry.getClassImplementingMethod("iterator()", db);
+        // iteratorType contains the "L...;" parts
+        String iteratorType = methodOwnerClass.getReturnType("iterator()");
+        if(iteratorType == null || iteratorType.equals("Ljava/util/Iterator;"))
+            return;
+
+        MethodDatabase.ClassEntry iteratorClass =
+                db.getOrLoadClassEntry(iteratorType.substring(1, iteratorType.length()-1));
+        if(iteratorClass == null)
+            return;
+        MethodDatabase.ClassEntry nextOwnerClass = iteratorClass.getClassImplementingMethod("next()", db);
+        if(nextOwnerClass == null)
+            return;
+        String nextMethodOwner = nextOwnerClass.getName();
+        boolean nextMethodInterface = nextOwnerClass.isInterface();
+
+        MethodDatabase.ClassEntry hasNextOwnerClass = iteratorClass.getClassImplementingMethod("hasNext()", db);
+        if(hasNextOwnerClass == null)
+            return;
+        String hasNextMethodOwner = hasNextOwnerClass.getName();
+        boolean hasNextMethodInterface = hasNextOwnerClass.isInterface();
+
+        iteratorCall.desc = "()"+iteratorType;
+        hasNextCall.owner = hasNextMethodOwner;
+        hasNextCall.setOpcode(hasNextMethodInterface ? Opcodes.INVOKEINTERFACE : Opcodes.INVOKEVIRTUAL);
+        hasNextCall.itf = hasNextMethodInterface;
+        nextCall.owner = nextMethodOwner;
+        nextCall.setOpcode(nextMethodInterface ? Opcodes.INVOKEINTERFACE : Opcodes.INVOKEVIRTUAL);
+        nextCall.itf = nextMethodInterface;
+    }
+
+    private AbstractInsnNode getJumpTarget(LabelNode label) {
+        AbstractInsnNode next = label.getNext();
+        while(next.getType() == AbstractInsnNode.FRAME
+                || next.getType() == AbstractInsnNode.LINE) {
+            next = next.getNext();
+        }
+        return next;
     }
 
     private void collectCallsites() {
