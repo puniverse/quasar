@@ -171,7 +171,7 @@ subprojects {
             }
         }
 
-        jvmArgs "-Xmx2048m"
+        jvmArgs "-Xmx1024m"
         if (!project.ext.java8) {
             jvmArgs "-XX:MaxPermSize=512m" // Travis is having some trouble with PermGen
         }

@@ -102,6 +102,7 @@ public class ChannelTest {
 
     @After
     public void tearDown() {
+        scheduler.shutdown();
     }
 
     @Test

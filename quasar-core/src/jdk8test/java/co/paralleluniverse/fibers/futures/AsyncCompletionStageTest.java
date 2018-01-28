@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutionException;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.junit.Test;
+import org.junit.After;
 
 /**
  *
@@ -32,6 +33,11 @@ public class AsyncCompletionStageTest {
 
     public AsyncCompletionStageTest() {
         scheduler = new FiberForkJoinScheduler("test", 4, null, false);
+    }
+
+    @After
+    public void tearDown() {
+        scheduler.shutdown();
     }
 
     @Test

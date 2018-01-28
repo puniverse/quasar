@@ -79,6 +79,7 @@ public class TransferSelectorTest {
 
     @After
     public void tearDown() {
+        scheduler.shutdown();
     }
 
     @Test

@@ -62,6 +62,11 @@ public class FiberExecutorScheduler extends FiberScheduler implements Executor {
         this(name, executor, null, false);
     }
 
+    public void shutdown() {
+        this.timer.shutdown();
+        super.shutdown();
+    }
+
     @Override
     protected boolean isCurrentThreadInScheduler() {
         return false;

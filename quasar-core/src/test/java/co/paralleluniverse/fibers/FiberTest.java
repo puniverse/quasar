@@ -43,6 +43,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.hamcrest.CoreMatchers.*;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Rule;
 import org.junit.rules.TestName;
@@ -70,6 +71,12 @@ public class FiberTest implements Serializable {
 //    }
     public FiberTest(FiberScheduler scheduler) {
         this.scheduler = scheduler;
+    }
+
+    @After
+    public void tearDown() {
+        // Cannot shutdown FiberScheduler, as it is reused over multiple tests. So these FiberSchedulers and their associated threads will be kept over the whole test run.
+//      scheduler.shutdown();
     }
 
     @Parameterized.Parameters
