@@ -346,7 +346,7 @@ public class FiberTimedScheduler {
      * be cancelled.
      */
     public void shutdown() {
-        assert false;
+//      assert false;
         mainLock.lock();
         try {
             if (state < SHUTDOWN)
@@ -354,6 +354,11 @@ public class FiberTimedScheduler {
         } finally {
             mainLock.unlock();
         }
+    }
+    
+    public void finalize() throws Throwable {
+        shutdown();
+        super.finalize();
     }
 
     /**

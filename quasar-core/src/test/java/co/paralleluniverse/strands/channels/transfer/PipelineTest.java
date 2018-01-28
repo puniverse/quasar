@@ -36,6 +36,7 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.After;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
@@ -66,6 +67,11 @@ public class PipelineTest {
         this.singleConsumer = singleConsumer;
         this.singleProducer = singleProducer;
         this.parallelism = parallelism;
+    }
+
+    @After
+    public void tearDown() {
+        scheduler.shutdown();
     }
 
     @Parameterized.Parameters

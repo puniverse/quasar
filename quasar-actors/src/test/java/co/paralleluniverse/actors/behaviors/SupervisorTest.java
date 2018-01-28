@@ -60,6 +60,7 @@ public class SupervisorTest {
     @After
     public void tearDown() {
         ActorRegistry.clear();
+        scheduler.shutdown();
     }
     
     private static final Logger LOG = LoggerFactory.getLogger(SupervisorActor.class);

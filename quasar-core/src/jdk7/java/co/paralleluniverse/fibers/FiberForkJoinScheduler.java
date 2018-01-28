@@ -93,6 +93,11 @@ public class FiberForkJoinScheduler extends FiberScheduler {
 
         this.timer = timeService != null ? timeService : createTimer(fjPool, getMonitor());
     }
+    
+    public void shutdown() {
+        this.timer.shutdown();
+        super.shutdown();
+    }
 
     private ForkJoinPool createForkJoinPool(String name, int parallelism, UncaughtExceptionHandler exceptionHandler, MonitorType monitorType) {
         final MonitoredForkJoinPool pool = new MonitoredForkJoinPool(name, parallelism, new ExtendedForkJoinWorkerFactory(name) {

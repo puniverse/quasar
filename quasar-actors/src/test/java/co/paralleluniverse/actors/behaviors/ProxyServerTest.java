@@ -53,6 +53,7 @@ public class ProxyServerTest {
     @After
     public void tearDown() {
         ActorRegistry.clear();
+        scheduler.shutdown();
     }
 
     static final MailboxConfig mailboxConfig = new MailboxConfig(10, Channels.OverflowPolicy.THROW);

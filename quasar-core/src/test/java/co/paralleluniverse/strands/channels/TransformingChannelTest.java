@@ -105,6 +105,7 @@ public class TransformingChannelTest {
 
     @After
     public void tearDown() {
+        scheduler.shutdown();
     }
 
     @Test

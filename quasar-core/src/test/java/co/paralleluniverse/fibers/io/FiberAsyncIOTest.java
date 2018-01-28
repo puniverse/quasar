@@ -65,6 +65,7 @@ public class FiberAsyncIOTest {
 
     @After
     public void tearDown() {
+        scheduler.shutdown();
     }
 
     @Test
