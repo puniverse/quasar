@@ -64,7 +64,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 public class SuspendablesScanner extends Task {
-    private static final int ASMAPI = Opcodes.ASM5;
+    private static final int ASMAPI = Opcodes.ASM6;
     //
     private final Map<String, MethodNode> methods = new HashMap<>();
     private final Map<String, ClassNode> classes = new HashMap<>();
