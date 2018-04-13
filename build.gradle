@@ -4,7 +4,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.2'
         classpath 'net.saliman:gradle-cobertura-plugin:2.3.1'
     }
 }
@@ -40,7 +40,7 @@ subprojects {
     ext.jdkVer = ext.java8 ? "8" : "7"
     ext.quasarJar = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}${ext.java8 ? "-jdk8" : ""}.jar" // project(':quasar-core').jar.archivePath
 
-    ext.asmVer    = '5.2'
+    ext.asmVer    = '6.1.1'
     ext.kotlinVer = '1.1.3-2'
 
     if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
