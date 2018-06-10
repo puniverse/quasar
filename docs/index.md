@@ -30,6 +30,10 @@ A core component of Quasar, bytecode instrumentation, is a fork of the wonderful
 
 ## News
 
+### June 10, 2018
+
+Quasar [0.7.10](https://github.com/puniverse/quasar/releases/tag/v0.7.10) has been released.
+
 ### July 28, 2017
 
 Quasar [0.7.9](https://github.com/puniverse/quasar/releases/tag/v0.7.9) has been released.
@@ -264,7 +268,7 @@ then [install Gradle](https://docs.gradle.org/current/userguide/installation.htm
 
 ### Fibers {#fibers}
 
-Quasar's chief contribution is that of the lightweight thread, called *fiber* in Quasar.  
+Quasar's chief contribution is that of the lightweight thread, called *fiber* in Quasar.
 Fibers provide functionality similar to threads, and a similar API, but they're not managed by the OS. They are lightweight in terms of RAM (an idle fiber occupies ~400 bytes of RAM) and put a far lesser burden on the CPU when task-switching. You can have millions of fibers in an application. If you are familiar with Go, fibers are like goroutines. Fibers in Quasar are scheduled by one or more [ForkJoinPool](http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ForkJoinPool.html)s.
 
 Fibers are not meant to replace threads in all circumstances. A fiber should be used when its body (the code it executes) blocks very often waiting on other fibers (e.g. waiting for messages sent by other fibers on a channel, or waiting for the value of a dataflow-variable). For long-running computations that rarely block, traditional threads are preferable. Fortunately, as we shall see, fibers and threads interoperate very well.
