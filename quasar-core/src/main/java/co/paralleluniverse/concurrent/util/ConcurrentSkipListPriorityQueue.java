@@ -21,7 +21,7 @@
  */
 package co.paralleluniverse.concurrent.util;
 
-import co.paralleluniverse.common.util.UtilUnsafe;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.*;
 
 public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
@@ -289,12 +289,14 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
         head = new HeadIndex<E>(new Node<E>(null, BASE_HEADER, null),
                 null, null, 1);
     }
+    
+    private static final AtomicReferenceFieldUpdater<ConcurrentSkipListPriorityQueue,HeadIndex> headUpdater = AtomicReferenceFieldUpdater.newUpdater(ConcurrentSkipListPriorityQueue.class,HeadIndex.class,"head"); 
 
     /**
      * compareAndSet head node
      */
     private boolean casHead(HeadIndex<E> cmp, HeadIndex<E> val) {
-        return UNSAFE.compareAndSwapObject(this, headOffset, cmp, val);
+        return headUpdater.compareAndSet(this, cmp, val);
     }
 
     /* ---------------- Nodes -------------- */
@@ -336,18 +338,22 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
             this.next = next;
         }
 
+        private static final AtomicReferenceFieldUpdater<Node,Object> valueUpdater = AtomicReferenceFieldUpdater.newUpdater(Node.class,Object.class,"value"); 
+ 
         /**
          * compareAndSet value field
          */
         boolean casValue(Object cmp, Object val) {
-            return UNSAFE.compareAndSwapObject(this, valueOffset, cmp, val);
+            return valueUpdater.compareAndSet(this, cmp, val);
         }
+
+        private static final AtomicReferenceFieldUpdater<Node,Node>   nextUpdater  = AtomicReferenceFieldUpdater.newUpdater(Node.class,Node.class,"next"); 
 
         /**
          * compareAndSet next field
          */
         boolean casNext(Node<V> cmp, Node<V> val) {
-            return UNSAFE.compareAndSwapObject(this, nextOffset, cmp, val);
+            return nextUpdater.compareAndSet(this, cmp, val);
         }
 
         /**
@@ -418,21 +424,6 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
                 return null;
             return (V) v;
         }
-        // UNSAFE mechanics
-        private static final sun.misc.Unsafe UNSAFE;
-        private static final long valueOffset;
-        private static final long nextOffset;
-
-        static {
-            try {
-                UNSAFE = UtilUnsafe.getUnsafe();
-                Class k = Node.class;
-                valueOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("value"));
-                nextOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("next"));
-            } catch (Exception e) {
-                throw new Error(e);
-            }
-        }
     }
 
     /* ---------------- Indexing -------------- */
@@ -457,11 +448,13 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
             this.right = right;
         }
 
+        private static final AtomicReferenceFieldUpdater<Index,Index> rightUpdater = AtomicReferenceFieldUpdater.newUpdater(Index.class,Index.class,"right"); 
+
         /**
          * compareAndSet right field
          */
         final boolean casRight(Index<V> cmp, Index<V> val) {
-            return UNSAFE.compareAndSwapObject(this, rightOffset, cmp, val);
+            return rightUpdater.compareAndSet(this, cmp, val);
         }
 
         /**
@@ -498,19 +491,6 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
          */
         final boolean unlink(Index<V> succ) {
             return !indexesDeletedNode() && casRight(succ, succ.right);
-        }
-        // Unsafe mechanics
-        private static final sun.misc.Unsafe UNSAFE;
-        private static final long rightOffset;
-
-        static {
-            try {
-                UNSAFE = UtilUnsafe.getUnsafe();
-                Class k = Index.class;
-                rightOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("right"));
-            } catch (Exception e) {
-                throw new Error(e);
-            }
         }
     }
 
@@ -1561,18 +1541,5 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     @Override
     public <T> T[] toArray(T[] a) {
         return toList(this).toArray(a);
-    }
-    // Unsafe mechanics
-    private static final sun.misc.Unsafe UNSAFE;
-    private static final long headOffset;
-
-    static {
-        try {
-            UNSAFE = UtilUnsafe.getUnsafe();
-            Class k = ConcurrentSkipListPriorityQueue.class;
-            headOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("head"));
-        } catch (Exception e) {
-            throw new Error(e);
-        }
     }
 }

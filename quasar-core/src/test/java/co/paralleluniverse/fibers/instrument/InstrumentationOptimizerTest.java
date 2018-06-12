@@ -21,7 +21,7 @@ import co.paralleluniverse.strands.SuspendableRunnable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ThreadLocalRandom;
+import co.paralleluniverse.concurrent.util.ThreadLocalRandom;
 import static org.junit.Assert.*;
 import org.junit.Test;
 

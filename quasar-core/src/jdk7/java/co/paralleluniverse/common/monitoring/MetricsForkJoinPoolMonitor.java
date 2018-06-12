@@ -16,7 +16,7 @@ import co.paralleluniverse.common.monitoring.ExecutorServiceLatencyProbe;
 import co.paralleluniverse.common.monitoring.Metrics;
 import com.codahale.metrics.Gauge;
 import static com.codahale.metrics.MetricRegistry.name;
-import jsr166e.ForkJoinPool;
+import jersey.repackaged.jsr166e.ForkJoinPool;
 
 /**
  *

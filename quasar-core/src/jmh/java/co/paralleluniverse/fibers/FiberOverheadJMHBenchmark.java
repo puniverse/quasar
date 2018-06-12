@@ -15,7 +15,7 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
+import co.paralleluniverse.concurrent.util.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.runner.Runner;

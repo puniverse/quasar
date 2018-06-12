@@ -448,7 +448,8 @@ project (':quasar-core') {
     }
 
     dependencies {
-        jdk7Compile ":jsr166e"
+        jdk7Compile     group: 'org.glassfish.jersey.bundles.repackaged', name: 'jersey-jsr166e', version: '2.25.1'
+        jdk7testCompile group: 'org.glassfish.jersey.bundles.repackaged', name: 'jersey-jsr166e', version: '2.25.1'
         compile ":high-scale-lib"
         compile "org.hdrhistogram:HdrHistogram:2.1.9"
         compile("org.latencyutils:LatencyUtils:2.0.3") {
@@ -534,13 +535,9 @@ project (':quasar-core') {
         targetCompatibility = '1.7'
     }
 
-    //    jdk7Jar {
-    //        from zipTree("${baselib}/jsr166e.jar")  // include non-Maven jars
-    //    }
-
     jdk7ShadowJar {
         dependencies {
-            include(dependency(':jsr166e'))
+            include(dependency(group: 'org.glassfish.jersey.bundles.repackaged', name: 'jersey-jsr166e', version: '2.25.1'))
         }
     }
 
@@ -605,7 +602,6 @@ project (':quasar-core') {
 
     [installer, deployer]*.pom*.whenConfigured {
         it.dependencies.removeAll { dep ->
-            dep.artifactId.startsWith('jsr166e') ||
             dep.artifactId.startsWith('high-scale-lib') ||
             dep.groupId == 'org.ow2.asm'
         }

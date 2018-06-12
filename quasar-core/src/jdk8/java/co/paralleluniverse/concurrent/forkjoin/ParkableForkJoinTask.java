@@ -18,7 +18,7 @@ import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.common.util.UtilUnsafe;
-import co.paralleluniverse.concurrent.util.ThreadAccess;
+import static co.paralleluniverse.concurrent.util.ThreadAccess.ThreadAccess;
 import co.paralleluniverse.fibers.Fiber;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
@@ -71,7 +71,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         this.blocker = null;
         setCurrent(this);
         try {
-            return doExec();
+            return internalDoExec();
         } finally {
             setTarget(currentThread, oldTarget); // can't use enclosing for the same reason can't nullify enclosing. See below.
             //enclosing = null; -- can't nullify enclosing here, because by the time we get here, his task may have been re-scheduled and enclosing re-set
@@ -111,7 +111,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             return ThreadAccess.getTarget(thread);
     }
 
-    boolean doExec() {
+    boolean internalDoExec() { // Do not call this method "doExec()", as (due to bug https://code.google.com/p/android/issues/detail?id=60406) on some Android VMs, callers of this method will actually call FiberForkJoinScheduler$FiberForkJoinTask.doExec()
         try {
             onExec();
             boolean res = exec1();
@@ -139,15 +139,15 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     protected void onExec() {
         if (Debug.isDebug())
-            record("doExec", "executing %s", this);
+            record("internalDoExec", "executing %s", this);
     }
 
     protected void onCompletion(boolean res) {
-        record("doExec", "done normally %s", this, Boolean.valueOf(res));
+        record("internalDoExec", "done normally %s", this, Boolean.valueOf(res));
     }
 
     protected void onException(Throwable t) {
-        record("doExec", "exception in %s - %s, %s", this, t, t.getStackTrace());
+        record("internalDoExec", "exception in %s - %s, %s", this, t, t.getStackTrace());
         throw Exceptions.rethrow(t);
     }
 
@@ -157,7 +157,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     protected void onParked(boolean yield) {
         if (Debug.isDebug())
-            record("doExec", "parked " + (yield ? "(yield)" : "(park)") + " %s", this);
+            record("internalDoExec", "parked " + (yield ? "(yield)" : "(park)") + " %s", this);
     }
 
     protected Object getUnparker() {

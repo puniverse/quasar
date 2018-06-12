@@ -18,7 +18,7 @@ import static co.paralleluniverse.actors.ActorImpl.getActorRefImpl;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.concurrent.util.MapUtil;
-import co.paralleluniverse.concurrent.util.ThreadAccess;
+import static co.paralleluniverse.concurrent.util.ThreadAccess.ThreadAccess;
 import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberFactory;

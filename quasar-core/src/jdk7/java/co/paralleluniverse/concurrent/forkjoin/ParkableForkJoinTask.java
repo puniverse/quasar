@@ -18,13 +18,13 @@ import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.common.util.UtilUnsafe;
-import co.paralleluniverse.concurrent.util.ThreadAccess;
+import static co.paralleluniverse.concurrent.util.ThreadAccess.ThreadAccess;
 import co.paralleluniverse.fibers.Fiber;
-import jsr166e.ForkJoinPool;
-import jsr166e.ForkJoinTask;
-import jsr166e.ForkJoinWorkerThread;
+import jersey.repackaged.jsr166e.ForkJoinPool;
+import jersey.repackaged.jsr166e.ForkJoinTask;
+import jersey.repackaged.jsr166e.ForkJoinWorkerThread;
 
-import sun.misc.Unsafe;
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
 /**
  *
@@ -34,7 +34,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     public static final boolean CAPTURE_UNPARK_STACK = Debug.isDebug() || SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.captureUnparkStackTrace");
     public static final Object EMERGENCY_UNBLOCKER = new Object();
-    public static final Park PARK = new Park();
+    public static final Park PARK = Park.create();
     public static final int RUNNABLE = 0;
     public static final int LEASED = 1;
     public static final int PARKED = -1;
@@ -71,7 +71,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         this.blocker = null;
         setCurrent(this);
         try {
-            return doExec();
+            return internalDoExec();
         } finally {
             setTarget(currentThread, oldTarget); // can't use enclosing for the same reason can't nullify enclosing. See below.
             //enclosing = null; -- can't nullify enclosing here, because by the time we get here, his task may have been re-scheduled and enclosing re-set
@@ -111,7 +111,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
             return ThreadAccess.getTarget(thread);
     }
 
-    boolean doExec() {
+    boolean internalDoExec() { // Do not call this method "doExec()", as (due to bug https://code.google.com/p/android/issues/detail?id=60406) on some Android VMs, callers of this method will actually call FiberForkJoinScheduler$FiberForkJoinTask.doExec() 
         try {
             onExec();
             boolean res = exec1();
@@ -139,15 +139,15 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     protected void onExec() {
         if (Debug.isDebug())
-            record("doExec", "executing %s", this);
+            record("internalDoExec", "executing %s", this);
     }
 
     protected void onCompletion(boolean res) {
-        record("doExec", "done normally %s", this, Boolean.valueOf(res));
+        record("internalDoExec", "done normally %s", this, Boolean.valueOf(res));
     }
 
     protected void onException(Throwable t) {
-        record("doExec", "exception in %s - %s, %s", this, t, t.getStackTrace());
+        record("internalDoExec", "exception in %s - %s, %s", this, t, t.getStackTrace());
         throw Exceptions.rethrow(t);
     }
 
@@ -157,7 +157,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
 
     protected void onParked(boolean yield) {
         if (Debug.isDebug())
-            record("doExec", "parked " + (yield ? "(yield)" : "(park)") + " %s", this);
+            record("internalDoExec", "parked " + (yield ? "(yield)" : "(park)") + " %s", this);
     }
 
     protected Object getUnparker() {
@@ -305,7 +305,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     protected void submit() {
-        assert Thread.currentThread() instanceof jsr166e.ForkJoinWorkerThread;
+        assert Thread.currentThread() instanceof ForkJoinWorkerThread;
         fork();
     }
 
@@ -324,8 +324,10 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         this.state = state;
     }
 
+    private static final AtomicIntegerFieldUpdater<ParkableForkJoinTask> stateUpdater = AtomicIntegerFieldUpdater.newUpdater(ParkableForkJoinTask.class,"state"); 
+
     boolean compareAndSetState(int expect, int update) {
-        return UNSAFE.compareAndSwapInt(this, stateOffset, expect, update);
+        return stateUpdater.compareAndSet(this, expect, update);
     }
 
     @Override
@@ -366,25 +368,42 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         if (RECORDER != null)
             RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
     }
-    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long stateOffset;
-
-    static {
-        try {
-            stateOffset = UNSAFE.objectFieldOffset(ParkableForkJoinTask.class.getDeclaredField("state"));
-        } catch (Exception ex) {
-            throw new AssertionError(ex);
-        }
-    }
 
     public static class Park extends Error {
         private Park() {
             super(null, null, false, false);
         }
 
+        protected Park(String message,Throwable cause) { // Just to provide a means for ParkJava1_6 to call its super-constructor. 
+            super(message,cause);
+        }
+        
         @Override
         public synchronized Throwable fillInStackTrace() {
             return this;
+        }
+        
+        public static Park create() {
+            try {
+                return new Park();
+            } catch (NoSuchMethodError e) {  // We do not run JDK 1.7 or higher and hence do not have a constructor Error(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) we could call.
+                return new ParkJava1_6();    // Hence we need to fallback to a JDK 1.6 implementation.
+            }
+        }
+    }
+    
+    /*
+        Note that there will be only one singleton instance of this class, possibly being thrown by multiple threads simultaneously.
+        However, this should not pose any problems, as the Java VM spec does not specify that the "athrow" instruction changes any field of the Throwable object.
+        Starting with Java 1.7, exception handler code may call addSuppressed(), but under Java 1.7, this class should not be in use in the first place.
+    */
+    public static class ParkJava1_6 extends Park {
+        private ParkJava1_6() {
+            super(null, null);
+        }
+
+        public void setStackTrace(StackTraceElement[] stackTrace) {
+            throw new AssertionError("Cannot set stack trace "+stackTrace+" to singleton throwable.");
         }
     }
 

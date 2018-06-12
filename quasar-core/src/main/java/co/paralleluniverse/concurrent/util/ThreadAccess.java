@@ -25,183 +25,76 @@ import java.util.*;
  *
  * @author pron
  */
-public class ThreadAccess {
-    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long targetOffset;
-    private static final long threadLocalsOffset;
-    private static final long inheritableThreadLocalsOffset;
-    private static final long contextClassLoaderOffset;
-    private static final long inheritedAccessControlContextOffset;
-    private static final Class threadLocalMapClass;
-    private static final Constructor threadLocalMapConstructor;
-    private static final Constructor threadLocalMapInheritedConstructor;
-//    private static final Method threadLocalMapSet;
-    private static final Field threadLocalMapTableField;
-    private static final Field threadLocalMapSizeField;
-    private static final Field threadLocalMapThresholdField;
-    private static final Class threadLocalMapEntryClass;
-    private static final Constructor threadLocalMapEntryConstructor;
-    private static final Field threadLocalMapEntryValueField;
-
-    static {
+public abstract class ThreadAccess {
+    public static final ThreadAccess ThreadAccess = loadThreadAccess();
+    
+    private static ThreadAccess loadThreadAccess() {
+    	  try {
+    	  	  return new JavaVMThreadAccess();
+    	  } catch (AssertionError e) {
+    	  	  return new DalvikVMThreadAccess();
+    	  }
+    }
+    
+    protected static Constructor getDeclaredConstructorAndEnableAccess(Class klass,Class<?>... parameterTypes) throws NoSuchMethodException {
+        Constructor constructor = klass.getDeclaredConstructor(parameterTypes);
+        
+        constructor.setAccessible(true);
+        
+        return constructor;
+    }
+    
+    protected static Method getDeclaredMethodAndEnableAccess(Class klass,String name,Class<?>... parameterTypes) throws NoSuchMethodException {
+        Method method = klass.getDeclaredMethod(name,parameterTypes);
+        
+        method.setAccessible(true);
+        
+        return method;
+    }
+    
+    protected static Field getDeclaredFieldAndEnableAccess(Class klass,String fieldname) throws NoSuchFieldException {
+        Field field = klass.getDeclaredField(fieldname);
+        
+        field.setAccessible(true);
+        
+        return field;
+    }
+    
+    protected static Field maybeGetDeclaredFieldAndEnableAccess(Class klass,String fieldname) {
         try {
-            targetOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("target"));
-            threadLocalsOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("threadLocals"));
-            inheritableThreadLocalsOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("inheritableThreadLocals"));
-            contextClassLoaderOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("contextClassLoader"));
-
-            long _inheritedAccessControlContextOffset = -1;
-            try {
-                _inheritedAccessControlContextOffset = UNSAFE.objectFieldOffset(Thread.class.getDeclaredField("inheritedAccessControlContext"));
-            } catch (NoSuchFieldException e) {
-            }
-            inheritedAccessControlContextOffset = _inheritedAccessControlContextOffset;
-
-            threadLocalMapClass = Class.forName("java.lang.ThreadLocal$ThreadLocalMap");
-            threadLocalMapConstructor = threadLocalMapClass.getDeclaredConstructor(ThreadLocal.class, Object.class);
-            threadLocalMapConstructor.setAccessible(true);
-            threadLocalMapInheritedConstructor = threadLocalMapClass.getDeclaredConstructor(threadLocalMapClass);
-            threadLocalMapInheritedConstructor.setAccessible(true);
-//            threadLocalMapSet = threadLocalMapClass.getDeclaredMethod("set", ThreadLocal.class, Object.class);
-//            threadLocalMapSet.setAccessible(true);
-            threadLocalMapTableField = threadLocalMapClass.getDeclaredField("table");
-            threadLocalMapTableField.setAccessible(true);
-            threadLocalMapSizeField = threadLocalMapClass.getDeclaredField("size");
-            threadLocalMapSizeField.setAccessible(true);
-            threadLocalMapThresholdField = threadLocalMapClass.getDeclaredField("threshold");
-            threadLocalMapThresholdField.setAccessible(true);
-
-            threadLocalMapEntryClass = Class.forName("java.lang.ThreadLocal$ThreadLocalMap$Entry");
-            threadLocalMapEntryConstructor = threadLocalMapEntryClass.getDeclaredConstructor(ThreadLocal.class, Object.class);
-            threadLocalMapEntryConstructor.setAccessible(true);
-            threadLocalMapEntryValueField = threadLocalMapEntryClass.getDeclaredField("value");
-            threadLocalMapEntryValueField.setAccessible(true);
-        } catch (Exception ex) {
-            throw new AssertionError(ex);
+            return getDeclaredFieldAndEnableAccess(klass,fieldname);
+        } catch (NoSuchFieldException e) {
+            return null;
         }
     }
 
-    public static Runnable getTarget(Thread thread) {
-        return (Runnable) UNSAFE.getObject(thread, targetOffset);
-    }
+    abstract public Runnable getTarget(Thread thread);
 
-    public static void setTarget(Thread thread, Runnable target) {
-        UNSAFE.putObject(thread, targetOffset, target);
-    }
+    abstract public void setTarget(Thread thread, Runnable target);
 
-    public static Object getThreadLocals(Thread thread) {
-        return UNSAFE.getObject(thread, threadLocalsOffset);
-    }
+    abstract public Object getThreadLocals(Thread thread);
 
-    public static void setThreadLocals(Thread thread, Object threadLocals) {
-        UNSAFE.putObject(thread, threadLocalsOffset, threadLocals);
-    }
+    abstract public void setThreadLocals(Thread thread, Object threadLocals);
 
-    public static Object getInheritableThreadLocals(Thread thread) {
-        return UNSAFE.getObject(thread, inheritableThreadLocalsOffset);
-    }
+    abstract public Object getInheritableThreadLocals(Thread thread);
 
-    public static void setInheritableThreadLocals(Thread thread, Object inheritableThreadLocals) {
-        UNSAFE.putObject(thread, inheritableThreadLocalsOffset, inheritableThreadLocals);
-    }
+    abstract public void setInheritableThreadLocals(Thread thread, Object inheritableThreadLocals);
 
-    private static Object createThreadLocalMap(ThreadLocal tl, Object firstValue) {
-        try {
-            return threadLocalMapConstructor.newInstance(tl, firstValue);
-        } catch (ReflectiveOperationException ex) {
-            throw new AssertionError(ex);
-        }
-    }
+    abstract public Object createInheritedMap(Object inheritableThreadLocals);
 
-    public static Object createInheritedMap(Object inheritableThreadLocals) {
-        try {
-            return threadLocalMapInheritedConstructor.newInstance(inheritableThreadLocals);
-        } catch (ReflectiveOperationException ex) {
-            throw new AssertionError(ex);
-        }
-    }
-
-//    public static void set(Thread t, ThreadLocal tl, Object value) {
-//        Object map = getThreadLocals(t);
-//        if (map != null)
-//            set(map, tl, value);
-//        else
-//            setThreadLocals(t, createThreadLocalMap(tl, value));
-//    }
+//  abstract public void set(Thread t, ThreadLocal tl, Object value);
 //
-//    private static void set(Object map, ThreadLocal tl, Object value) {
-//        try {
-//            threadLocalMapSet.invoke(map, tl, value);
-//        } catch (ReflectiveOperationException e) {
-//            throw new AssertionError(e);
-//        }
-//    }
 
     // createInheritedMap works only for InheritableThreadLocals
-    public static Object cloneThreadLocalMap(Object orig) {
-        try {
-            Object clone = createThreadLocalMap(new ThreadLocal(), null);
+    abstract public Object cloneThreadLocalMap(Object orig);
 
-            Object origTable = threadLocalMapTableField.get(orig);
-            final int len = Array.getLength(origTable);
-            Object tableClone = Array.newInstance(threadLocalMapEntryClass, len);
-            for (int i = 0; i < len; i++) {
-                Object entry = Array.get(origTable, i);
-                if (entry != null)
-                    Array.set(tableClone, i, cloneThreadLocalMapEntry(entry));
-            }
+    abstract public Map<ThreadLocal, Object> toMap(Object threadLocalMap);
 
-            threadLocalMapTableField.set(clone, tableClone);
-            threadLocalMapSizeField.setInt(clone, threadLocalMapSizeField.getInt(orig));
-            threadLocalMapThresholdField.setInt(clone, threadLocalMapThresholdField.getInt(orig));
-            return clone;
-        } catch (ReflectiveOperationException ex) {
-            throw new AssertionError(ex);
-        }
-    }
+    abstract public ClassLoader getContextClassLoader(Thread thread);
 
-    private static Object cloneThreadLocalMapEntry(Object entry) {
-        try {
-            final ThreadLocal key = ((Reference<ThreadLocal>) entry).get();
-            final Object value = threadLocalMapEntryValueField.get(entry);
-            return threadLocalMapEntryConstructor.newInstance(key, value);
-        } catch (Exception ex) {
-            throw new AssertionError(ex);
-        }
-    }
+    abstract public void setContextClassLoader(Thread thread, ClassLoader classLoader);
 
-    public static Map<ThreadLocal, Object> toMap(Object threadLocalMap) {
-        try {
-            final Map<ThreadLocal, Object> map = new HashMap<>();
-            Object table = threadLocalMapTableField.get(threadLocalMap);
-            final int len = Array.getLength(table);
-            for (int i = 0; i < len; i++) {
-                Object entry = Array.get(table, i);
-                if (entry != null)
-                    map.put(((Reference<ThreadLocal>) entry).get(), threadLocalMapEntryValueField.get(entry));
-            }
-            return map;
-        } catch (Exception ex) {
-            throw new AssertionError(ex);
-        }
-    }
+    abstract public AccessControlContext getInheritedAccessControlContext(Thread thread);
 
-    public static ClassLoader getContextClassLoader(Thread thread) {
-        return (ClassLoader) UNSAFE.getObject(thread, contextClassLoaderOffset);
-    }
-
-    public static void setContextClassLoader(Thread thread, ClassLoader classLoader) {
-        UNSAFE.putObject(thread, contextClassLoaderOffset, classLoader);
-    }
-
-    public static AccessControlContext getInheritedAccessControlContext(Thread thread) {
-        if (inheritedAccessControlContextOffset < 0)
-            return null;
-        return (AccessControlContext) UNSAFE.getObject(thread, inheritedAccessControlContextOffset);
-    }
-
-    public static void setInheritedAccessControlContext(Thread thread, AccessControlContext accessControlContext) {
-        if (inheritedAccessControlContextOffset >= 0)
-            UNSAFE.putObject(thread, inheritedAccessControlContextOffset, accessControlContext);
-    }
+    abstract public void setInheritedAccessControlContext(Thread thread, AccessControlContext accessControlContext);
 }

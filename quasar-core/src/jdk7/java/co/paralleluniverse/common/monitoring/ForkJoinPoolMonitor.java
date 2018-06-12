@@ -13,7 +13,7 @@
 package co.paralleluniverse.common.monitoring;
 
 import java.lang.ref.WeakReference;
-import jsr166e.ForkJoinPool;
+import jersey.repackaged.jsr166e.ForkJoinPool;
 
 /**
  *

@@ -27,8 +27,9 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Synchronization;
 import co.paralleluniverse.strands.Timeout;
-import java.util.concurrent.ThreadLocalRandom;
+import co.paralleluniverse.concurrent.util.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.Random;
 
 /**
  *
@@ -694,7 +695,7 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
         long lastTime = timed ? System.nanoTime() : 0L;
         Strand w = Strand.currentStrand();
         int spins = (w.isFiber() ? 0 : -1); // no spins in fiber; otherwise, initialized after first item and cancel checks
-        ThreadLocalRandom randomYields = null; // bound if needed
+        Random randomYields = null;         // bound if needed
 
         if (spins == 0)
             requestUnpark(s, w);

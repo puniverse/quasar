@@ -46,7 +46,7 @@ public class DefaultFiberScheduler {
         int par = 0;
         UncaughtExceptionHandler handler = null;
         // ForkJoinPool.ForkJoinWorkerThreadFactory fac = new NamingForkJoinWorkerFactory(name);
-        MonitorType monitorType = MonitorType.JMX;
+        MonitorType monitorType = defaultMonitorType();
         boolean detailedFiberInfo = false;
 
         // get overrides
@@ -78,6 +78,15 @@ public class DefaultFiberScheduler {
 
         // build instance
         instance = new FiberForkJoinScheduler(name, par, handler, monitorType, detailedFiberInfo);
+    }
+    
+    public static MonitorType defaultMonitorType() {
+        try {
+            Class.forName("javax.management.StandardEmitterMBean");  // try to load a standard JMX class
+            return MonitorType.JMX;                                  // If we succeed, we can use JMX.
+        } catch (ClassNotFoundException e) {
+            return MonitorType.NONE;                                 // Else we default to not use any monitor.
+        }
     }
 
     /**
