@@ -47,12 +47,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NavigableMap;
-import java.util.TreeMap;
+import java.util.*;
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
@@ -239,7 +235,7 @@ public class MethodDatabase {
     public synchronized ClassEntry getOrCreateClassEntry(String className, String superType) {
         ClassEntry ce = classes.get(className);
         if (ce == null) {
-            ce = new ClassEntry(superType);
+            ce = new ClassEntry(className, superType);
             classes.put(className, ce);
         }
         return ce;
@@ -454,30 +450,40 @@ public class MethodDatabase {
                || className.startsWith("org/apache/log4j/");
     }
 
-    private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>");
+    private static final ClassEntry CLASS_NOT_FOUND = new ClassEntry("<class not found>", "<class not found>");
 
     public enum SuspendableType {
         NON_SUSPENDABLE, SUSPENDABLE_SUPER, SUSPENDABLE
     };
 
     public static final class ClassEntry {
-        private final HashMap<String, SuspendableType> methods;
+        public final HashMap<String, SuspendableType> methods;
+        public final HashSet<String> bridges;
         private String sourceName;
         private String sourceDebugInfo;
         private boolean isInterface;
         private String[] interfaces;
         private final String superName;
+        private final String name;
         private boolean instrumented;
         private volatile boolean requiresInstrumentation;
 
-        public ClassEntry(String superName) {
+        public ClassEntry(String name, String superName) {
+            this.name = name;
             this.superName = superName;
             this.methods = new HashMap<>();
+            this.bridges = new HashSet<>();
         }
 
-        public void set(String name, String desc, SuspendableType suspendable) {
+        public String getName() {
+            return name;
+        }
+
+        public void set(String name, String desc, SuspendableType suspendable, boolean bridge) {
             String nameAndDesc = key(name, desc);
             methods.put(nameAndDesc, suspendable);
+            if(bridge)
+                bridges.add(nameAndDesc);
         }
 
         public String getSourceName() {
@@ -567,6 +573,61 @@ public class MethodDatabase {
 
         public void setInstrumented(boolean instrumented) {
             this.instrumented = instrumented;
+        }
+
+        public boolean implementsInterface(String name, MethodDatabase db) {
+            for(String interf : interfaces){
+                if(interf.equals(name))
+                    return true;
+            }
+            if(superName != null){
+                ClassEntry superClass = db.getOrLoadClassEntry(superName);
+                if(superClass != null && superClass.implementsInterface(name, db))
+                    return true;
+            }
+            for(String interf : interfaces){
+                ClassEntry superClass = db.getOrLoadClassEntry(interf);
+                if(superClass != null && superClass.implementsInterface(name, db))
+                    return true;
+            }
+            return false;
+        }
+
+        public ClassEntry getClassImplementingMethod(String methodNameAndParams, MethodDatabase db) {
+            for (Map.Entry<String, SuspendableType> entry : methods.entrySet()) {
+                String key = entry.getKey();
+                if (key.substring(0, key.indexOf(')')+1).equals(methodNameAndParams)
+                        && !bridges.contains(key))
+                    return this;
+            }
+            if(superName != null){
+                ClassEntry superClass = db.getOrLoadClassEntry(superName);
+                if(superClass != null) {
+                    ClassEntry ret = superClass.getClassImplementingMethod(methodNameAndParams, db);
+                    if (ret != null)
+                        return ret;
+                }
+            }
+            for(String interf : interfaces){
+                ClassEntry superClass = db.getOrLoadClassEntry(interf);
+                if(superClass != null) {
+                    ClassEntry ret = superClass.getClassImplementingMethod(methodNameAndParams, db);
+                    if (ret != null)
+                        return ret;
+                }
+            }
+            return null;
+        }
+
+        public String getReturnType(String methodNameAndParams) {
+            for (Map.Entry<String, SuspendableType> entry : methods.entrySet()) {
+                String key = entry.getKey();
+                int retIndex = key.indexOf(")")+1;
+                if (key.substring(0, retIndex).equals(methodNameAndParams)
+                        && !bridges.contains(key))
+                    return key.substring(retIndex);
+            }
+            return null;
         }
     }
 

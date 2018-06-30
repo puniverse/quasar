@@ -148,7 +148,8 @@ class InstrumentClass extends ClassVisitor {
         final SuspendableType setSuspendable = classEntry.check(name, desc);
 
         if (setSuspendable == null)
-            classEntry.set(name, desc, markedSuspendable != null ? markedSuspendable : SuspendableType.NON_SUSPENDABLE);
+            classEntry.set(name, desc, markedSuspendable != null ? markedSuspendable : SuspendableType.NON_SUSPENDABLE,
+                    (access & Opcodes.ACC_BRIDGE) != 0);
 
         final SuspendableType suspendable = max(markedSuspendable, setSuspendable, SuspendableType.NON_SUSPENDABLE);
 
@@ -200,7 +201,7 @@ class InstrumentClass extends ClassVisitor {
 
                     if (db.isDebug())
                         db.log(LogLevel.INFO, "Method %s#%s%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, desc, susp, susp, setSuspendable);
-                    classEntry.set(name, desc, susp);
+                    classEntry.set(name, desc, susp, (access & Opcodes.ACC_BRIDGE) != 0);
 
                     if (susp == SuspendableType.SUSPENDABLE && checkAccessForMethodInstrumentation(access)) {
                         if (isSynchronized(access)) {

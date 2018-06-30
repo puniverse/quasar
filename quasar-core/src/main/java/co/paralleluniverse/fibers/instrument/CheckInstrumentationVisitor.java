@@ -96,7 +96,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         this.className = name;
         this.isInterface = (access & Opcodes.ACC_INTERFACE) != 0;
-        this.classEntry = new ClassEntry(superName);
+        this.classEntry = new ClassEntry(name, superName);
         classEntry.setInterfaces(interfaces);
         classEntry.setIsInterface(isInterface);
     }
@@ -137,7 +137,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
             }
         }
         suspendable = InstrumentClass.suspendableToSuperIfAbstract(access, suspendable);
-        classEntry.set(name, desc, suspendable);
+        classEntry.set(name, desc, suspendable, (access & Opcodes.ACC_BRIDGE) != 0);
 
         if (suspendable == null) // look for @Suspendable annotation
             return new MethodVisitor(ASMAPI) {
@@ -153,7 +153,8 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
                 @Override
                 public void visitEnd() {
                     super.visitEnd();
-                    classEntry.set(name, desc, InstrumentClass.suspendableToSuperIfAbstract(access, susp ? SuspendableType.SUSPENDABLE : SuspendableType.NON_SUSPENDABLE));
+                    classEntry.set(name, desc, InstrumentClass.suspendableToSuperIfAbstract(access, susp ? SuspendableType.SUSPENDABLE : SuspendableType.NON_SUSPENDABLE),
+                            (access & Opcodes.ACC_BRIDGE) != 0);
                     hasSuspendable = hasSuspendable | susp;
                 }
             };
