@@ -204,7 +204,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             this.inheritedAccessControlContext = AccessController.getContext();
 
         if (USE_VAL_FOR_RESULT /*&& !isVoidResult(target)*/)
-            this.result = new Val<V>();
+            this.result = new Val<V>(scheduler, null);
 
         record(1, "Fiber", "<init>", "Created fiber %s", this);
     }
@@ -2024,7 +2024,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         f.task = scheduler.newFiberTask(f);
         f.task.setState(FiberTask.PARKED);
         if (USE_VAL_FOR_RESULT /*&& !isVoidResult(target)*/)
-            f.result = new Val<V>();
+            f.result = new Val<V>(scheduler, null);
 
         f.contextClassLoader = ThreadAccess.getContextClassLoader(currentThread);
         if (MAINTAIN_ACCESS_CONTROL_CONTEXT)

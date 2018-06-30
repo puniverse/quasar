@@ -15,6 +15,7 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.common.monitoring.Counter;
 import co.paralleluniverse.common.monitoring.MonitoringServices;
+import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.strands.Strand;
 import java.lang.management.ManagementFactory;
 import java.util.Collection;
@@ -58,21 +59,30 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
     public JMXFibersMonitor(String name, FiberScheduler scheduler, boolean detailedInfo) {
         super(FibersMXBean.class, true, new NotificationBroadcasterSupport());
         this.scheduler = scheduler;
-        this.mbeanName = "co.paralleluniverse:type=Fibers,name=" + name;
-        registerMBean();
+        this.mbeanName = "co.paralleluniverse:type=Fibers,name=" + SystemProperties.prefixWithName(name);
+        registerMBean(true);
         lastCollectTime = nanoTime();
         this.details = detailedInfo ? new FibersDetailedMonitor() : null;
     }
 
     @SuppressWarnings({"CallToPrintStackTrace", "CallToThreadDumpStack"})
-    protected void registerMBean() {
+    protected void registerMBean(boolean retry) {
         try {
             final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
             final ObjectName mxbeanName = new ObjectName(mbeanName);
             mbs.registerMBean(this, mxbeanName);
             this.registered = true;
         } catch (InstanceAlreadyExistsException ex) {
-            throw new RuntimeException(ex);
+            if (retry) {
+                try {
+                    ManagementFactory.getPlatformMBeanServer().unregisterMBean(new ObjectName(mbeanName));
+                } catch (InstanceNotFoundException | MalformedObjectNameException | MBeanRegistrationException ex2) {
+                    throw new AssertionError(ex);
+                }
+                registerMBean(false);
+            } else {
+                throw new RuntimeException(ex);
+            }
         } catch (MBeanRegistrationException ex) {
             ex.printStackTrace();
         } catch (NotCompliantMBeanException ex) {

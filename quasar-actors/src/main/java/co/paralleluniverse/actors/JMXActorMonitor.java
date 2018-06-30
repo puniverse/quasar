@@ -16,6 +16,7 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.common.monitoring.Counter;
 import co.paralleluniverse.common.monitoring.MonitoringServices;
 import co.paralleluniverse.common.util.Objects;
+import co.paralleluniverse.common.util.SystemProperties;
 import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
 import java.util.List;
@@ -73,7 +74,7 @@ public class JMXActorMonitor extends StandardEmitterMBean implements ActorMonito
     }
 
     private static String beanName(String name) {
-        return "co.paralleluniverse:type=quasar,monitor=actor,name=" + name;
+        return "co.paralleluniverse:type=quasar,monitor=actor,name=" + SystemProperties.prefixWithName(name);
     }
 
     @Override

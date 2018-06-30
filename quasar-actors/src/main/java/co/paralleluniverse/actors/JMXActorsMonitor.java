@@ -16,6 +16,7 @@ package co.paralleluniverse.actors;
 import co.paralleluniverse.common.monitoring.Counter;
 import co.paralleluniverse.common.monitoring.MonitoringServices;
 import co.paralleluniverse.strands.Strand;
+import co.paralleluniverse.common.util.SystemProperties;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,20 +55,29 @@ class JMXActorsMonitor implements NotificationListener, ActorsMXBean {
     private final Counter activeCount = new Counter();
 
     private JMXActorsMonitor() {
-        this.mbeanName = "co.paralleluniverse:type=Actors";
-        registerMBean();
+        this.mbeanName = "co.paralleluniverse:type=" + SystemProperties.prefixWithName("Actors");
+        registerMBean(true);
         lastCollectTime = nanoTime();
     }
 
     @SuppressWarnings({"CallToPrintStackTrace", "CallToThreadDumpStack"})
-    private void registerMBean() {
+    private void registerMBean(boolean retry) {
         try {
             final MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
             final ObjectName mxbeanName = new ObjectName(mbeanName);
             mbs.registerMBean(this, mxbeanName);
             this.registered = true;
         } catch (InstanceAlreadyExistsException ex) {
-            throw new RuntimeException(ex);
+            if (retry) {
+                try {
+                    ManagementFactory.getPlatformMBeanServer().unregisterMBean(new ObjectName(mbeanName));
+                } catch (InstanceNotFoundException | MalformedObjectNameException | MBeanRegistrationException ex2) {
+                    throw new AssertionError(ex);
+                }
+                registerMBean(false);
+            } else {
+                throw new RuntimeException(ex);
+            }
         } catch (MBeanRegistrationException ex) {
             ex.printStackTrace();
         } catch (NotCompliantMBeanException ex) {

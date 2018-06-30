@@ -40,7 +40,7 @@ public final class QuasarInstrumentor {
     @SuppressWarnings("WeakerAccess")
     public static final int ASMAPI = Opcodes.ASM5;
 
-    private final static String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClasses");
+    private final static String EXAMINED_CLASS = SystemProperties.getLocalProperty("co.paralleluniverse.fibers.writeInstrumentedClasses");
     private static final boolean allowJdkInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.allowJdkInstrumentation");
     private WeakHashMap<ClassLoader, MethodDatabase> dbForClassloader = new WeakHashMap<>();
     private boolean check;

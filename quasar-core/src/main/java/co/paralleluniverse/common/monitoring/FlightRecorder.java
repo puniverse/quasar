@@ -12,6 +12,7 @@
  */
 package co.paralleluniverse.common.monitoring;
 
+import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
@@ -38,10 +39,10 @@ public class FlightRecorder extends SimpleMBean implements FlightRecorderMXBean 
     private Object aux;
 
     public FlightRecorder(String name) {
-        super(null, name, "FlightRecorder", null);
+        super(null, SystemProperties.prefixWithName(name), "FlightRecorder", null);
         startTimestamp = System.nanoTime();
         startWallTime = System.currentTimeMillis();
-        registerMBean();
+        registerMBean(true);
     }
 
     public void clear() {

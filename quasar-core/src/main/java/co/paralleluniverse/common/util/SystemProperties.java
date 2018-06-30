@@ -12,12 +12,35 @@
  */
 package co.paralleluniverse.common.util;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.Properties;
+
 /**
  * System properties utilities.
  *
  * @author pron
  */
 public final class SystemProperties {
+    private static String PROPERTY_FILE_PATH = "/quasar.properties";
+    private static String PROPERTY_NAME = "co.paralleluniverse.common.util.SystemProperties.name";
+
+    static final Properties prop;
+    static {
+        URL resource = SystemProperties.class.getResource(PROPERTY_FILE_PATH);
+        if (resource != null) {
+            prop = new Properties();
+            try (InputStream in = resource.openStream()){
+                prop.load(in);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            prop = null;
+        }
+    }
+
     /**
      * Returns the value of a system property which defaults to false.
      *
@@ -25,7 +48,7 @@ public final class SystemProperties {
      * @return {@code true} iff the given property is defined and has the value {@code "true"} or the empty string.
      */
     public static boolean isEmptyOrTrue(String property) {
-        final String value = System.getProperty(property);
+        final String value = getLocalProperty(property);
         if (value == null)
             return false;
         return value.isEmpty() || Boolean.parseBoolean(value);
@@ -38,7 +61,7 @@ public final class SystemProperties {
      * @return {@code true} iff the given property is undefined, or defined and has the value {@code "true"} or the empty string.
      */
     public static boolean isNotFalse(String property) {
-        final String value = System.getProperty(property);
+        final String value = getLocalProperty(property);
         if (value == null)
             return true;
         if (value.isEmpty())
@@ -47,5 +70,25 @@ public final class SystemProperties {
     }
 
     private SystemProperties() {
+    }
+
+    public static String getLocalProperty(String key) {
+        String value = null;
+        if (prop != null) {
+            value = prop.getProperty(key);
+        }
+        if (value == null) {
+            value = System.getProperty(key);
+        }
+        return value;
+    }
+
+    public static String prefixWithName(String value) {
+        String name = getLocalProperty(PROPERTY_NAME);
+        if (name != null) {
+            return name + "-" + value;
+        } else {
+            return value;
+        }
     }
 }
