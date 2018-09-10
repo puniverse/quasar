@@ -2009,7 +2009,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         while (!park(SERIALIZER_BLOCKER, new ParkAction() {
             @Override
             public void run(Fiber f) {
-                f.record(1, "Fiber", "parkAndSerialize", "Serializing fiber %s", f);
+                f.record(1, "Fiber", "parkAndSerializeExternally", "Serializing fiber %s", f);
                 writer.run();
             }
         }));
