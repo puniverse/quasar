@@ -2003,7 +2003,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
      * @throws SuspendExecution
      */
     @SuppressWarnings("empty-statement")
-    public static void parkAndSerialize(final Runnable writer) throws SuspendExecution {
+    public static void parkAndSerializeExternally(final Runnable writer) throws SuspendExecution {
 //        if (writer == null)
 //            return; // should only happen during unparkSerialized
         while (!park(SERIALIZER_BLOCKER, new ParkAction() {
