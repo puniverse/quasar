@@ -920,6 +920,52 @@ public class FiberTest implements Serializable {
         }
     }
 
+    @Test
+    public void testCustomSerialization() throws Exception {
+        // com.esotericsoftware.minlog.Log.set(1);
+        final SettableFuture<byte[]> buf = new SettableFuture<>();
+
+        Fiber<Integer> f1 = new CustomSerFiber(scheduler, new SettableFutureCustomWriter(buf)).start();
+        Fiber<Integer> f2 = Fiber.unparkSerialized(buf.get(), scheduler);
+
+        assertThat(f2.get(), is(55));
+    }
+
+    static class CustomSerFiber extends Fiber<Integer> implements Serializable {
+        final private transient CustomFiberWriter writer;
+
+        public CustomSerFiber(FiberScheduler scheduler, CustomFiberWriter writer) {
+            super(scheduler);
+            this.writer = writer;
+        }
+
+        @Override
+        public Integer run() throws SuspendExecution, InterruptedException {
+            int sum = 0;
+            for (int i = 1; i <= 10; i++) {
+                sum += i;
+                if (i == 5) {
+                    Fiber.parkAndCustomSerialize(writer);
+                    assert i == 5 && sum == 15;
+                }
+            }
+            return sum;
+        }
+    }
+
+    static class SettableFutureCustomWriter implements CustomFiberWriter {
+        final private transient SettableFuture<byte[]> buf;
+
+        public SettableFutureCustomWriter(SettableFuture<byte[]> buf) {
+            this.buf = buf;
+        }
+
+        @Override
+        public void write(Fiber fiber) {
+            buf.set(Fiber.getFiberSerializer().write(fiber));
+        }
+    }
+
     static class SettableFutureFiberWriter implements FiberWriter {
         private final transient SettableFuture<byte[]> buf;
 

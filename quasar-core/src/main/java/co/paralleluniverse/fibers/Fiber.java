@@ -1998,20 +1998,20 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     /**
      * Parks the fiber and allows the given callback to serialize it, optimized for use cases where
-     * the callback object has all required information to serialize the fiber.
+     * the callback object has a custom way to obtain the required serializer (e.g. from a serializer pool)
      *
      * @param writer a callback that can serialize the fiber.
      * @throws SuspendExecution
      */
     @SuppressWarnings("empty-statement")
-    public static void parkAndCustomSerialize(final Runnable writer) throws SuspendExecution {
+    public static void parkAndCustomSerialize(final CustomFiberWriter writer) throws SuspendExecution {
         while (!park(SERIALIZER_BLOCKER, new ParkAction() {
             @Override
             public void run(Fiber f) {
                 f.record(1, "Fiber", "parkAndCustomSerialize", "Serializing fiber %s", f);
-                writer.run();
+                writer.write(f);
             }
-        }));
+        })) ;
     }
 
     /**
@@ -2074,6 +2074,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         s.getKryo().addDefaultSerializer(Fiber.class, new FiberSerializer(includeThreadLocals));
         s.getKryo().addDefaultSerializer(ThreadLocal.class, new ThreadLocalSerializer());
         s.getKryo().addDefaultSerializer(FiberWriter.class, new FiberWriterSerializer());
+        s.getKryo().addDefaultSerializer(CustomFiberWriter.class, new CustomFiberWriterSerializer());
         s.getKryo().register(Fiber.class);
         s.getKryo().register(ThreadLocal.class);
         s.getKryo().register(InheritableThreadLocal.class);
