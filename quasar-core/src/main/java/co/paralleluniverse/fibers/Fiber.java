@@ -1997,15 +1997,14 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     /**
-     * Parks the fiber and allows the given callback to serialize it.
+     * Parks the fiber and allows the given callback to serialize it, optimized for use cases where
+     * the callback object has all required information to serialize the fiber.
      *
      * @param writer a callback that can serialize the fiber.
      * @throws SuspendExecution
      */
     @SuppressWarnings("empty-statement")
     public static void parkAndCustomSerialize(final Runnable writer) throws SuspendExecution {
-//        if (writer == null)
-//            return; // should only happen during unparkSerialized
         while (!park(SERIALIZER_BLOCKER, new ParkAction() {
             @Override
             public void run(Fiber f) {
