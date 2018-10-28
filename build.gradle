@@ -130,8 +130,8 @@ subprojects {
         jmhCompile 'org.openjdk.jmh:jmh-core:1.21'
         jmhCompile 'org.openjdk.jmh:jmh-generator-annprocess:1.21'
 
-        compileOnly 'org.kohsuke.metainf-services:metainf-services:1.8'
-        // compileOnly 'com.google.auto.service:auto-service:1.0-rc1' // same as metainf-services
+        annotationProcessor 'org.kohsuke.metainf-services:metainf-services:1.8'
+        // annotationProcessor 'com.google.auto.service:auto-service:1.0-rc1' // same as metainf-services
         // markdownDoclet "ch.raffael.pegdown-doclet:pegdown-doclet:1.1.1"
     }
 
@@ -342,7 +342,7 @@ subprojects {
 }
 
 def scanAndInstrument(sset, configs) {
-    def cp = '' + sset.output.classesDir + ':' + sset.output.resourcesDir + ':' + configs*.asPath.join(':')
+    def cp = '' + sset.output.classesDirs*.toString().join(':') + ':' + sset.output.resourcesDir + ':' + configs*.asPath.join(':')
 
     ant.taskdef(
         name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
@@ -351,12 +351,14 @@ def scanAndInstrument(sset, configs) {
         auto: false,
         supersFile:"$sset.output.resourcesDir/META-INF/suspendable-supers",
         append: true) {
+//        sset.output.classesDirs.addToAntBuilder(ant, 'fileset', FileCollection.AntType.FileSet)
         fileset(dir: sset.output.classesDir)
     }
 
     ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask',
         classpath: cp)
     ant.instrumentation(verbose:'true', check:'true', debug:'true') {
+//        sset.output.classesDirs.addToAntBuilder(ant, 'fileset', FileCollection.AntType.FileSet) {
         fileset(dir: sset.output.classesDir) {
             exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
         }
@@ -480,7 +482,7 @@ project (':quasar-core') {
 
     test {
         dependsOn = [shadowJar, compileClassloadertestJava]
-        testClassesDir = project.sourceSets.test.output.classesDir
+        testClassesDirs = project.sourceSets.test.output.classesDirs
         classpath = project.sourceSets.test.runtimeClasspath
 
         project.afterEvaluate {
@@ -683,8 +685,10 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
     ]
 }
 
-task clean(dependsOn: subprojects.clean) << {
-    delete 'docs/javadoc'
+task clean(dependsOn: subprojects.clean) {
+    doLast() {
+        delete 'docs/javadoc'
+    }
 }
 
 def capitalize(s) { s[0].toUpperCase() + s[1..-1].toLowerCase() }
