@@ -16,7 +16,6 @@ Quasar is developed by [Parallel Universe] and released as free software, dual-l
 
 ### Dependencies
 
-* [JSR166e](http://g.oswego.edu/dl/concurrency-interest/) (embedded in quasar-core) -- java.util.concurrent, by Doug Lea and contributors
 * [ASM](http://asm.ow2.org/) --- Java bytecode manipulation and analysis framework, by the ASM team
 * [Metrics](http://metrics.codahale.com/) --- A measurement and monitoring library, by Coda Hale
 * [Guava](https://code.google.com/p/guava-libraries/) --- Java utility classes, by Google
@@ -29,6 +28,10 @@ Quasar's clustering makes use of [Galaxy](http://docs.paralleluniverse.co/galaxy
 A core component of Quasar, bytecode instrumentation, is a fork of the wonderful [Continuations Library](http://www.matthiasmann.de/content/view/24/26/) by Matthias Mann.
 
 ## News
+
+### November, 2018
+
+Quasar [0.8.0](https://github.com/puniverse/quasar/releases/tag/v0.8.0) has been released.
 
 ### June 10, 2018
 
@@ -108,11 +111,7 @@ Introductory blog post: [Erlang (and Go) in Clojure (and Java), Lightweight Thre
 
 ### System Requirements
 
-Quasar runs on Java 7 and higher.
-
-Quasar builds are tested during development in Mac OS X and Linux environments against the latest production JDK 7 and JDK 8 builds, as well as with [Travis CI](https://travis-ci.org/puniverse/quasar) using the [Trusty Beta](https://docs.travis-ci.com/user/trusty-ci-environment/) environment with the latest production JDK 7 and JDK 8 builds.
-
-As of June 20, 2016 the Travis CI build runs against Oracle's `1.7.0_80-b15` and `1.8.0_91-b14` and is known to require at least JDK 8 `1.8.0_65`.
+As of version 0.8.0 Quasar runs on Java 11 and higher. Prior versions support JDK 7 and 8 (JDK 8 with the `jdk8` classifier for the quasar-core component).
 
 {:.alert .alert-warn}
 **Note**: We recommend using recent JDK builds as bugs in older releases can negatively affect your application.
@@ -123,11 +122,10 @@ Add the following Maven/Gradle dependencies:
 
 | Feature          | Artifact
 |------------------|------------------
-| Core (required)  | `co.paralleluniverse:quasar-core:{{site.version}}[:jdk8]` (for JDK 8 optionally add the `jdk8` classifier)
+| Core (required)  | `co.paralleluniverse:quasar-core:{{site.version}}`
 | Actors           | `co.paralleluniverse:quasar-actors:{{site.version}}`
-| Clustering       | `co.paralleluniverse:quasar-galaxy:{{site.version}}`
 | Reactive Streams | `co.paralleluniverse:quasar-reactive-streams:{{site.version}}`
-| Kotlin (JDK8+)   | `co.paralleluniverse:quasar-kotlin:{{site.version}}`
+| Kotlin           | `co.paralleluniverse:quasar-kotlin:{{site.version}}`
 
 
 ### Instrumenting Your Code {#instrumentation}
