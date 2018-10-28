@@ -263,9 +263,9 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * This implementation calls {@link #onStart()} when it begins, {@link #behavior()} for the body, and
-     * {@link #onTerminate(Throwable) onTerminate()} upon termination. The implementation runs code similar to the following:
+     * {@link #onTerminate(Throwable) onTerminate()} upon termination. The implementation runs code similar to the following:</p>
      * <pre> {@code
      *   try {
      *       onStart();
@@ -311,8 +311,8 @@ public abstract class BehaviorActor extends Actor<Object, Void> implements java.
 
     /**
      * {@inheritDoc}
-     * <p/>
-     * This implementation respects {@link ShutdownMessage} and, upon receiving it, calls {@link #shutdown() shutdown()}.
+     * <p>
+     * This implementation respects {@link ShutdownMessage} and, upon receiving it, calls {@link #shutdown() shutdown()}.</p>
      */
     @Override
     protected Object handleLifecycleMessage(LifecycleMessage m) {

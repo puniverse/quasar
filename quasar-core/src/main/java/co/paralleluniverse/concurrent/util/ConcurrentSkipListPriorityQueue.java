@@ -1213,7 +1213,7 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * comparator.
      *
      * @param comparator the comparator that will be used to order this map.
-     *                   If <tt>null</tt>, the {@linkplain Comparable natural
+     *                   If {@code null}, the {@linkplain Comparable natural
      *        ordering} of the keys will be used.
      */
     public ConcurrentSkipListPriorityQueue(Comparator<? super E> comparator) {
@@ -1228,7 +1228,7 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     }
 
     /**
-     * Returns a shallow copy of this <tt>ConcurrentSkipListMap</tt>
+     * Returns a shallow copy of this {@code ConcurrentSkipListMap}
      * instance. (The keys and values themselves are not cloned.)
      *
      * @return a shallow copy of this map
@@ -1307,7 +1307,7 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      *
      * @serialData The key (Object) and value (Object) for each
      * key-value mapping represented by the map, followed by
-     * <tt>null</tt>. The key-value mappings are emitted in key-order
+     * {@code null}. The key-value mappings are emitted in key-order
      * (as determined by the Comparator, or by the keys' natural
      * ordering if no Comparator).
      */
@@ -1429,8 +1429,8 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
 
     /**
      * Returns the number of key-value mappings in this map. If this map
-     * contains more than <tt>Integer.MAX_VALUE</tt> elements, it
-     * returns <tt>Integer.MAX_VALUE</tt>.
+     * contains more than {@code Integer.MAX_VALUE} elements, it
+     * returns {@code Integer.MAX_VALUE}.
      *
      * <p>Beware that, unlike in most collections, this method is
      * <em>NOT</em> a constant-time operation. Because of the
@@ -1454,9 +1454,9 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     }
 
     /**
-     * Returns <tt>true</tt> if this map contains no key-value mappings.
+     * Returns {@code true} if this map contains no key-value mappings.
      *
-     * @return <tt>true</tt> if this map contains no key-value mappings
+     * @return {@code true} if this map contains no key-value mappings
      */
     @Override
     public boolean isEmpty() {

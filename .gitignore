@@ -1,5 +1,4 @@
 /dist/
-/out/
 _site/
 /docs/javadoc/
 .idea/
@@ -8,6 +7,7 @@ _site/
 /nbproject/private/
 /.nb-gradle
 build/
+out/
 private/
 .DS_Store
 .gradle/

@@ -107,11 +107,11 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
      *
      * If the mailbox is full, this method may block, throw an exception, silently drop the message, or displace an old message from
      * the channel. The behavior is determined by the mailbox's {@link OverflowPolicy OverflowPolicy}, set at construction time.
-     * <p/>
-     * <b/>Currently, this behavior is not yet supported. The message will be sent using {@link #send(Object)} and the timeout argument
-     * will be disregarded</b>
+     * <p>
+     * <b>Currently, this behavior is not yet supported. The message will be sent using {@link #send(Object)} and the timeout argument
+     * will be disregarded</b></p>
      *
-     * @param msg     the message
+     * @param message the message
      * @param timeout the maximum duration this method is allowed to wait.
      * @param unit    the timeout's time unit
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has elapsed.
@@ -129,11 +129,11 @@ public class ActorRef<Message> implements SendPort<Message>, java.io.Serializabl
      *
      * If the channel is full, this method may block, throw an exception, silently drop the message, or displace an old message from
      * the channel. The behavior is determined by the mailbox's {@link OverflowPolicy OverflowPolicy}, set at construction time.
-     * <p/>
-     * <b/>Currently, this behavior is not yet supported. The message will be sent using {@link #send(Object)} and the timeout argument
-     * will be disregarded</b>
+     * <p>
+     * <b>Currently, this behavior is not yet supported. The message will be sent using {@link #send(Object)} and the timeout argument
+     * will be disregarded</b></p>
      *
-     * @param msg     the message
+     * @param message the message
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has elapsed.
      * @throws SuspendExecution

@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
 import sun.misc.Unsafe;
 
 /**

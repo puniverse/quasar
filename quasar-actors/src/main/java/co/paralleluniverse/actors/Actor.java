@@ -214,7 +214,7 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * Starts a new fiber using the given scheduler and runs the actor in it.
      * The fiber's name will be set to this actor's name.
      *
-     * @param ff the {@link FiberFactory factory} (or {@link FiberScheduler scheduler}) that will be used to create the actor's fiber.
+     * @param sf the {@link StrandFactory factory} (or {@link FiberScheduler scheduler}) that will be used to create the actor's fiber.
      * @return This actors' ActorRef
      */
     public ActorRef<Message> spawn(StrandFactory sf) {
@@ -280,9 +280,9 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
 
     /**
      * Returns a "clone" of this actor, used by a {@link co.paralleluniverse.actors.behaviors.Supervisor supervisor} to restart this actor if it dies.
-     * <p/>
+     * <p>
      * If this actor is supervised by a {@link co.paralleluniverse.actors.behaviors.Supervisor supervisor} and was not created with the
-     * {@link #newActor(co.paralleluniverse.actors.ActorSpec) newActor} factory method, then this method should be overridden.
+     * {@link #newActor(co.paralleluniverse.actors.ActorSpec) newActor} factory method, then this method should be overridden.</p>
      *
      * @return A new LocalActor instance that's a clone of this.
      */
@@ -579,9 +579,9 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     /**
      * All messages received from the mailbox are passed to this method. If this method returns a non-null value, this value will be returned
      * from the {@code receive} methods. If it returns {@code null}, then {@code receive} will keep waiting.
-     * <p/>
+     * <p>
      * By default, this message passes all {@link LifecycleMessage} messages to {@link #handleLifecycleMessage(LifecycleMessage) handleLifecycleMessage}, while
-     * other messages are returned (and will be returned by {@code receive}.
+     * other messages are returned (and will be returned by {@code receive}.</p>
      *
      * @param m the message
      */
@@ -743,9 +743,9 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
     /**
      * An actor must implement this method, which contains the actor's logic. This method begins executing on the actor's
      * strand.
-     * <p/>
+     * <p>
      * Upon a hot code-swap, this method is re-executed, so it is this method's responsibility to check this actor's state
-     * (which may not be blank after a code-swap) when it begins.
+     * (which may not be blank after a code-swap) when it begins.</p>
      *
      * @return The actor's return value, which can be obtained with {@link #get() }.
      * @throws InterruptedException
@@ -943,9 +943,9 @@ public abstract class Actor<Message, V> extends ActorImpl<Message> implements Su
      * When the other actor dies, this actor receives an {@link ExitMessage}, that is
      * handled by {@link #handleLifecycleMessage(LifecycleMessage) handleLifecycleMessage}. This message does not cause an exception to be thrown,
      * unlike the case where it is received as a result of a linked actor's death.
-     * <p/>
+     * <p>
      * Unlike a link, a watch is asymmetric, and it is also composable, namely, calling this method twice with the same argument would result in two different values
-     * returned, and in an {@link ExitMessage} to be received twice.
+     * returned, and in an {@link ExitMessage} to be received twice.</p>
      *
      * @param other the other actor
      * @return a {@code watchId} object that identifies this watch in messages, and used to remove the watch by the {@link #unwatch(ActorRef, Object) unwatch} method.

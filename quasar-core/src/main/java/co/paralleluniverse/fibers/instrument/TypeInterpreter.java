@@ -28,6 +28,8 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
+
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.AbstractInsnNode;
@@ -47,6 +49,7 @@ class TypeInterpreter extends BasicInterpreter {
     private final MethodDatabase db;
 
     public TypeInterpreter(MethodDatabase db) {
+        super(ASMAPI);
         this.db = db;
     }
 

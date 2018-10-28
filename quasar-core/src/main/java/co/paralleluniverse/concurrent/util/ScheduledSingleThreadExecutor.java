@@ -43,11 +43,11 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * This is a replacement for {@link java.util.concurrent.ScheduledThreadPoolExecutor}, with the following characteristics:
- * <p/>
+ * <p>
  * 1. It uses a single worker thread, so it should only execute very brief tasks.
- * <br/>
+ * <br>
  * 2. Its submission queue does not block producers.
- * <p/>
+ * </p>
  * This makes this executor particularly suitable for cases when many threads schedule many tasks that simply submit
  * other tasks to another executor.
  */

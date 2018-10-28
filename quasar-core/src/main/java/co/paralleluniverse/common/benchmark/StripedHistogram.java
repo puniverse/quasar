@@ -29,7 +29,7 @@ public class StripedHistogram {
      * Construct a Histogram given the Highest value to be tracked and a number of significant decimal digits
      *
      * @param highestTrackableValue The highest value to be tracked by the histogram. Must be a positive
-     * integer that is >= 2.
+     * integer that is {@code >= 2}.
      * @param numberOfSignificantValueDigits The number of significant decimal digits to which the histogram will
      * maintain value resolution and separation. Must be a non-negative
      * integer between 0 and 5.
@@ -102,7 +102,7 @@ public class StripedHistogram {
      * (down to the expectedIntervalBetweenValueSamples) value records.
      * <p>
      * Note: This is a at-recording correction method, as opposed to the post-recording correction method provided
-     * by {@link #copyCorrectedForCoordinatedOmission(long) getHistogramCorrectedForCoordinatedOmission}.
+     * by {@link #getHistogramDataCorrectedForCoordinatedOmission(long) getHistogramCorrectedForCoordinatedOmission}.
      * The two methods are mutually exclusive, and only one of the two should be be used on a given data set to correct
      * for the same coordinated omission issue.
      * <p>
@@ -136,7 +136,7 @@ public class StripedHistogram {
      * methods are mutually exclusive, and only one of the two should be be used on a given data set to correct
      * for the same coordinated omission issue.
      *
-     * @return a {@link HistogramData} that can be used to query stats and iterate through the default (corrected)
+     * @return a {@code HistogramData} that can be used to query stats and iterate through the default (corrected)
      * data set.
      */
     public AbstractHistogram getHistogramDataCorrectedForCoordinatedOmission(long expectedIntervalBetweenValueSamples) {

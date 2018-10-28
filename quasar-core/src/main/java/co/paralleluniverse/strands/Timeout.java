@@ -20,8 +20,8 @@ import java.util.concurrent.TimeUnit;
  * This object expires within a given time from the instant this object has been created.
  * It maintains the time left until it expires, so it can be initialized once and then passed to several consecutive
  * operation, making sure that the sequence of operations completes within the timeout's duration.
- * <p/>
- * To use this timeout in methods that take a {@code long timeout} and a {@code TimeUnit unit} argument, pass:
+ * <p>
+ * To use this timeout in methods that take a {@code long timeout} and a {@code TimeUnit unit} argument, pass:</p>
  * <pre>{@code
  *     timeout.nanosLeft(), TimeUnit.NANOSECONDS
  * }</pre>

@@ -42,8 +42,8 @@ public abstract class RequestMessage<V> extends ActorMessage implements FromMess
     }
 
     /**
-     * Constructs a new {@code RequestMessage}.<br/>
-     * <i>This constructor may only be used if the message is to be sent via {@link RequestReplyHelper#call(ActorRef, RequestMessage) RequestReplyHelper.call()}<i>
+     * Constructs a new {@code RequestMessage}.<br>
+     * <i>This constructor may only be used if the message is to be sent via {@link RequestReplyHelper#call(ActorRef, RequestMessage) RequestReplyHelper.call()}</i>
      *
      * @param from the actor sending the request. Usually you should pass the result of {@link RequestReplyHelper#from() }.
      */
@@ -54,8 +54,8 @@ public abstract class RequestMessage<V> extends ActorMessage implements FromMess
     }
 
     /**
-     * Constructs a new {@code RequestMessage}.<br/>
-     * <i>This constructor may only be used if the message is to be sent via {@link RequestReplyHelper#call(ActorRef, RequestMessage) RequestReplyHelper.call()}<i>
+     * Constructs a new {@code RequestMessage}.<br>
+     * <i>This constructor may only be used if the message is to be sent via {@link RequestReplyHelper#call(ActorRef, RequestMessage) RequestReplyHelper.call()}</i>
      *
      * @param id a unique message identifier. Usually you should pass the result of {@link RequestReplyHelper#makeId() }.
      */
@@ -66,8 +66,8 @@ public abstract class RequestMessage<V> extends ActorMessage implements FromMess
     }
 
     /**
-     * Constructs a new {@code RequestMessage}.<br/>
-     * <i>This constructor may only be used if the message is to be sent via {@link RequestReplyHelper#call(ActorRef, RequestMessage) RequestReplyHelper.call()}<i>
+     * Constructs a new {@code RequestMessage}.<br>
+     * <i>This constructor may only be used if the message is to be sent via {@link RequestReplyHelper#call(ActorRef, RequestMessage) RequestReplyHelper.call()}</i>
      */
     public RequestMessage() {
         this.from = null;

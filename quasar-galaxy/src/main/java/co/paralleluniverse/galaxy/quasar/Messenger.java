@@ -61,7 +61,6 @@ public interface Messenger {
      * @param node  The node to which to send the message.
      * @param topic The message's topic.
      * @param data  The message.
-     * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
     void send(short node, String topic, byte[] data);
 
@@ -71,7 +70,6 @@ public interface Messenger {
      * @param node  The node to which to send the message.
      * @param topic The message's topic.
      * @param data  The message.
-     * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
     void send(short node, long topic, Streamable data);
 
@@ -90,7 +88,6 @@ public interface Messenger {
      * @param node  The node to which to send the message.
      * @param topic The message's topic.
      * @param data  The message.
-     * @throws TimeoutException This exception is thrown if the operation has times-out.
      */
     void send(short node, long topic, byte[] data);
 

@@ -17,7 +17,7 @@ package co.paralleluniverse.fibers;
  * A {@link ThreadLocal} that is local to the current thread, rather than Strand.
  * If the current strand is a thread, then this would behave no different than a {@link ThreadLocal},
  * but if it's a fiber, then the value is local to the underlying thread - not the fiber.
- * <p/>
+ * 
  * <b>IMPORTANT:</b> This class is <i>only</i> useful in circumstances where a data structure is striped to reduce contention,
  * <i>not</i> when the value needs to actually be associated with the thread in any way.
  *

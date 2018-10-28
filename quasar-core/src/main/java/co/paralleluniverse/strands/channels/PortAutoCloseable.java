@@ -25,8 +25,8 @@ public interface PortAutoCloseable extends AutoCloseable {
      * Tests whether the channel has been closed and no more messages await in the channel.
      *
      * If this method returns {@code true} all
-     * future calls to {@link #receive() receive} are guaranteed to return {@code null}, and calls to {@code receive} on a primitive channel
-     * will throw a {@link EOFException}.
+     * future calls to {@link ReceivePort#receive() receive} are guaranteed to return {@code null}, and calls to {@code receive} on a primitive channel
+     * will throw a {@link java.io.EOFException}.
      *
      * @return {@code true} if the channels has been closed and no more messages will be received; {@code false} otherwise.
      */

@@ -33,10 +33,12 @@ package co.paralleluniverse.common.reflection;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.net.URLConnection;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
@@ -57,7 +59,7 @@ public final class ClassLoaderUtil {
     private static final String CLASS_FILE_NAME_EXTENSION = ".class";
 
     public static boolean isClassFile(String resourceName) {
-        return resourceName.endsWith(CLASS_FILE_NAME_EXTENSION);
+        return resourceName.endsWith(CLASS_FILE_NAME_EXTENSION) && !resourceName.endsWith("module-info.class");
     }
 
     public static String classToResource(String className) {
@@ -177,7 +179,13 @@ public final class ClassLoaderUtil {
                 JarEntry entry = entries.nextElement();
                 if (entry.isDirectory() || entry.getName().equals(JarFile.MANIFEST_NAME))
                     continue;
-                visitor.visit(entry.getName(), new URL("jar:file:" + file.getCanonicalPath() + "!/" + entry.getName()), classloader);
+                try {
+                    visitor.visit(entry.getName(), new URL("jar:file:" + file.getCanonicalPath() + "!/" + entry.getName()), classloader);
+                } catch (IOException e) {
+                    throw new IOException("Exception thrown during scanning of jar file " + file + " entry " + entry, e);
+                }  catch (RuntimeException e) {
+                    throw new RuntimeException("Exception thrown during scanning of jar file " + file + " entry " + entry, e);
+                }
             }
         } finally {
             try {
@@ -187,6 +195,14 @@ public final class ClassLoaderUtil {
         }
     }
 
+    public static InputStream getResourceAsStream(ClassLoader cl, String resource) throws IOException {
+        URL url = cl.getResource(resource);
+        if (url == null)
+            return null;
+        URLConnection uc = url.openConnection();
+        uc.setUseCaches(false);
+        return uc.getInputStream();
+    }
     /**
      * Returns the class path URIs specified by the {@code Class-Path} manifest attribute, according
      * to <a href="http://docs.oracle.com/javase/6/docs/technotes/guides/jar/jar.html#Main%20Attributes">

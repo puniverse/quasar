@@ -12,16 +12,15 @@ before_install:
   - echo ${JAVA_HOME} ${JAVA_VER}
   - gradle -version
 
-addons:
-  apt:
-    packages:
-      - oracle-java8-installer
+#addons:
+#  apt:
+#    packages:
+#      - oracle-java8-installer
 
 script: GRADLE_OPTS="-XX:MaxPermSize=512m" gradle -i check
 
 jdk:
-  - oraclejdk7
-  - oraclejdk8
+  - openjdk11
 
 branches:
   except:

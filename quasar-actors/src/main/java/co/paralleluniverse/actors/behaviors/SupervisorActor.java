@@ -52,10 +52,10 @@ import org.slf4j.MDC;
 /**
  * An actor that supervises, and if necessary, restarts other actors.
  *
- * <p/>
+ * <p>
  * If an actor needs to know the identity of its siblings, it should add them to the supervisor manually. For that, it needs to know the identity
  * of its supervisor. To do that, pass {@link Actor#self self()} to that actor's constructor in the {@link Initializer initializer}
- * or the {@link #init() init} method. Alternatively, simply call {@link Actor#self self()}, which will return the supervisor actor, in the actor's constructor.
+ * or the {@link #init() init} method. Alternatively, simply call {@link Actor#self self()}, which will return the supervisor actor, in the actor's constructor.</p>
  *
  * This works because the children are constructed from specs (provided they have not been constructed by the caller) during the supervisor's run,
  * so calling {@link Actor#self self()} anywhere in the construction process would return the supervisor.

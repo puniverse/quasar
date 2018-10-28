@@ -42,6 +42,9 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.LockSupport;
+import java.util.concurrent.locks.ReadWriteLock;
 import sun.misc.Unsafe;
 
 /**
@@ -180,7 +183,7 @@ import sun.misc.Unsafe;
  * and/or {@link #hasQueuedStrands} to only do so if the synchronizer
  * is likely not to be contended.</p>
  *
- * <p/>This class provides an efficient and scalable basis for
+ * <p>This class provides an efficient and scalable basis for
  * synchronization in part by specializing its range of use to
  * synchronizers that can rely on {@code int} state, acquire, and
  * release parameters, and an internal FIFO wait queue. When this does
@@ -191,7 +194,7 @@ import sun.misc.Unsafe;
  *
  * <h3>Usage Examples</h3>
  *
- * <p/>Here is a non-reentrant mutual exclusion lock class that uses
+ * <p>Here is a non-reentrant mutual exclusion lock class that uses
  * the value zero to represent the unlocked state, and one to
  * represent the locked state. While a non-reentrant lock
  * does not strictly require recording of the current owner

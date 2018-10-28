@@ -21,8 +21,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Marks a method as suspendable.
- * <p/>
+ * <p>Marks a method as suspendable.
+ * </p>
  * Marking a method as suspendable by declaring {@code throws SuspendExecution} is the preferable way, but using this annotation might
  * become necessary if the method implements or overrides a method which is not declared to throw {@link SuspendExecution}. In that case
  * marking the method in its declaring class/interface as potentially suspendable is necessary, and can be done in an external text file.

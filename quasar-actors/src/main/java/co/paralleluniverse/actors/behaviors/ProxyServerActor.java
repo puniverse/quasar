@@ -45,10 +45,10 @@ import static net.bytebuddy.matcher.ElementMatchers.isDeclaredBy;
 /**
  * Wraps a Java object in a {@link ServerActor} that exposes the object's methods as an interface and processes them in an actor
  * (on a dedicated strand).
- * <p/>
+ * <p>
  * You can either supply a target object to any of the public constructors, or extend this class and use the subclass itself as the target,
  * in which case use the protected constructors that don't take a {@code target} argument.
- * <p/>
+ * </p>
  * The interface(s) exposed must
  *
  * @author pron
@@ -134,7 +134,6 @@ public class ProxyServerActor extends ServerActor<ProxyServerActor.Invocation, O
      * @param mailboxConfig     this actor's mailbox settings.
      * @param callOnVoidMethods whether calling void methods will block until they have completed execution
      * @param target            the object implementing the actor's behaviors, on which the exposed interface methods will be called.
-     * @param interfaces        the interfaces this actor's {@link ActorRef} will implement; {@code target} must implement all these interfaces.
      */
     public ProxyServerActor(String name, MailboxConfig mailboxConfig, boolean callOnVoidMethods, Object target) {
         this(name, null, mailboxConfig, callOnVoidMethods, target, null);

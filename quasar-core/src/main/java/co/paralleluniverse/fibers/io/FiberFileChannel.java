@@ -19,14 +19,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
-import java.nio.channels.AsynchronousFileChannel;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
-import java.nio.channels.GatheringByteChannel;
-import java.nio.channels.ReadableByteChannel;
-import java.nio.channels.ScatteringByteChannel;
-import java.nio.channels.SeekableByteChannel;
-import java.nio.channels.WritableByteChannel;
+import java.nio.channels.*;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -56,94 +49,94 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
     }
 
     /**
-     * Opens or creates a file for reading and/or writing, returning a file channel to access the file.
+     * Opens or creates a file, returning a file channel to access the file.
      *
-     * <p>
-     * The {@code options} parameter determines how the file is opened.
+     * <p> The {@code options} parameter determines how the file is opened.
      * The {@link StandardOpenOption#READ READ} and {@link StandardOpenOption#WRITE
-     * WRITE} options determines if the file should be opened for reading and/or
-     * writing. If neither option is contained in the array then an existing file
-     * is opened for reading.
+     * WRITE} options determine if the file should be opened for reading and/or
+     * writing. If neither option (or the {@link StandardOpenOption#APPEND APPEND}
+     * option) is contained in the array then the file is opened for reading.
+     * By default reading or writing commences at the beginning of the file.
      *
-     * <p>
-     * In addition to {@code READ} and {@code WRITE}, the following options
-     * may be present:
+     * <p> In the addition to {@code READ} and {@code WRITE}, the following
+     * options may be present:
      *
-     * <table border=1 cellpadding=5 summary="">
-     * <tr> <th>Option</th> <th>Description</th> </tr>
+     * <table class="striped">
+     * <caption style="display:none">additional options</caption>
+     * <thead>
+     * <tr> <th scope="col">Option</th> <th scope="col">Description</th> </tr>
+     * </thead>
+     * <tbody>
      * <tr>
-     * <td> {@link StandardOpenOption#TRUNCATE_EXISTING TRUNCATE_EXISTING} </td>
-     * <td> When opening an existing file, the file is first truncated to a
-     * size of 0 bytes. This option is ignored when the file is opened only
-     * for reading.</td>
+     *   <th scope="row"> {@link StandardOpenOption#APPEND APPEND} </th>
+     *   <td> If this option is present then the file is opened for writing and
+     *     each invocation of the channel's {@code write} method first advances
+     *     the position to the end of the file and then writes the requested
+     *     data. Whether the advancement of the position and the writing of the
+     *     data are done in a single atomic operation is system-dependent and
+     *     therefore unspecified. This option may not be used in conjunction
+     *     with the {@code READ} or {@code TRUNCATE_EXISTING} options. </td>
      * </tr>
      * <tr>
-     * <td> {@link StandardOpenOption#CREATE_NEW CREATE_NEW} </td>
-     * <td> If this option is present then a new file is created, failing if
-     * the file already exists. When creating a file the check for the
-     * existence of the file and the creation of the file if it does not exist
-     * is atomic with respect to other file system operations. This option is
-     * ignored when the file is opened only for reading. </td>
+     *   <th scope="row"> {@link StandardOpenOption#TRUNCATE_EXISTING TRUNCATE_EXISTING} </th>
+     *   <td> If this option is present then the existing file is truncated to
+     *   a size of 0 bytes. This option is ignored when the file is opened only
+     *   for reading. </td>
      * </tr>
      * <tr>
-     * <td > {@link StandardOpenOption#CREATE CREATE} </td>
-     * <td> If this option is present then an existing file is opened if it
-     * exists, otherwise a new file is created. When creating a file the check
-     * for the existence of the file and the creation of the file if it does
-     * not exist is atomic with respect to other file system operations. This
-     * option is ignored if the {@code CREATE_NEW} option is also present or
-     * the file is opened only for reading. </td>
+     *   <th scope="row"> {@link StandardOpenOption#CREATE_NEW CREATE_NEW} </th>
+     *   <td> If this option is present then a new file is created, failing if
+     *   the file already exists. When creating a file the check for the
+     *   existence of the file and the creation of the file if it does not exist
+     *   is atomic with respect to other file system operations. This option is
+     *   ignored when the file is opened only for reading. </td>
      * </tr>
      * <tr>
-     * <td > {@link StandardOpenOption#DELETE_ON_CLOSE DELETE_ON_CLOSE} </td>
-     * <td> When this option is present then the implementation makes a
-     * <em>best effort</em> attempt to delete the file when closed by the
-     * the {@link #close close} method. If the {@code close} method is not
-     * invoked then a <em>best effort</em> attempt is made to delete the file
-     * when the Java virtual machine terminates. </td>
+     *   <th scope="row" > {@link StandardOpenOption#CREATE CREATE} </th>
+     *   <td> If this option is present then an existing file is opened if it
+     *   exists, otherwise a new file is created. When creating a file the check
+     *   for the existence of the file and the creation of the file if it does
+     *   not exist is atomic with respect to other file system operations. This
+     *   option is ignored if the {@code CREATE_NEW} option is also present or
+     *   the file is opened only for reading. </td>
      * </tr>
      * <tr>
-     * <td>{@link StandardOpenOption#SPARSE SPARSE} </td>
-     * <td> When creating a new file this option is a <em>hint</em> that the
-     * new file will be sparse. This option is ignored when not creating
-     * a new file. </td>
+     *   <th scope="row" > {@link StandardOpenOption#DELETE_ON_CLOSE DELETE_ON_CLOSE} </th>
+     *   <td> When this option is present then the implementation makes a
+     *   <em>best effort</em> attempt to delete the file when closed by
+     *   the {@link #close close} method. If the {@code close} method is not
+     *   invoked then a <em>best effort</em> attempt is made to delete the file
+     *   when the Java virtual machine terminates. </td>
      * </tr>
      * <tr>
-     * <td> {@link StandardOpenOption#SYNC SYNC} </td>
-     * <td> Requires that every update to the file's content or metadata be
-     * written synchronously to the underlying storage device. (see <a
-     * href="../file/package-summary.html#integrity"> Synchronized I/O file
-     * integrity</a>). </td>
-     * <tr>
-     * <tr>
-     * <td> {@link StandardOpenOption#DSYNC DSYNC} </td>
-     * <td> Requires that every update to the file's content be written
-     * synchronously to the underlying storage device. (see <a
-     * href="../file/package-summary.html#integrity"> Synchronized I/O file
-     * integrity</a>). </td>
+     *   <th scope="row">{@link StandardOpenOption#SPARSE SPARSE} </th>
+     *   <td> When creating a new file this option is a <em>hint</em> that the
+     *   new file will be sparse. This option is ignored when not creating
+     *   a new file. </td>
      * </tr>
+     * <tr>
+     *   <th scope="row"> {@link StandardOpenOption#SYNC SYNC} </th>
+     *   <td> Requires that every update to the file's content or metadata be
+     *   written synchronously to the underlying storage device. (see <a
+     *   href="../file/package-summary.html#integrity"> Synchronized I/O file
+     *   integrity</a>). </td>
+     * </tr>
+     * <tr>
+     *   <th scope="row"> {@link StandardOpenOption#DSYNC DSYNC} </th>
+     *   <td> Requires that every update to the file's content be written
+     *   synchronously to the underlying storage device. (see <a
+     *   href="../file/package-summary.html#integrity"> Synchronized I/O file
+     *   integrity</a>). </td>
+     * </tr>
+     * </tbody>
      * </table>
      *
-     * <p>
-     * An implementation may also support additional options.
+     * <p> An implementation may also support additional options.
      *
-     * <p>
-     * The {@code executor} parameter is the {@link ExecutorService} to
-     * which tasks are submitted to handle I/O events and dispatch completion
-     * results for operations initiated on resulting channel.
-     * The nature of these tasks is highly implementation specific and so care
-     * should be taken when configuring the {@code Executor}. Minimally it
-     * should support an unbounded work queue and should not run tasks on the
-     * caller thread of the {@link ExecutorService#execute execute} method.
-     * Shutting down the executor service while the channel is open results in
-     * unspecified behavior.
-     *
-     * <p>
-     * The {@code attrs} parameter is an optional array of file {@link
+     * <p> The {@code attrs} parameter is an optional array of file {@link
      * FileAttribute file-attributes} to set atomically when creating the file.
      *
-     * <p>
-     * The new channel is created by invoking the {@link
+     * <p> The new channel is created by invoking the {@link
      * FileSystemProvider#newFileChannel newFileChannel} method on the
      * provider that created the {@code Path}.
      *
@@ -270,7 +263,7 @@ public class FiberFileChannel implements SeekableByteChannel, GatheringByteChann
      *                 The file position at which the transfer is to begin;
      *                 must be non-negative
      *
-     * @return The number of bytes read, possibly zero, or <tt>-1</tt> if the
+     * @return The number of bytes read, possibly zero, or {@code -1} if the
      *         given position is greater than or equal to the file's current
      *         size
      *

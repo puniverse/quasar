@@ -30,7 +30,7 @@ class LabelSuspendableCallSitesClassVisitor extends ClassVisitor {
         super(ASMAPI, cv);
         this.db = db;
     }
-
+    
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         this.className = name;

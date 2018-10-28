@@ -38,7 +38,7 @@ import java.util.regex.Pattern;
  */
 public final class QuasarInstrumentor {
     @SuppressWarnings("WeakerAccess")
-    public static final int ASMAPI = Opcodes.ASM5;
+    public static final int ASMAPI = Opcodes.ASM7;
 
     private final static String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClasses");
     private static final boolean allowJdkInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.allowJdkInstrumentation");
@@ -77,7 +77,9 @@ public final class QuasarInstrumentor {
                 return false;
             if (className.equals(Classes.STACK_NAME))
                 return false;
-            if (className.startsWith("org/objectweb/asm/"))
+            if (className.startsWith("org/objectweb/asm/") || className.startsWith("co/paralleluniverse/asm/"))
+                return false;
+            if (className.startsWith("org/gradle/"))
                 return false;
             if (className.startsWith("org/netbeans/lib/"))
                 return false;

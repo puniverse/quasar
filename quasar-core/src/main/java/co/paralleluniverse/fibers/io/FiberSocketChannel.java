@@ -19,13 +19,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.SocketOption;
 import java.nio.ByteBuffer;
-import java.nio.channels.ByteChannel;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.GatheringByteChannel;
-import java.nio.channels.InterruptedByTimeoutException;
-import java.nio.channels.NetworkChannel;
-import java.nio.channels.ScatteringByteChannel;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -55,7 +49,7 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
 
     /**
      * Opens a socket channel.
-     * Same as {@link #open(java.nio.channels.AsynchronousChannelGroup) open((AsynchronousChannelGroup) null)}.
+     * Same as {@link #open(ChannelGroup) open((AsynchronousChannelGroup) null)}.
      *
      * @return A new socket channel
      * @throws IOException If an I/O error occurs
@@ -70,7 +64,7 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      * <p>
      * This convenience method works as if by invoking the {@link #open()}
      * method, invoking the {@link #connect(SocketAddress) connect} method upon
-     * the resulting socket channel, passing it <tt>remote</tt>, and then
+     * the resulting socket channel, passing it {@code remote}, and then
      * returning that channel. </p>
      *
      * @param remote The remote address to which the new channel is to be connected
@@ -100,7 +94,7 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      * <p>
      * This convenience method works as if by invoking the {@link #open()}
      * method, invoking the {@link #connect(SocketAddress) connect} method upon
-     * the resulting socket channel, passing it <tt>remote</tt>, and then
+     * the resulting socket channel, passing it {@code remote}, and then
      * returning that channel. </p>
      *
      * @param group  The group to which the newly constructed channel should be bound, or {@code null} for the default group
@@ -162,7 +156,7 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      * until the connection is successfully established or connection cannot be
      * established or a timeout occurs while attempting to establish it. If the
      * connection cannot be established then the channel is closed but not so if
-     * a timeout occurs (see {@link http://stackoverflow.com/questions/20752756/how-to-set-java-nio-asynchronoussocketchannel-connect-timeout}).
+     * a timeout occurs.
      *
      * <p>
      * This method performs exactly the same security checks as the {@link
@@ -211,11 +205,11 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      *
      * <p>
      * Suppose that a byte sequence of length <i>n</i> is read, where
-     * <tt>0</tt>&nbsp;<tt>&lt;</tt>&nbsp;<i>n</i>&nbsp;<tt>&lt;=</tt>&nbsp;<i>r</i>.
-     * Up to the first <tt>dsts[offset].remaining()</tt> bytes of this sequence
-     * are transferred into buffer <tt>dsts[offset]</tt>, up to the next
-     * <tt>dsts[offset+1].remaining()</tt> bytes are transferred into buffer
-     * <tt>dsts[offset+1]</tt>, and so forth, until the entire byte sequence
+     * {@code 0}&nbsp;{@code &lt;}&nbsp;<i>n</i>&nbsp;{@code &lt;=}&nbsp;<i>r</i>.
+     * Up to the first {@code dsts[offset].remaining()} bytes of this sequence
+     * are transferred into buffer {@code dsts[offset]}, up to the next
+     * {@code dsts[offset+1].remaining()} bytes are transferred into buffer
+     * {@code dsts[offset+1]}, and so forth, until the entire byte sequence
      * is transferred into the given buffers. As many bytes as possible are
      * transferred into each buffer, hence the final position of each updated
      * buffer, except the last updated buffer, is guaranteed to be equal to
@@ -311,11 +305,11 @@ public abstract class FiberSocketChannel implements ByteChannel, ScatteringByteC
      *
      * <p>
      * Suppose that a byte sequence of length <i>n</i> is written, where
-     * <tt>0</tt>&nbsp;<tt>&lt;</tt>&nbsp;<i>n</i>&nbsp;<tt>&lt;=</tt>&nbsp;<i>r</i>.
-     * Up to the first <tt>srcs[offset].remaining()</tt> bytes of this sequence
-     * are written from buffer <tt>srcs[offset]</tt>, up to the next
-     * <tt>srcs[offset+1].remaining()</tt> bytes are written from buffer
-     * <tt>srcs[offset+1]</tt>, and so forth, until the entire byte sequence is
+     * {@code 0}&nbsp;{@code &lt;}&nbsp;<i>n</i>&nbsp;{@code &lt;=}&nbsp;<i>r</i>.
+     * Up to the first {@code srcs[offset].remaining()} bytes of this sequence
+     * are written from buffer {@code srcs[offset]}, up to the next
+     * {@code srcs[offset+1].remaining()} bytes are written from buffer
+     * {@code srcs[offset+1]}, and so forth, until the entire byte sequence is
      * written. As many bytes as possible are written from each buffer, hence
      * the final position of each updated buffer, except the last updated
      * buffer, is guaranteed to be equal to that buffer's limit. The underlying

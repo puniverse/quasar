@@ -25,9 +25,9 @@ public interface MessageProcessor<Message, T> {
      * is selected (i.e. it should be processed now), then this method should return a non-null value. If the message
      * is to be skipped, this method should return {@code null}. The value returned by this method, will be returned by the {@code receive} method
      * this instance has been passed to.
-     * <p/>
+     * <p>
      * If the message is selected, this method may process it (and may even call {@code receive} for nested selective receives), 
-     * or it may choose to return the message and have it processed when it is returned from the enclosing {@link BasicActor#receive(co.paralleluniverse.actors.MessageProcessor) receive}.
+     * or it may choose to return the message and have it processed when it is returned from the enclosing {@link BasicActor#receive(co.paralleluniverse.actors.MessageProcessor) receive}.</p>
      * 
      * @param m The message
      * @return A non-null value if the message is selected; {@code null} if the message is to be skipped.

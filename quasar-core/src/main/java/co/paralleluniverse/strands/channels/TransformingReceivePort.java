@@ -35,8 +35,8 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
     /**
      * Returns a {@link TransformingReceivePort} that filters messages that satisfy a predicate from this given channel.
      * All messages (even those not satisfying the predicate) will be consumed from the original channel; those that don't satisfy the predicate will be silently discarded.
-     * <p/>
-     * The returned {@code TransformingReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     * <p>
+     * The returned {@code TransformingReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.</p>
      *
      * @param pred the filtering predicate
      * @return A {@link TransformingReceivePort} that will receive all those messages from the original channel which satisfy the predicate (i.e. the predicate returns {@code true}).
@@ -59,8 +59,8 @@ public class TransformingReceivePort<T> extends DelegatingReceivePort<T> {
 
      /**
      * Returns a {@link TransformingReceivePort} from which receiving messages that are transformed from a given channel by a given reduction function.
-     * <p/>
-     * The returned {@code TransformingReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     * <p>
+     * The returned {@code TransformingReceivePort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.</p>
      *
      * @param f       The reduction function.
      * @param init    The initial input to the reduction function.

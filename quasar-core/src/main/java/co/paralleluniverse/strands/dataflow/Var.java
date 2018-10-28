@@ -99,8 +99,6 @@ public class Var<T> {
      * function will be re-applied, and the {@code Var}'s value re-set, whenever any of the {@code Var}s referenced
      * by {@code f} change value. The fiber running {@code f} will be scheduled by the default fiber scheduler.
      *
-     * @param history   how many historical values to maintain for each strand reading the var.
-     * @param scheduler the {@link FiberScheduler} to use to schedule the fiber that will run, and re-run {@code f}.
      * @param f         this var's value is set to the return value of {@code f}
      * @see #get()
      */
