@@ -79,10 +79,7 @@ public class MethodDatabase {
 
     public MethodDatabase(QuasarInstrumentor instrumentor, ClassLoader classloader, SuspendableClassifier classifier) {
         this.instrumentor = instrumentor;
-        if (classloader == null)
-            throw new NullPointerException("classloader");
-
-        this.clRef = new WeakReference<>(classloader);
+        this.clRef = classloader != null ? new WeakReference<>(classloader) : null;
         this.classifier = classifier;
 
         classes = new TreeMap<>();
@@ -310,10 +307,13 @@ public class MethodDatabase {
     }
 
     protected ClassEntry checkClass(String className) {
-        ClassLoader cl = clRef.get();
-        if (cl == null) {
-            log(LogLevel.INFO, "Can't check class: %s", className);
-            return null;
+        ClassLoader cl = null;
+        if (clRef != null) {
+            cl = clRef.get();
+            if (cl == null) {
+                log(LogLevel.INFO, "Can't check class: %s", className);
+                return null;
+            }
         }
 
         log(LogLevel.INFO, "Reading class: %s", className);
@@ -352,24 +352,21 @@ public class MethodDatabase {
     }
 
     private String extractSuperClass(String className) {
-        ClassLoader cl = clRef.get();
-        if (cl == null)
-            return null;
-
-        final InputStream is = cl.getResourceAsStream(className + ".class");
-        if (is != null) {
-            try {
-                try {
-                    ClassReader r = new ClassReader(is);
-                    ExtractSuperClass esc = new ExtractSuperClass();
-                    r.accept(esc, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
-                    return esc.superClass;
-                } finally {
-                    is.close();
-                }
-            } catch (IOException ex) {
-                error(className, ex);
+        ClassLoader cl = null;
+        if (clRef != null) {
+            cl = clRef.get();
+            if (cl == null) {
+                return null;
             }
+        }
+
+        try (final InputStream is = ClassLoaderUtil.getResourceAsStream(cl, className + ".class")) {
+            ClassReader r = new ClassReader(is);
+            ExtractSuperClass esc = new ExtractSuperClass();
+            r.accept(esc, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+            return esc.superClass;
+        } catch (IOException ex) {
+            error(className, ex);
         }
         return null;
     }

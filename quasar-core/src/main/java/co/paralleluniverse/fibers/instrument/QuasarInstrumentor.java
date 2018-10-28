@@ -43,6 +43,7 @@ public final class QuasarInstrumentor {
     private final static String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClasses");
     private static final boolean allowJdkInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.allowJdkInstrumentation");
     private WeakHashMap<ClassLoader, MethodDatabase> dbForClassloader = new WeakHashMap<>();
+    private MethodDatabase bootstrapDB;
     private boolean check;
     private final boolean aot;
     private boolean allowMonitors;
@@ -179,8 +180,12 @@ public final class QuasarInstrumentor {
     
     @SuppressWarnings("WeakerAccess")
     public synchronized MethodDatabase getMethodDatabase(ClassLoader loader) {
-        if (loader == null)
-            throw new IllegalArgumentException();
+        if (loader == null) {
+            if (bootstrapDB == null) {
+                bootstrapDB = new MethodDatabase(this, null, new DefaultSuspendableClassifier(null));
+            }
+            return bootstrapDB;
+        }
         if (!dbForClassloader.containsKey(loader)) {
             MethodDatabase newDb = new MethodDatabase(this, loader, new DefaultSuspendableClassifier(loader));
             dbForClassloader.put(loader, newDb);

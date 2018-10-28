@@ -195,8 +195,16 @@ public final class ClassLoaderUtil {
         }
     }
 
+    public static URL getResource(ClassLoader cl, String resource) {
+        return cl != null ? cl.getResource(resource) : ClassLoader.getSystemResource(resource);
+    }
+    
+    public static Enumeration<URL> getResources(ClassLoader cl, String resources) throws IOException {
+        return cl != null ? cl.getResources(resources) : ClassLoader.getSystemResources(resources);
+    }
+    
     public static InputStream getResourceAsStream(ClassLoader cl, String resource) throws IOException {
-        URL url = cl.getResource(resource);
+        URL url = cl != null ? cl.getResource(resource) : ClassLoader.getSystemResource(resource);
         if (url == null)
             return null;
         URLConnection uc = url.openConnection();

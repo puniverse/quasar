@@ -244,7 +244,7 @@ subprojects {
             // docletpath = configurations.markdownDoclet.files.asType(List)
             // doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
             // addStringOption("parse-timeout", "10")
-            // addStringOption('Xdoclint:none', '-quiet')
+             addStringOption('Xdoclint:none', '-quiet')
             // stylesheetFile = rootProject.file('./baselib/javadoc.css')
 //            links = [
 //                "https://docs.oracle.com/en/java/javase/11/docs/api/",
@@ -379,8 +379,6 @@ project (':quasar-core') {
         }
     }
 
-//    [compileJava, compileTestJava, classes, jar]*.enabled = false TODO
-
     sourceSets {
         main {
             java {
@@ -392,9 +390,6 @@ project (':quasar-core') {
             java {
                 srcDir 'src/test/java'
             }
-
-//            compileClasspath += main.output + test.compileClasspath
-//            runtimeClasspath += compileClasspath + test.runtimeClasspath
         }
 
         jmh {
@@ -447,23 +442,6 @@ project (':quasar-core') {
             rootProject.scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtime])
         }
     }
-
-//    jar {
-//        from sourceSets.main.output
-//        manifest {
-//            attributes(
-//                "Built-By"                  :   System.getProperty("user.name"),
-//                "Implementation-Title"      :   project.name,
-//                "Implementation-Version"    :   version,
-//                "Implementation-Vendor"     :   vendor,
-//                "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
-//                "Agent-Class"               :   "co.paralleluniverse.fibers.instrument.JavaAgent",
-//                "Can-Retransform-Classes"   :   "true",
-//                "Can-Redefine-Classes"      :   "true",
-//                //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',')
-//            )
-//        }
-//    }
     
     shadowJar {
         classifier = '' // overwrite jar
@@ -660,7 +638,7 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         // doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
         // addStringOption("parse-timeout", "10")
         // stylesheetFile = rootProject.file('./baselib/javadoc.css')
-        // addStringOption('Xdoclint:none', '-quiet')
+         addStringOption('Xdoclint:none', '-quiet')
 //        links = [
 //        "https://docs.oracle.com/en/java/javase/11/docs/api/",
 //        "https://google.github.io/guava/releases/${subprojects.ext.guavaVer}/api/docs/"
