@@ -1,23 +1,5 @@
 language: java
 sudo: false
-install: true
-before_install:
-  - wget http://services.gradle.org/distributions/gradle-2.14.1-bin.zip
-  - unzip gradle-2.14.1-bin.zip
-  - export GRADLE_HOME=$PWD/gradle-2.14.1
-  - export PATH=$GRADLE_HOME/bin:$PATH
-  - if [[ ${TRAVIS_JDK_VERSION} == "oraclejdk7" ]]; then export GRADLE_OPTS="-XX:MaxPermSize=512m"; jdk_switcher use oraclejdk7; fi
-  - if [[ ${TRAVIS_JDK_VERSION} == "oraclejdk8" ]]; then jdk_switcher use oraclejdk8; fi
-  - export JAVA_VER=$(java -version 2>&1 | sed 's/java version "\(.*\)\.\(.*\)\..*"/\1\2/; 1q')
-  - echo ${JAVA_HOME} ${JAVA_VER}
-  - gradle -version
-
-#addons:
-#  apt:
-#    packages:
-#      - oracle-java8-installer
-
-script: GRADLE_OPTS="-XX:MaxPermSize=512m" gradle -i check
 
 jdk:
   - openjdk11
