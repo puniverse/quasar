@@ -41,7 +41,7 @@ subprojects {
     ext.baselib         = "${rootProject.projectDir}/baselib"
     ext.quasarJar = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}.jar" // project(':quasar-core').jar.archivePath
 
-    ext.guavaVer  = '27.0-jre'
+    ext.guavaVer  = '26.0-jre'
     ext.asmVer    = '7.0'
     ext.kotlinVer = '1.2.71'
 
@@ -148,7 +148,7 @@ subprojects {
             }
         }
     }
-
+    
     test.dependsOn jar
 
     tasks.withType(Test) {
@@ -231,6 +231,18 @@ subprojects {
 
     project.afterEvaluate {
         run.dependsOn project(':quasar-core').shadowJar
+        
+        jar {
+            manifest {
+                attributes(
+                    "Implementation-Title"      :   project.name,
+                    "Implementation-Version"    :   version,
+                    "Implementation-Vendor"     :   vendor,
+                    "Automatic-Module-Name"     :   project.moduleName,
+                    "Built-By"                  :   System.getProperty("user.name"),
+                )
+            }
+        }
     }
 
     tasks.withType(JavaExec) {
@@ -377,6 +389,8 @@ project (':quasar-core') {
 
     apply plugin: 'com.github.johnrengelman.shadow'
 
+    ext.moduleName = 'co.paralleluniverse.quasar.core'
+    
     // remove default artifact
     configurations.runtime.artifacts.with { archives ->
         archives.each {
@@ -467,15 +481,15 @@ project (':quasar-core') {
 
         manifest {
             attributes(
-                "Built-By"                  :   System.getProperty("user.name"),
                 "Implementation-Title"      :   project.name,
                 "Implementation-Version"    :   version,
                 "Implementation-Vendor"     :   vendor,
+                "Automatic-Module-Name"     :   project.moduleName,
                 "Premain-Class"             :   "co.paralleluniverse.fibers.instrument.JavaAgent",
                 "Agent-Class"               :   "co.paralleluniverse.fibers.instrument.JavaAgent",
                 "Can-Retransform-Classes"   :   "true",
                 "Can-Redefine-Classes"      :   "true",
-                //  "Class-Path"                :   configurations.runtime.collect { "lib/"+it.getName() }.join(',')
+                "Built-By"                  :   System.getProperty("user.name"),
             )
         }
     }
@@ -535,6 +549,8 @@ project (':quasar-core') {
 project (':quasar-actors') {
     //project.evaluationDependsOn(':quasar-core')
 
+    ext.moduleName = 'co.paralleluniverse.quasar.actors'
+    
     dependencies {
         provided project(path: ':quasar-core', configuration: 'archives'/*, artifact: quasarJar*/)
         // compile 'org.mutabilitydetector:MutabilityDetector:0.9.2'
@@ -601,7 +617,9 @@ project (':quasar-actors') {
 
 project (':quasar-reactive-streams') {
     //project.evaluationDependsOn(':quasar-core')
-
+    
+    ext.moduleName = 'co.paralleluniverse.quasar.reactivestreams'
+    
     dependencies {
         provided project(path: ':quasar-core', configuration: 'archives')
         compile "org.reactivestreams:reactive-streams:1.0.2"
@@ -622,6 +640,8 @@ project (':quasar-reactive-streams') {
 
 project (':quasar-disruptor') {
     //project.evaluationDependsOn(':quasar-core')
+    
+    ext.moduleName = 'co.paralleluniverse.quasar.disruptor'
 
     dependencies {
         provided project(path: ':quasar-core', configuration: "archives")
