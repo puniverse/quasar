@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2015, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2018, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -204,13 +204,14 @@ public final class ClassLoaderUtil {
     }
     
     public static InputStream getResourceAsStream(ClassLoader cl, String resource) throws IOException {
-        URL url = cl != null ? cl.getResource(resource) : ClassLoader.getSystemResource(resource);
+        URL url = getResource(cl, resource);
         if (url == null)
             return null;
         URLConnection uc = url.openConnection();
         uc.setUseCaches(false);
         return uc.getInputStream();
     }
+    
     /**
      * Returns the class path URIs specified by the {@code Class-Path} manifest attribute, according
      * to <a href="http://docs.oracle.com/javase/6/docs/technotes/guides/jar/jar.html#Main%20Attributes">
