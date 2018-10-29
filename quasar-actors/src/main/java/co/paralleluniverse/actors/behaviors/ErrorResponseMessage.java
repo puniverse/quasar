@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import java.beans.ConstructorProperties;
+import javax.management.ConstructorParameters;
 
 /**
  * A simple subclass of {@link ResponseMessage} that represents an error in processing the request.
@@ -29,7 +29,7 @@ public class ErrorResponseMessage extends ResponseMessage implements ErrorMessag
      * @param id    the {@link RequestMessage#getId() id} of the {@link RequestMessage} this is a response to.
      * @param error the error that occurred while processing the request.
      */
-    @ConstructorProperties({"id", "error"})
+    @ConstructorParameters({"id", "error"})
     public ErrorResponseMessage(Object id, Throwable error) {
         super(id);
         this.error = error;

@@ -14,7 +14,7 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.ActorRef;
-import java.beans.ConstructorProperties;
+import javax.management.ConstructorParameters;
 
 /**
  * A message that contains a sender reference (the {@code from} property} and a unique identifier (the {@code id} property) and may be used
@@ -35,7 +35,7 @@ public abstract class RequestMessage<V> extends ActorMessage implements FromMess
      * @param from the actor sending the request. Usually you should pass the result of {@link RequestReplyHelper#from() }.
      * @param id   a unique message identifier. Usually you should pass the result of {@link RequestReplyHelper#makeId() }.
      */
-    @ConstructorProperties({"from", "id"})
+    @ConstructorParameters({"from", "id"})
     public RequestMessage(ActorRef<?> from, Object id) {
         this.from = from;
         this.id = id;
@@ -47,7 +47,7 @@ public abstract class RequestMessage<V> extends ActorMessage implements FromMess
      *
      * @param from the actor sending the request. Usually you should pass the result of {@link RequestReplyHelper#from() }.
      */
-    @ConstructorProperties({"from"})
+    @ConstructorParameters({"from"})
     public RequestMessage(ActorRef<?> from) {
         this.from = from;
         this.id = null;
@@ -59,7 +59,7 @@ public abstract class RequestMessage<V> extends ActorMessage implements FromMess
      *
      * @param id a unique message identifier. Usually you should pass the result of {@link RequestReplyHelper#makeId() }.
      */
-    @ConstructorProperties({"id"})
+    @ConstructorParameters({"id"})
     public RequestMessage(Object id) {
         this.from = null;
         this.id = id;

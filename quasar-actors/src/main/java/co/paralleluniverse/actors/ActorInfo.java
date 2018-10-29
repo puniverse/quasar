@@ -14,7 +14,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.actors.behaviors.SupervisorActor;
-import java.beans.ConstructorProperties;
+import javax.management.ConstructorParameters;
 //import javax.management.openmbean.CompositeData;
 
 /**
@@ -32,7 +32,7 @@ public class ActorInfo {
     private final String[] mailbox;
     private final String stackTrace;
 
-    @ConstructorProperties({"id", "name", "fiber", "receivedMessages", "queueLength", "restarts", "lastDeathCauses", "mailbox", "stackTrace"})
+    @ConstructorParameters({"id", "name", "fiber", "receivedMessages", "queueLength", "restarts", "lastDeathCauses", "mailbox", "stackTrace"})
     public ActorInfo(long id, String name, boolean fiber, long receivedMessages, int queueLength, int restarts, String[] lastDeathCauses, String[] mailbox, String stackTrace) {
         this.id = id;
         this.name = name;
