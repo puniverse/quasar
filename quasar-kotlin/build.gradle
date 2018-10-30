@@ -16,7 +16,7 @@ dependencies {
     provided project(path: ':quasar-core', configuration: "archives")
     compile project(':quasar-actors')
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlinVer"
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVer"
     compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVer"
 
     testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVer"
