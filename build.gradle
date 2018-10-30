@@ -435,7 +435,7 @@ project (':quasar-core') {
     }
 
     dependencies {
-        compile ":high-scale-lib"
+//        compile ":high-scale-lib"
         compile "org.hdrhistogram:HdrHistogram:2.1.10"
         compile("org.latencyutils:LatencyUtils:2.0.3") {
             exclude group: "org.hdrhistogram", module: '*'
@@ -471,13 +471,13 @@ project (':quasar-core') {
         configurations = [project.configurations.runtime]
         dependencies {
             include(dependency('org.ow2.asm:.*:.*'))
-            include(dependency(':high-scale-lib'))
+//            include(dependency(':high-scale-lib'))
         }
         exclude 'META-INF/INDEX.LIST'
         exclude 'module-info.class'
 
         relocate 'org.objectweb.asm.', 'co.paralleluniverse.asm.'
-        relocate 'org.cliffc.high_scale_lib.', 'co.paralleluniverse.high_scale_lib.'
+//        relocate 'org.cliffc.high_scale_lib.', 'co.paralleluniverse.high_scale_lib.'
 
         manifest {
             attributes(
@@ -533,7 +533,7 @@ project (':quasar-core') {
     [installer, deployer]*.pom*.whenConfigured {
         it.dependencies.removeAll { dep ->
 //          dep.artifactId.startsWith('jsr166e') ||
-            dep.artifactId.startsWith('high-scale-lib') ||
+//          dep.artifactId.startsWith('high-scale-lib') ||
             dep.groupId == 'org.ow2.asm'
         }
     }
