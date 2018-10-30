@@ -2,10 +2,14 @@ buildscript {
     repositories {
         mavenCentral()
         jcenter()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
     }
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.2'
         classpath 'net.saliman:gradle-cobertura-plugin:2.5.4'
+        classpath 'gradle.plugin.org.javamodularity:moduleplugin:1.0.1'
     }
 }
 
@@ -16,9 +20,10 @@ plugins {
 
 subprojects {
     apply plugin: 'java'
+    apply plugin: 'org.javamodularity.moduleplugin'
 
-    sourceCompatibility = '1.8'
-    targetCompatibility = '1.8'
+    sourceCompatibility = '10'
+    targetCompatibility = '10' // gradle 4.10.2 does not support JDK 11 targets
 
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'
@@ -79,6 +84,7 @@ subprojects {
         provided
         timewarp
         // markdownDoclet
+        shadowedJar.extendsFrom(runtime)
     }
 
     sourceSets {
@@ -115,16 +121,20 @@ subprojects {
         }
         timewarp 'co.paralleluniverse:timewarp:0.2.0-SNAPSHOT'
         testCompile 'co.paralleluniverse:timewarp:0.2.0-SNAPSHOT'
-        testCompile 'junit:junit:4.12'
+        testCompile 'org.hamcrest:hamcrest-all:1.3'
+        testCompile('junit:junit:4.12') {
+            exclude group: 'org.hamcrest', module: '*'
+        }
         testCompile('com.google.truth:truth:0.42') {
             exclude group: 'com.google.guava', module: 'guava'
             exclude group: 'com.google.errorprone', module: '*'
             exclude group: 'junit', module: 'junit'
         }
-        testCompile 'org.hamcrest:hamcrest-all:1.3'
-        testCompile("org.mockito:mockito-all:2.0.2-beta") {
+        testCompile("org.mockito:mockito-core:2.23.0") {
             exclude group: "org.ow2.asm", module: '*'
+            exclude group: "net.bytebuddy", module: '*'
         }
+        testRuntime "net.bytebuddy:byte-buddy:1.9.2" // for Mockito
         testCompile "org.ow2.asm:asm:$asmVer"
 
         jmhCompile 'org.openjdk.jmh:jmh-core:1.21'
@@ -153,6 +163,13 @@ subprojects {
 
     tasks.withType(Test) {
         useJUnit()
+    
+        if (project.name != 'quasar-kotlin') {
+            moduleOptions {
+                runOnClasspath = true
+            }
+        }
+        // jvmArgs '--add-opens', 'java.base/java.lang=ALL-UNNAMED'
         // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
 
         // systemProperty "java.util.logging.config.file", "jul.properties"
@@ -231,7 +248,7 @@ subprojects {
 
     project.afterEvaluate {
         run.dependsOn project(':quasar-core').shadowJar
-        
+
         jar {
             manifest {
                 attributes(
@@ -255,11 +272,16 @@ subprojects {
 
     configure (javadoc) {
         classpath += configurations.provided
+        
+        exclude 'module-info.java' // Temporary, as module path is not added
+        
         options {
+//          addStringOption('-module-path', classpath.asPath)
             // docletpath = configurations.markdownDoclet.files.asType(List)
             // doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
             // addStringOption("parse-timeout", "10")
-             addStringOption('Xdoclint:none', '-quiet')
+            addStringOption('Xdoclint:none', '-quiet')
+//             addStringOption('-module-path', classpath.asPath)
             // stylesheetFile = rootProject.file('./baselib/javadoc.css')
 //            links = [
 //                "https://docs.oracle.com/en/java/javase/11/docs/api/",
@@ -357,8 +379,7 @@ def scanAndInstrument(sset, configs) {
     def cp = '' + sset.output.classesDirs*.toString().join(':') + ':' + sset.output.resourcesDir + ':' + configs*.asPath.join(':')
 
     ant.taskdef(
-        name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
-        classpath: cp)
+        name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',  classpath: cp)
     ant.scanSuspendables(
         auto: false,
         supersFile:"$sset.output.resourcesDir/META-INF/suspendable-supers",
@@ -367,13 +388,18 @@ def scanAndInstrument(sset, configs) {
         fileset(dir: sset.output.classesDir)
     }
 
-    ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask',
-        classpath: cp)
+    ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: cp)
     ant.instrumentation(verbose:'true', check:'true', debug:'true') {
 //        sset.output.classesDirs.addToAntBuilder(ant, 'fileset', FileCollection.AntType.FileSet) {
         fileset(dir: sset.output.classesDir) {
             exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
         }
+    }
+    
+    // Filter out the 'requires org.objectweb.asm' from quasar-core's module-info, as it will be shadowed into the jar
+    ant.taskdef(name:'filterModules', classname:'co.paralleluniverse.fibers.instrument.ModuleFilterTask', classpath: cp)
+    ant.filterModules(module: 'org.objectweb.asm') {
+        fileset(dir: sset.output.classesDir)
     }
 }
 
@@ -397,6 +423,8 @@ project (':quasar-core') {
             archives.remove(it)
         }
     }
+    
+    [jar]*.enabled = false
 
     sourceSets {
         main {
@@ -446,14 +474,24 @@ project (':quasar-core') {
         compile "org.ow2.asm:asm-util:$asmVer"
 
         // The exclusions are needed to get asm 5.0.4 whilst Kryo still depends on 5.0.3
+        compile "org.objenesis:objenesis:2.6"
         compile("com.esotericsoftware:kryo:4.0.2") {
             exclude group: "org.ow2.asm", module: '*'
+            exclude group: "org.objenesis", module: '*'
         }
         compile("de.javakaffee:kryo-serializers:0.42") {
             exclude group: "com.esotericsoftware", module: '*'
             exclude group: "com.esotericsoftware.kryo", module: '*'
         }
-        provided 'junit:junit:4.12'
+        
+        // this happens after we've filtered the dependency on ASM from core's module-info
+        compileTestJava {
+            options.compilerArgs += ["--add-modules", "org.objectweb.asm", "--add-reads", "co.paralleluniverse.quasar.core=org.objectweb.asm"]
+        }
+        
+        provided ('junit:junit:4.12') {
+            exclude group: 'org.hamcrest', module: '*'
+        }
     }
 
     configure(project.tasks.compileJava) {
@@ -474,7 +512,7 @@ project (':quasar-core') {
 //            include(dependency(':high-scale-lib'))
         }
         exclude 'META-INF/INDEX.LIST'
-        exclude 'module-info.class'
+//      exclude 'module-info.class'
 
         relocate 'org.objectweb.asm.', 'co.paralleluniverse.asm.'
 //        relocate 'org.cliffc.high_scale_lib.', 'co.paralleluniverse.high_scale_lib.'
@@ -506,6 +544,7 @@ project (':quasar-core') {
 
     artifacts {
         archives shadowJar
+        shadowedJar shadowJar
     }
 
     assemble.dependsOn shadowJar
@@ -548,14 +587,17 @@ project (':quasar-core') {
 
 project (':quasar-actors') {
     //project.evaluationDependsOn(':quasar-core')
+    
+    apply plugin: 'org.javamodularity.moduleplugin'
 
     ext.moduleName = 'co.paralleluniverse.quasar.actors'
     
     dependencies {
-        provided project(path: ':quasar-core', configuration: 'archives'/*, artifact: quasarJar*/)
+        provided project(path: ':quasar-core', configuration: 'shadowedJar')
         // compile 'org.mutabilitydetector:MutabilityDetector:0.9.2'
         compile "org.slf4j:slf4j-api:1.7.25"
         compile "net.bytebuddy:byte-buddy:1.9.2"
+        
         testRuntime("org.apache.logging.log4j:log4j-slf4j-impl:2.11.1") {
             exclude group: "org.slf4j", module: '*'
         }
@@ -567,7 +609,7 @@ project (':quasar-actors') {
 
 //project (':quasar-galaxy') {
 //    dependencies {
-//        provided project(path: ':quasar-core', configuration: 'archives')
+//        provided project(path: ':quasar-core', configuration: 'shadowedJar')
 //        compile project(':quasar-actors')
 //
 //        compile ("co.paralleluniverse:galaxy:1.4")  {
@@ -618,10 +660,11 @@ project (':quasar-actors') {
 project (':quasar-reactive-streams') {
     //project.evaluationDependsOn(':quasar-core')
     
+    apply plugin: 'org.javamodularity.moduleplugin'
     ext.moduleName = 'co.paralleluniverse.quasar.reactivestreams'
     
     dependencies {
-        provided project(path: ':quasar-core', configuration: 'archives')
+        provided project(path: ':quasar-core', configuration: 'shadowedJar')
         compile "org.reactivestreams:reactive-streams:1.0.2"
         testCompile("org.reactivestreams:reactive-streams-tck:1.0.2") {
             exclude group: "junit", module: "*"
@@ -640,11 +683,12 @@ project (':quasar-reactive-streams') {
 
 project (':quasar-disruptor') {
     //project.evaluationDependsOn(':quasar-core')
-    
+     
+    apply plugin: 'org.javamodularity.moduleplugin'
     ext.moduleName = 'co.paralleluniverse.quasar.disruptor'
 
     dependencies {
-        provided project(path: ':quasar-core', configuration: "archives")
+        provided project(path: ':quasar-core', configuration: 'shadowedJar')
         compile "com.lmax:disruptor:3.4.2"
     }
 }
@@ -663,13 +707,15 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
         // doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
         // addStringOption("parse-timeout", "10")
         // stylesheetFile = rootProject.file('./baselib/javadoc.css')
-         addStringOption('Xdoclint:none', '-quiet')
+         addStringOption('Xdoclint:none')
+//         addStringOption('-module-path', classpath.asPath)
 //        links = [
 //        "https://docs.oracle.com/en/java/javase/11/docs/api/",
 //        "https://google.github.io/guava/releases/${subprojects.ext.guavaVer}/api/docs/"
 //        ]
     }
     excludes = [
+        "module-info.java", // for now
         "co/paralleluniverse/actors/spi/**",
         "co/paralleluniverse/actors/ActorMonitor.java",
         "co/paralleluniverse/actors/GlobalRegistry.java",
