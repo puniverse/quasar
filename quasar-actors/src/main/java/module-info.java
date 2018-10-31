@@ -17,7 +17,7 @@ module co.paralleluniverse.quasar.actors {
     
     requires transitive co.paralleluniverse.quasar.core;
     requires slf4j.api;
-    requires net.bytebuddy;
+    requires static net.bytebuddy;
     
     exports co.paralleluniverse.actors;
     exports co.paralleluniverse.actors.behaviors;

@@ -20,7 +20,7 @@ module co.paralleluniverse.quasar.core {
     requires org.objectweb.asm.util;
     requires org.objectweb.asm.commons;
     requires com.google.common;
-    requires kryo;
+    requires static kryo;
     
     exports co.paralleluniverse.fibers;
     exports co.paralleluniverse.fibers.futures;
