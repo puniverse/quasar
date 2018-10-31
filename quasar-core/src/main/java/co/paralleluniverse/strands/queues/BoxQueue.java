@@ -13,8 +13,8 @@
  */
 package co.paralleluniverse.strands.queues;
 
-import co.paralleluniverse.common.util.UtilUnsafe;
-import sun.misc.Unsafe;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 
 /**
  *
@@ -74,18 +74,17 @@ public class BoxQueue<E> implements BasicQueue<E> {
         return v;
     }
     //////////
-    static final Unsafe unsafe = UtilUnsafe.getUnsafe();
-    private static final long valueOffset;
-
+    private static final VarHandle VALUE;
     static {
         try {
-            valueOffset = unsafe.objectFieldOffset(BoxQueue.class.getDeclaredField("value"));
-        } catch (Exception ex) {
-            throw new Error(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            VALUE = l.findVarHandle(BoxQueue.class, "value", Object.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
 
     boolean casValue(Object expected, Object update) {
-        return unsafe.compareAndSwapObject(this, valueOffset, expected, update);
+        return VALUE.compareAndSet(this, expected, update);
     }
 }

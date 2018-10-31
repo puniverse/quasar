@@ -21,6 +21,8 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Synchronization;
 import co.paralleluniverse.strands.Timeout;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,7 +30,6 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import sun.misc.Unsafe;
 
 /**
  * Attempts to perform at most one channel operation (send or receive) of a given set.
@@ -515,20 +516,21 @@ public class Selector<Message> implements Synchronization {
     public String toString() {
         return Selector.class.getName() + '@' + Long.toHexString(id);
     }
-    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long winnerOffset;
-
+    
+    private static final VarHandle WINNER;
     static {
         try {
-            winnerOffset = UNSAFE.objectFieldOffset(Selector.class.getDeclaredField("winner"));
-        } catch (Exception ex) {
-            throw new Error(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            WINNER = l.findVarHandle(Selector.class, "winner", Object.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
-
+    
     private boolean casWinner(Object expected, Object update) {
-        return UNSAFE.compareAndSwapObject(this, winnerOffset, expected, update);
+        return WINNER.compareAndSet(this, expected, update);
     }
+    
     static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
     boolean isRecording() {

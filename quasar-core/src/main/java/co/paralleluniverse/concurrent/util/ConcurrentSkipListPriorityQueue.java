@@ -21,7 +21,8 @@
  */
 package co.paralleluniverse.concurrent.util;
 
-import co.paralleluniverse.common.util.UtilUnsafe;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.*;
 
 public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
@@ -294,7 +295,7 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
      * compareAndSet head node
      */
     private boolean casHead(HeadIndex<E> cmp, HeadIndex<E> val) {
-        return UNSAFE.compareAndSwapObject(this, headOffset, cmp, val);
+        return HEAD.compareAndSet(this, cmp, val); // UNSAFE.compareAndSwapObject(this, headOffset, cmp, val);
     }
 
     /* ---------------- Nodes -------------- */
@@ -340,14 +341,14 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
          * compareAndSet value field
          */
         boolean casValue(Object cmp, Object val) {
-            return UNSAFE.compareAndSwapObject(this, valueOffset, cmp, val);
+            return VALUE.compareAndSet(this, cmp, val); // UNSAFE.compareAndSwapObject(this, valueOffset, cmp, val);
         }
 
         /**
          * compareAndSet next field
          */
         boolean casNext(Node<V> cmp, Node<V> val) {
-            return UNSAFE.compareAndSwapObject(this, nextOffset, cmp, val);
+            return NEXT.compareAndSet(this, cmp, val); // UNSAFE.compareAndSwapObject(this, nextOffset, cmp, val);
         }
 
         /**
@@ -418,21 +419,35 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
                 return null;
             return (V) v;
         }
-        // UNSAFE mechanics
-        private static final sun.misc.Unsafe UNSAFE;
-        private static final long valueOffset;
-        private static final long nextOffset;
+        
+        private static final VarHandle VALUE;
+        private static final VarHandle NEXT;
 
         static {
             try {
-                UNSAFE = UtilUnsafe.getUnsafe();
+                MethodHandles.Lookup l = MethodHandles.lookup();
                 Class k = Node.class;
-                valueOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("value"));
-                nextOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("next"));
-            } catch (Exception e) {
-                throw new Error(e);
+                VALUE = l.findVarHandle(k, "value", Object.class);
+                NEXT  = l.findVarHandle(k, "next",  k);
+            } catch (ReflectiveOperationException e) {
+                throw new ExceptionInInitializerError(e);
             }
         }
+//        // UNSAFE mechanics
+//        private static final sun.misc.Unsafe UNSAFE;
+//        private static final long valueOffset;
+//        private static final long nextOffset;
+//
+//        static {
+//            try {
+//                UNSAFE = UtilUnsafe.getUnsafe();
+//                Class k = Node.class;
+//                valueOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("value"));
+//                nextOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("next"));
+//            } catch (Exception e) {
+//                throw new Error(e);
+//            }
+//        }
     }
 
     /* ---------------- Indexing -------------- */
@@ -461,7 +476,7 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
          * compareAndSet right field
          */
         final boolean casRight(Index<V> cmp, Index<V> val) {
-            return UNSAFE.compareAndSwapObject(this, rightOffset, cmp, val);
+            return RIGHT.compareAndSet(this, cmp, val); // UNSAFE.compareAndSwapObject(this, rightOffset, cmp, val);
         }
 
         /**
@@ -499,19 +514,31 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
         final boolean unlink(Index<V> succ) {
             return !indexesDeletedNode() && casRight(succ, succ.right);
         }
-        // Unsafe mechanics
-        private static final sun.misc.Unsafe UNSAFE;
-        private static final long rightOffset;
+        
+        private static final VarHandle RIGHT;
 
         static {
             try {
-                UNSAFE = UtilUnsafe.getUnsafe();
+                MethodHandles.Lookup l = MethodHandles.lookup();
                 Class k = Index.class;
-                rightOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("right"));
-            } catch (Exception e) {
-                throw new Error(e);
+                RIGHT = l.findVarHandle(k, "right", k);
+            } catch (ReflectiveOperationException e) {
+                throw new ExceptionInInitializerError(e);
             }
         }
+//        // Unsafe mechanics
+//        private static final sun.misc.Unsafe UNSAFE;
+//        private static final long rightOffset;
+//
+//        static {
+//            try {
+//                UNSAFE = UtilUnsafe.getUnsafe();
+//                Class k = Index.class;
+//                rightOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("right"));
+//            } catch (Exception e) {
+//                throw new Error(e);
+//            }
+//        }
     }
 
     /* ---------------- Head nodes -------------- */
@@ -1562,17 +1589,28 @@ public class ConcurrentSkipListPriorityQueue<E> extends AbstractQueue<E>
     public <T> T[] toArray(T[] a) {
         return toList(this).toArray(a);
     }
-    // Unsafe mechanics
-    private static final sun.misc.Unsafe UNSAFE;
-    private static final long headOffset;
+
+    private static final VarHandle HEAD;
 
     static {
         try {
-            UNSAFE = UtilUnsafe.getUnsafe();
-            Class k = ConcurrentSkipListPriorityQueue.class;
-            headOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("head"));
-        } catch (Exception e) {
-            throw new Error(e);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            HEAD = l.findVarHandle(ConcurrentSkipListPriorityQueue.class, "head", HeadIndex.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
+//    // Unsafe mechanics
+//    private static final sun.misc.Unsafe UNSAFE;
+//    private static final long headOffset;
+//
+//    static {
+//        try {
+//            UNSAFE = UtilUnsafe.getUnsafe();
+//            Class k = ConcurrentSkipListPriorityQueue.class;
+//            headOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("head"));
+//        } catch (Exception e) {
+//            throw new Error(e);
+//        }
+//    }
 }

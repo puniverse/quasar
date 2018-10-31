@@ -56,6 +56,8 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 // import java.lang.reflect.Executable;
 import java.lang.reflect.Member;
 
@@ -1843,23 +1845,22 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         stack.resetStack();
     }
 
-    private static final sun.misc.Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long stateOffset;
-
+    private static final VarHandle STATE;
     static {
         try {
-            stateOffset = UNSAFE.objectFieldOffset(Fiber.class.getDeclaredField("state"));
-        } catch (Exception ex) {
-            throw new AssertionError(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            STATE = l.findVarHandle(Fiber.class, "state", Strand.State.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
 
     private boolean casState(State expected, State update) {
-        return UNSAFE.compareAndSwapObject(this, stateOffset, expected, update);
+        return STATE.compareAndSet(this, expected, update);
     }
 
     private void orderedSetState(State value) {
-        UNSAFE.putOrderedObject(this, stateOffset, value);
+        STATE.setOpaque(this, value); // UNSAFE.putOrderedObject(this, stateOffset, value);
     }
 
     //<editor-fold defaultstate="collapsed" desc="Recording">

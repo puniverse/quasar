@@ -8,7 +8,6 @@ package co.paralleluniverse.concurrent.util;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.*;
-import sun.misc.Unsafe;
 
 /**
  * A scalable concurrent {@link NavigableSet} implementation based on

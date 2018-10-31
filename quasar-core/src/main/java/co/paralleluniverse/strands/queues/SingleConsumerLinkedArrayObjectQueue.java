@@ -14,6 +14,8 @@
 package co.paralleluniverse.strands.queues;
 
 import co.paralleluniverse.common.util.Objects;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.Arrays;
 
 /**
@@ -91,38 +93,57 @@ public class SingleConsumerLinkedArrayObjectQueue<E> extends SingleConsumerLinke
             return "Node{" + "array: " + Arrays.toString(array) + ", next: " + next + ", prev: " + Objects.systemToString(prev) + '}';
         }
     }
-    private static final int base;
-    private static final int shift;
 
-    static {
-        try {
-            base = UNSAFE.arrayBaseOffset(Object[].class);
-            int scale = UNSAFE.arrayIndexScale(Object[].class);
-            if ((scale & (scale - 1)) != 0)
-                throw new Error("data type scale not a power of two");
-            shift = 31 - Integer.numberOfLeadingZeros(scale);
-        } catch (Exception ex) {
-            throw new Error(ex);
-        }
-    }
+    private static final VarHandle ARRAY = MethodHandles.arrayElementVarHandle(Object[].class);
 
     private static boolean compareAndSetElement(Node n, int i, Object expect, Object update) {
-        return UNSAFE.compareAndSwapObject(((ObjectNode) n).array, byteOffset(i), expect, update);
+        return ARRAY.compareAndSet(((ObjectNode) n).array, i, expect, update);
     }
 
     private static void lazySet(Node n, int i, Object value) {
-        UNSAFE.putOrderedObject(((ObjectNode) n).array, byteOffset(i), value);
+        ARRAY.setOpaque(((ObjectNode) n).array, i, value);
     }
 
     private static Object get(Node n, int i) {
-        return UNSAFE.getObjectVolatile(((ObjectNode) n).array, byteOffset(i));
+        return ARRAY.getVolatile(((ObjectNode) n).array, i);
     }
 
     private static void set(Node n, int i, Object x) {
         ((ObjectNode) n).array[i] = x;
     }
-
-    private static long byteOffset(int i) {
-        return ((long) i << shift) + base;
-    }
+    
+//    private static final int base;
+//    private static final int shift;
+//
+//    static {
+//        try {
+//            base = UNSAFE.arrayBaseOffset(Object[].class);
+//            int scale = UNSAFE.arrayIndexScale(Object[].class);
+//            if ((scale & (scale - 1)) != 0)
+//                throw new Error("data type scale not a power of two");
+//            shift = 31 - Integer.numberOfLeadingZeros(scale);
+//        } catch (Exception ex) {
+//            throw new Error(ex);
+//        }
+//    }
+//
+//    private static boolean compareAndSetElement(Node n, int i, Object expect, Object update) {
+//        return UNSAFE.compareAndSwapObject(((ObjectNode) n).array, byteOffset(i), expect, update);
+//    }
+//
+//    private static void lazySet(Node n, int i, Object value) {
+//        UNSAFE.putOrderedObject(((ObjectNode) n).array, byteOffset(i), value);
+//    }
+//
+//    private static Object get(Node n, int i) {
+//        return UNSAFE.getObjectVolatile(((ObjectNode) n).array, byteOffset(i));
+//    }
+//
+//    private static void set(Node n, int i, Object x) {
+//        ((ObjectNode) n).array[i] = x;
+//    }
+//
+//    private static long byteOffset(int i) {
+//        return ((long) i << shift) + base;
+//    }
 }

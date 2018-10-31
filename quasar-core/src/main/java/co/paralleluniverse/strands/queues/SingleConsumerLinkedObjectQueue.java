@@ -14,6 +14,8 @@
 package co.paralleluniverse.strands.queues;
 
 import co.paralleluniverse.common.util.Objects;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 
 /**
  *
@@ -47,18 +49,35 @@ public class SingleConsumerLinkedObjectQueue<E> extends SingleConsumerLinkedQueu
             return "Node{" + "value: " + value + ", next: " + next + ", prev: " + Objects.systemToString(prev) + '}';
         }
     }
-    private static final long valueOffset;
+
+    private static final VarHandle VALUE;
 
     static {
         try {
-            valueOffset = UNSAFE.objectFieldOffset(ObjectNode.class.getDeclaredField("value"));
-        } catch (Exception ex) {
-            throw new Error(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            VALUE = l.findVarHandle(ObjectNode.class, "value", Object.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
 
     @Override
     void clearValue(Node node) {
-        UNSAFE.putOrderedObject(node, valueOffset, null);
+        VALUE.setOpaque(node, null); // UNSAFE.putOrderedObject(node, valueOffset, null);
     }
+    
+//    private static final long valueOffset;
+//
+//    static {
+//        try {
+//            valueOffset = UNSAFE.objectFieldOffset(ObjectNode.class.getDeclaredField("value"));
+//        } catch (Exception ex) {
+//            throw new Error(ex);
+//        }
+//    }
+//
+//    @Override
+//    void clearValue(Node node) {
+//        UNSAFE.putOrderedObject(node, valueOffset, null);
+//    }
 }

@@ -14,7 +14,7 @@
 module co.paralleluniverse.quasar.core {
     requires java.management;
     requires java.instrument;
-    requires jdk.unsupported;
+    requires jdk.unsupported; // needed for ThreadAccess and ExtendedStackTraceHotSpot
     
     requires org.objectweb.asm;
     requires org.objectweb.asm.util;

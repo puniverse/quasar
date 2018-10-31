@@ -13,8 +13,8 @@
  */
 package co.paralleluniverse.strands.queues;
 
-import co.paralleluniverse.common.util.UtilUnsafe;
-import sun.misc.Unsafe;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 
 /**
  *
@@ -113,59 +113,105 @@ public class ArrayQueue<E> implements BasicQueue<E> {
         return --i & mask;
     }
     ////////////////////////////////////////////////////////////////////////
-    static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final int base;
-    private static final int shift;
-    private static final long headOffset;
-    private static final long tailOffset;
-
+    
+    private static final VarHandle ARRAY = MethodHandles.arrayElementVarHandle(Object[].class);
+    
+    private static final VarHandle HEAD;
+    private static final VarHandle TAIL;
     static {
         try {
-            headOffset = UNSAFE.objectFieldOffset(ArrayQueue.class.getDeclaredField("head"));
-            tailOffset = UNSAFE.objectFieldOffset(ArrayQueue.class.getDeclaredField("tail"));
-
-            base = UNSAFE.arrayBaseOffset(Object[].class);
-            int scale = UNSAFE.arrayIndexScale(Object[].class);
-            if ((scale & (scale - 1)) != 0)
-                throw new Error("data type scale not a power of two");
-            shift = 31 - Integer.numberOfLeadingZeros(scale);
-        } catch (Exception ex) {
-            throw new Error(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            HEAD = l.findVarHandle(ArrayQueue.class, "head", long.class);
+            TAIL = l.findVarHandle(ArrayQueue.class, "tail", long.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
-
+    
     /**
      * CAS tail field. Used only by preEnq.
      */
     private boolean compareAndSetTail(long expect, long update) {
-        return UNSAFE.compareAndSwapLong(this, tailOffset, expect, update);
+        return TAIL.compareAndSet(this, expect, update);
     }
 
     private boolean compareAndSetHead(long expect, long update) {
-        return UNSAFE.compareAndSwapLong(this, headOffset, expect, update);
+        return HEAD.compareAndSet(this, expect, update);
     }
 
     private void orderedSetHead(long value) {
-        UNSAFE.putOrderedLong(this, headOffset, value);
-    }
-
-    private static long byteOffset(int i) {
-        return ((long) i << shift) + base;
+        HEAD.setOpaque(this, value); // UNSAFE.putOrderedLong(this, headOffset, value);
     }
 
     private void set(int i, E value) {
-        UNSAFE.putObjectVolatile(array, byteOffset(i), value);
+        ARRAY.setVolatile(array, i, value);
     }
 
     private void orderedSet(int i, E value) {
-        UNSAFE.putOrderedObject(array, byteOffset(i), value);
+        ARRAY.setOpaque(array, i, value);
     }
 
     private E get(int i) {
-        return (E) UNSAFE.getObjectVolatile(array, byteOffset(i));
+        return (E) ARRAY.getVolatile(array, i);
     }
 
     private boolean cas(int i, E expected, E update) {
-        return UNSAFE.compareAndSwapObject(array, byteOffset(i), expected, update);
+        return ARRAY.compareAndSet(array, i, expected, update);
     }
+    
+//    static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
+//    private static final int base;
+//    private static final int shift;
+//    private static final long headOffset;
+//    private static final long tailOffset;
+//
+//    static {
+//        try {
+//            headOffset = UNSAFE.objectFieldOffset(ArrayQueue.class.getDeclaredField("head"));
+//            tailOffset = UNSAFE.objectFieldOffset(ArrayQueue.class.getDeclaredField("tail"));
+//
+//            base = UNSAFE.arrayBaseOffset(Object[].class);
+//            int scale = UNSAFE.arrayIndexScale(Object[].class);
+//            if ((scale & (scale - 1)) != 0)
+//                throw new Error("data type scale not a power of two");
+//            shift = 31 - Integer.numberOfLeadingZeros(scale);
+//        } catch (Exception ex) {
+//            throw new Error(ex);
+//        }
+//    }
+//
+//    /**
+//     * CAS tail field. Used only by preEnq.
+//     */
+//    private boolean compareAndSetTail(long expect, long update) {
+//        return UNSAFE.compareAndSwapLong(this, tailOffset, expect, update);
+//    }
+//
+//    private boolean compareAndSetHead(long expect, long update) {
+//        return UNSAFE.compareAndSwapLong(this, headOffset, expect, update);
+//    }
+//
+//    private void orderedSetHead(long value) {
+//        UNSAFE.putOrderedLong(this, headOffset, value);
+//    }
+//
+//    private static long byteOffset(int i) {
+//        return ((long) i << shift) + base;
+//    }
+//
+//    private void set(int i, E value) {
+//        UNSAFE.putObjectVolatile(array, byteOffset(i), value);
+//    }
+//
+//    private void orderedSet(int i, E value) {
+//        UNSAFE.putOrderedObject(array, byteOffset(i), value);
+//    }
+//
+//    private E get(int i) {
+//        return (E) UNSAFE.getObjectVolatile(array, byteOffset(i));
+//    }
+//
+//    private boolean cas(int i, E expected, E update) {
+//        return UNSAFE.compareAndSwapObject(array, byteOffset(i), expected, update);
+//    }
 }

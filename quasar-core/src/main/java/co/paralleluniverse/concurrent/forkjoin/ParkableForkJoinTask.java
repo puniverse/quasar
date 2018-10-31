@@ -17,14 +17,13 @@ import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.SystemProperties;
-import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.fibers.Fiber;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.concurrent.ForkJoinWorkerThread;
-
-import sun.misc.Unsafe;
 
 /**
  *
@@ -325,7 +324,7 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
     }
 
     boolean compareAndSetState(int expect, int update) {
-        return UNSAFE.compareAndSwapInt(this, stateOffset, expect, update);
+        return STATE.compareAndSet(this, expect, update);
     }
 
     @Override
@@ -366,14 +365,14 @@ public abstract class ParkableForkJoinTask<V> extends ForkJoinTask<V> {
         if (RECORDER != null)
             RECORDER.record(1, new FlightRecorderMessage("ParkableForkJoinTask", method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
     }
-    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long stateOffset;
-
+    
+    private static final VarHandle STATE;
     static {
         try {
-            stateOffset = UNSAFE.objectFieldOffset(ParkableForkJoinTask.class.getDeclaredField("state"));
-        } catch (Exception ex) {
-            throw new AssertionError(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            STATE = l.findVarHandle(ParkableForkJoinTask.class, "state", int.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
 

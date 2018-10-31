@@ -15,9 +15,10 @@ package co.paralleluniverse.strands.queues;
 
 import co.paralleluniverse.common.util.UtilUnsafe;
 import com.google.common.collect.Lists;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.List;
-import sun.misc.Unsafe;
 
 /**
  *
@@ -235,16 +236,15 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E> {
         }
     }
     ////////////////////////////////////////////////////////////////////////
-    static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long headOffset;
-    private static final long tailOffset;
-
+    private static final VarHandle HEAD;
+    private static final VarHandle TAIL;
     static {
         try {
-            headOffset = UNSAFE.objectFieldOffset(SingleConsumerArrayQueue.class.getDeclaredField("head"));
-            tailOffset = UNSAFE.objectFieldOffset(SingleConsumerArrayQueue.class.getDeclaredField("tail"));
-        } catch (Exception ex) {
-            throw new Error(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            HEAD = l.findVarHandle(SingleConsumerArrayQueue.class, "head", long.class);
+            TAIL = l.findVarHandle(SingleConsumerArrayQueue.class, "tail", long.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
 
@@ -252,10 +252,10 @@ abstract class SingleConsumerArrayQueue<E> extends SingleConsumerQueue<E> {
      * CAS tail field. Used only by preEnq.
      */
     private boolean compareAndSetTail(long expect, long update) {
-        return UNSAFE.compareAndSwapLong(this, tailOffset, expect, update);
+        return TAIL.compareAndSet(this, expect, update);
     }
 
     private void orderedSetHead(long value) {
-        UNSAFE.putOrderedLong(this, headOffset, value);
+        HEAD.setOpaque(this, value); // UNSAFE.putOrderedLong(this, headOffset, value);
     }
 }
