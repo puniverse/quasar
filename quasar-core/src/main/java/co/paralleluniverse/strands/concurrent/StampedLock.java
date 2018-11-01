@@ -21,10 +21,11 @@
  */
 package co.paralleluniverse.strands.concurrent;
 
-import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -365,7 +366,7 @@ public class StampedLock implements java.io.Serializable {
         try {
             long s, next;  // bypass acquireWrite in fully unlocked case only
             return ((((s = state) & ABITS) == 0L
-                    && U.compareAndSwapLong(this, STATE, s, next = s + WBIT))
+                    && STATE.compareAndSet(this, s, next = s + WBIT))
                     ? next : acquireWrite(false, 0L));
         } catch (SuspendExecution e) {
             throw new AssertionError();
@@ -381,7 +382,7 @@ public class StampedLock implements java.io.Serializable {
     public long tryWriteLock() {
         long s, next;
         return ((((s = state) & ABITS) == 0L
-                && U.compareAndSwapLong(this, STATE, s, next = s + WBIT))
+                && STATE.compareAndSet(this, s, next = s + WBIT))
                 ? next : 0L);
     }
 
@@ -452,7 +453,7 @@ public class StampedLock implements java.io.Serializable {
         try {
             long s, next;  // bypass acquireRead on fully unlocked case only
             return ((((s = state) & ABITS) == 0L
-                    && U.compareAndSwapLong(this, STATE, s, next = s + RUNIT))
+                    && STATE.compareAndSet(this, s, next = s + RUNIT))
                     ? next : acquireRead(false, 0L));
         } catch (SuspendExecution e) {
             throw new AssertionError();
@@ -471,7 +472,7 @@ public class StampedLock implements java.io.Serializable {
             if ((m = (s = state) & ABITS) == WBIT)
                 return 0L;
             else if (m < RFULL) {
-                if (U.compareAndSwapLong(this, STATE, s, next = s + RUNIT))
+                if (STATE.compareAndSet(this, s, next = s + RUNIT))
                     return next;
             } else if ((next = tryIncReaderOverflow(s)) != 0L)
                 return next;
@@ -498,7 +499,7 @@ public class StampedLock implements java.io.Serializable {
             if (!Strand.interrupted()) {
                 if ((m = (s = state) & ABITS) != WBIT) {
                     if (m < RFULL) {
-                        if (U.compareAndSwapLong(this, STATE, s, next = s + RUNIT))
+                        if (STATE.compareAndSet(this, s, next = s + RUNIT))
                             return next;
                     } else if ((next = tryIncReaderOverflow(s)) != 0L)
                         return next;
@@ -563,7 +564,7 @@ public class StampedLock implements java.io.Serializable {
      */
     public boolean validate(long stamp) {
         // See above about current use of getLongVolatile here
-        return (stamp & SBITS) == (U.getLongVolatile(this, STATE) & SBITS);
+        return (stamp & SBITS) == ((long)STATE.getVolatile(this) & SBITS);
     }
 
     /**
@@ -599,7 +600,7 @@ public class StampedLock implements java.io.Serializable {
                     || (stamp & ABITS) == 0L || (m = s & ABITS) == 0L || m == WBIT)
                 throw new IllegalMonitorStateException();
             if (m < RFULL) {
-                if (U.compareAndSwapLong(this, STATE, s, s - RUNIT)) {
+                if (STATE.compareAndSet(this, s, s - RUNIT)) {
                     if (m == RUNIT && (h = whead) != null && h.status != 0)
                         release(h);
                     break;
@@ -633,7 +634,7 @@ public class StampedLock implements java.io.Serializable {
             } else if (a == 0L || a >= WBIT)
                 break;
             else if (m < RFULL) {
-                if (U.compareAndSwapLong(this, STATE, s, s - RUNIT)) {
+                if (STATE.compareAndSet(this, s, s - RUNIT)) {
                     if (m == RUNIT && (h = whead) != null && h.status != 0)
                         release(h);
                     return;
@@ -662,14 +663,14 @@ public class StampedLock implements java.io.Serializable {
             if ((m = s & ABITS) == 0L) {
                 if (a != 0L)
                     break;
-                if (U.compareAndSwapLong(this, STATE, s, next = s + WBIT))
+                if (STATE.compareAndSet(this, s, next = s + WBIT))
                     return next;
             } else if (m == WBIT) {
                 if (a != m)
                     break;
                 return stamp;
             } else if (m == RUNIT && a != 0L) {
-                if (U.compareAndSwapLong(this, STATE, s,
+                if (STATE.compareAndSet(this, s,
                         next = s - RUNIT + WBIT))
                     return next;
             } else
@@ -697,7 +698,7 @@ public class StampedLock implements java.io.Serializable {
                 if (a != 0L)
                     break;
                 else if (m < RFULL) {
-                    if (U.compareAndSwapLong(this, STATE, s, next = s + RUNIT))
+                    if (STATE.compareAndSet(this, s, next = s + RUNIT))
                         return next;
                 } else if ((next = tryIncReaderOverflow(s)) != 0L)
                     return next;
@@ -730,7 +731,7 @@ public class StampedLock implements java.io.Serializable {
         long a = stamp & ABITS, m, s, next;
         WNode h;
         for (;;) {
-            s = U.getLongVolatile(this, STATE); // see above
+            s = (long)STATE.getVolatile(this); // see above
             if ((s & SBITS) != (stamp & SBITS))
                 break;
             if ((m = s & ABITS) == 0L) {
@@ -747,7 +748,7 @@ public class StampedLock implements java.io.Serializable {
             } else if (a == 0L || a >= WBIT)
                 break;
             else if (m < RFULL) {
-                if (U.compareAndSwapLong(this, STATE, s, next = s - RUNIT)) {
+                if (STATE.compareAndSet(this, s, next = s - RUNIT)) {
                     if (m == RUNIT && (h = whead) != null && h.status != 0)
                         release(h);
                     return next & SBITS;
@@ -789,7 +790,7 @@ public class StampedLock implements java.io.Serializable {
         WNode h;
         while ((m = (s = state) & ABITS) != 0L && m < WBIT) {
             if (m < RFULL) {
-                if (U.compareAndSwapLong(this, STATE, s, s - RUNIT)) {
+                if (STATE.compareAndSet(this, s, s - RUNIT)) {
                     if (m == RUNIT && (h = whead) != null && h.status != 0)
                         release(h);
                     return true;
@@ -960,7 +961,7 @@ public class StampedLock implements java.io.Serializable {
             if ((m = (s = state) & ABITS) == 0L || m >= WBIT)
                 throw new IllegalMonitorStateException();
             else if (m < RFULL) {
-                if (U.compareAndSwapLong(this, STATE, s, s - RUNIT)) {
+                if (STATE.compareAndSet(this, s, s - RUNIT)) {
                     if (m == RUNIT && (h = whead) != null && h.status != 0)
                         release(h);
                     break;
@@ -982,7 +983,7 @@ public class StampedLock implements java.io.Serializable {
     private long tryIncReaderOverflow(long s) {
         // assert (s & ABITS) >= RFULL
         if ((s & ABITS) == RFULL) {
-            if (U.compareAndSwapLong(this, STATE, s, s | RBITS)) {
+            if (STATE.compareAndSet(this, s, s | RBITS)) {
                 ++readerOverflow;
                 state = s;
                 return s;
@@ -1003,7 +1004,7 @@ public class StampedLock implements java.io.Serializable {
     private long tryDecReaderOverflow(long s) {
         // assert (s & ABITS) >= RFULL
         if ((s & ABITS) == RFULL) {
-            if (U.compareAndSwapLong(this, STATE, s, s | RBITS)) {
+            if (STATE.compareAndSet(this, s, s | RBITS)) {
                 int r;
                 long next;
                 if ((r = readerOverflow) > 0) {
@@ -1032,7 +1033,7 @@ public class StampedLock implements java.io.Serializable {
         if (h != null) {
             WNode q;
             Strand w;
-            U.compareAndSwapInt(h, WSTATUS, WAITING, 0);
+            WSTATUS.compareAndSet(h, WAITING, 0);
             if ((q = h.next) == null || q.status == CANCELLED) {
                 for (WNode t = wtail; t != null && t != h; t = t.prev)
                     if (t.status <= 0)
@@ -1046,7 +1047,7 @@ public class StampedLock implements java.io.Serializable {
                     }
                     if ((r = q.cowait) == null)
                         break;
-                    U.compareAndSwapObject(q, WCOWAIT, r, r.cowait);
+                    WCOWAIT.compareAndSet(q, r, r.cowait);
                 }
             }
         }
@@ -1066,14 +1067,14 @@ public class StampedLock implements java.io.Serializable {
         for (int spins = -1;;) { // spin while enqueuing
             long s, ns;
             if (((s = state) & ABITS) == 0L) {
-                if (U.compareAndSwapLong(this, STATE, s, ns = s + WBIT))
+                if (STATE.compareAndSet(this, s, ns = s + WBIT))
                     return ns;
             } else if (spins > 0) {
                 if (ThreadLocalRandom.current().nextInt() >= 0)
                     --spins;
             } else if ((p = wtail) == null) { // initialize queue
                 WNode h = new WNode(WMODE, null);
-                if (U.compareAndSwapObject(this, WHEAD, null, h))
+                if (WHEAD.compareAndSet(this, null, h))
                     wtail = h;
             } else if (spins < 0)
                 spins = (p == whead) ? SPINS : 0;
@@ -1081,7 +1082,7 @@ public class StampedLock implements java.io.Serializable {
                 node = new WNode(WMODE, p);
             else if (node.prev != p)
                 node.prev = p;
-            else if (U.compareAndSwapObject(this, WTAIL, p, node)) {
+            else if (WTAIL.compareAndSet(this, p, node)) {
                 p.next = node;
                 break;
             }
@@ -1097,7 +1098,7 @@ public class StampedLock implements java.io.Serializable {
             if (whead == p) {
                 for (int k = spins;;) { // spin at head
                     if (((s = state) & ABITS) == 0L) {
-                        if (U.compareAndSwapLong(this, STATE, s, ns = s + WBIT)) {
+                        if (STATE.compareAndSet(this, s, ns = s + WBIT)) {
                             whead = node;
                             node.prev = null;
                             return ns;
@@ -1110,7 +1111,7 @@ public class StampedLock implements java.io.Serializable {
                     spins <<= 1;
             }
             if ((ps = p.status) == 0)
-                U.compareAndSwapInt(p, WSTATUS, 0, WAITING);
+                WSTATUS.compareAndSet(p, 0, WAITING);
             else if (ps == CANCELLED) {
                 if ((pp = p.prev) != null) {
                     node.prev = pp;
@@ -1153,7 +1154,7 @@ public class StampedLock implements java.io.Serializable {
                         && (q = h.next) != null && q.mode != RMODE)
                     break;
                 if ((m = (s = state) & ABITS) < RFULL
-                        ? U.compareAndSwapLong(this, STATE, s, ns = s + RUNIT)
+                        ? STATE.compareAndSet(this, s, ns = s + RUNIT)
                         : (m < WBIT && (ns = tryIncReaderOverflow(s)) != 0L)) {
                     if (group != null) {  // help release others
                         for (WNode r = group;;) {
@@ -1163,7 +1164,7 @@ public class StampedLock implements java.io.Serializable {
                             }
                             if ((r = group.cowait) == null)
                                 break;
-                            U.compareAndSwapObject(group, WCOWAIT, r, r.cowait);
+                            WCOWAIT.compareAndSet(group, r, r.cowait);
                         }
                     }
                     return ns;
@@ -1176,7 +1177,7 @@ public class StampedLock implements java.io.Serializable {
                     --spins;
             } else if ((p = wtail) == null) {
                 WNode h = new WNode(WMODE, null);
-                if (U.compareAndSwapObject(this, WHEAD, null, h))
+                if (WHEAD.compareAndSet(this, null, h))
                     wtail = h;
             } else if (spins < 0)
                 spins = (p == whead) ? SPINS : 0;
@@ -1187,7 +1188,7 @@ public class StampedLock implements java.io.Serializable {
             else if (p.mode == RMODE && p != whead) {
                 WNode pp = p.prev;  // become co-waiter with group p
                 if (pp != null && p == wtail
-                        && U.compareAndSwapObject(p, WCOWAIT,
+                        && WCOWAIT.compareAndSet(p,
                         node.cowait = p.cowait, node)) {
                     node.strand = Strand.currentStrand();
                     for (long time;;) {
@@ -1211,7 +1212,7 @@ public class StampedLock implements java.io.Serializable {
                     group = p;
                 }
                 node = null; // throw away
-            } else if (U.compareAndSwapObject(this, WTAIL, p, node)) {
+            } else if (WTAIL.compareAndSet(this, p, node)) {
                 p.next = node;
                 break;
             }
@@ -1228,12 +1229,12 @@ public class StampedLock implements java.io.Serializable {
                 for (int k = spins;;) {
                     if ((m = (s = state) & ABITS) != WBIT) {
                         if (m < RFULL
-                                ? U.compareAndSwapLong(this, STATE, s, ns = s + RUNIT)
+                                ? STATE.compareAndSet(this, s, ns = s + RUNIT)
                                 : (ns = tryIncReaderOverflow(s)) != 0L) {
                             whead = node;
                             node.prev = null;
                             while ((r = node.cowait) != null) {
-                                if (U.compareAndSwapObject(node, WCOWAIT,
+                                if (WCOWAIT.compareAndSet(node,
                                         r, r.cowait)
                                         && (w = r.strand) != null) {
                                     r.strand = null;
@@ -1250,7 +1251,7 @@ public class StampedLock implements java.io.Serializable {
                     spins <<= 1;
             }
             if ((ps = p.status) == 0)
-                U.compareAndSwapInt(p, WSTATUS, 0, WAITING);
+                WSTATUS.compareAndSet(p, 0, WAITING);
             else if (ps == CANCELLED) {
                 if ((pp = p.prev) != null) {
                     node.prev = pp;
@@ -1297,14 +1298,14 @@ public class StampedLock implements java.io.Serializable {
             // unsplice cancelled nodes from group
             for (WNode p = group, q; (q = p.cowait) != null;) {
                 if (q.status == CANCELLED)
-                    U.compareAndSwapObject(p, WNEXT, q, q.next);
+                    WNEXT.compareAndSet(p, q, q.next);
                 else
                     p = q;
             }
             if (group == node) {
                 WNode r; // detach and wake up uncancelled co-waiters
                 while ((r = node.cowait) != null) {
-                    if (U.compareAndSwapObject(node, WCOWAIT, r, r.cowait)
+                    if (WCOWAIT.compareAndSet(node, r, r.cowait)
                             && (w = r.strand) != null) {
                         r.strand = null;
                         w.unpark();
@@ -1319,15 +1320,15 @@ public class StampedLock implements java.io.Serializable {
                             if (t.status != CANCELLED)
                                 q = t;     // don't link if succ cancelled
                         if (succ == q || // ensure accurate successor
-                                U.compareAndSwapObject(node, WNEXT,
+                                WNEXT.compareAndSet(node,
                                 succ, succ = q)) {
                             if (succ == null && node == wtail)
-                                U.compareAndSwapObject(this, WTAIL, node, pred);
+                                WTAIL.compareAndSet(this, node, pred);
                             break;
                         }
                     }
                     if (pred.next == node) // unsplice pred link
-                        U.compareAndSwapObject(pred, WNEXT, node, succ);
+                        WNEXT.compareAndSet(pred, node, succ);
                     if (succ != null && (w = succ.strand) != null) {
                         succ.strand = null;
                         w.unpark();       // wake up succ to observe new pred
@@ -1335,7 +1336,7 @@ public class StampedLock implements java.io.Serializable {
                     if (pred.status != CANCELLED || (pp = pred.prev) == null)
                         break;
                     node.prev = pp;        // repeat if new pred wrong/cancelled
-                    U.compareAndSwapObject(pp, WNEXT, pred, succ);
+                    WNEXT.compareAndSet(pp, pred, succ);
                     pred = pp;
                 }
             }
@@ -1359,31 +1360,53 @@ public class StampedLock implements java.io.Serializable {
         }
         return (interrupted || Strand.interrupted()) ? INTERRUPTED : 0L;
     }
-    // Unsafe mechanics
-    private static final sun.misc.Unsafe U;
-    private static final long STATE;
-    private static final long WHEAD;
-    private static final long WTAIL;
-    private static final long WNEXT;
-    private static final long WSTATUS;
-    private static final long WCOWAIT;
-
+    
+    private static final VarHandle STATE;
+    private static final VarHandle WHEAD;
+    private static final VarHandle WTAIL;
+    private static final VarHandle WNEXT;
+    private static final VarHandle WSTATUS;
+    private static final VarHandle WCOWAIT;
     static {
         try {
-            U = UtilUnsafe.getUnsafe();
             Class<?> k = StampedLock.class;
             Class<?> wk = WNode.class;
-            STATE = U.objectFieldOffset(k.getDeclaredField("state"));
-            WHEAD = U.objectFieldOffset(k.getDeclaredField("whead"));
-            WTAIL = U.objectFieldOffset(k.getDeclaredField("wtail"));
-            WSTATUS = U.objectFieldOffset(wk.getDeclaredField("status"));
-            WNEXT = U.objectFieldOffset(wk.getDeclaredField("next"));
-            WCOWAIT = U.objectFieldOffset(wk.getDeclaredField("cowait"));
-
-        } catch (Exception e) {
-            throw new Error(e);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            STATE = l.findVarHandle(k, "state", long.class);
+            WHEAD = l.findVarHandle(k, "whead", WNode.class);
+            WTAIL = l.findVarHandle(k, "wtail", WNode.class);
+            WSTATUS = l.findVarHandle(wk, "status", int.class);
+            WNEXT = l.findVarHandle(wk, "next", WNode.class);
+            WCOWAIT = l.findVarHandle(wk, "cowait", WNode.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
+//    // Unsafe mechanics
+//    private static final sun.misc.Unsafe U;
+//    private static final long STATE;
+//    private static final long WHEAD;
+//    private static final long WTAIL;
+//    private static final long WNEXT;
+//    private static final long WSTATUS;
+//    private static final long WCOWAIT;
+//
+//    static {
+//        try {
+//            U = UtilUnsafe.getUnsafe();
+//            Class<?> k = StampedLock.class;
+//            Class<?> wk = WNode.class;
+//            STATE = U.objectFieldOffset(k.getDeclaredField("state"));
+//            WHEAD = U.objectFieldOffset(k.getDeclaredField("whead"));
+//            WTAIL = U.objectFieldOffset(k.getDeclaredField("wtail"));
+//            WSTATUS = U.objectFieldOffset(wk.getDeclaredField("status"));
+//            WNEXT = U.objectFieldOffset(wk.getDeclaredField("next"));
+//            WCOWAIT = U.objectFieldOffset(wk.getDeclaredField("cowait"));
+//
+//        } catch (Exception e) {
+//            throw new Error(e);
+//        }
+//    }
 
     private static void park(long time) throws SuspendExecution {
         if (time != 0)
