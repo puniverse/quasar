@@ -14,7 +14,7 @@
 module co.paralleluniverse.quasar.disruptor {
     requires java.management;
     requires transitive co.paralleluniverse.quasar.core;
-    requires disruptor;
+    requires disruptor; // automatic module
     
     exports co.paralleluniverse.strands.channels.disruptor;
 }

@@ -13,7 +13,7 @@
  */
 module co.paralleluniverse.quasar.reactivestreams {
     requires transitive co.paralleluniverse.quasar.core;
-    requires transitive org.reactivestreams;
+    requires transitive org.reactivestreams; // automatic module
             
     exports co.paralleluniverse.strands.channels.reactivestreams;
 }
