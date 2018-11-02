@@ -1,5 +1,5 @@
 # *Quasar*<br/>Fibers, Channels and Actors for the JVM
-[![Build Status](https://travis-ci.org/puniverse/quasar.svg?branch=master)](https://travis-ci.org/puniverse/quasar) [![Version](http://img.shields.io/badge/version-0.7.10-blue.svg?style=flat)](https://github.com/puniverse/quasar/releases) [![License](http://img.shields.io/badge/license-EPL-blue.svg?style=flat)](https://www.eclipse.org/legal/epl-v10.html) [![License](http://img.shields.io/badge/license-LGPL-blue.svg?style=flat)](https://www.gnu.org/licenses/lgpl.html)
+[![Build Status](https://travis-ci.org/puniverse/quasar.svg?branch=master)](https://travis-ci.org/puniverse/quasar) [![Version](http://img.shields.io/badge/version-0.8.0-blue.svg?style=flat)](https://github.com/puniverse/quasar/releases) [![License](http://img.shields.io/badge/license-EPL-blue.svg?style=flat)](https://www.eclipse.org/legal/epl-v10.html) [![License](http://img.shields.io/badge/license-LGPL-blue.svg?style=flat)](https://www.gnu.org/licenses/lgpl.html)
 
 
 ## Getting started
@@ -8,16 +8,16 @@ Add the following Maven/Gradle dependencies:
 
 | Feature          | Artifact
 |------------------|------------------
-| Core (required)  | `co.paralleluniverse:quasar-core:0.7.10[:jdk8]` (for JDK 8 optionally add the `jdk8` classifier)
-| Actors           | `co.paralleluniverse:quasar-actors:0.7.10`
-| Reactive Streams | `co.paralleluniverse:quasar-reactive-streams:0.7.10`
-| Disruptor Channels| `co.paralleluniverse:quasar-disruptor:0.7.10`
-| Kotlin (JDK8+)   | `co.paralleluniverse:quasar-kotlin:0.7.10`
+| Core (required)  | `co.paralleluniverse:quasar-core:0.8.0`
+| Actors           | `co.paralleluniverse:quasar-actors:0.8.0`
+| Reactive Streams | `co.paralleluniverse:quasar-reactive-streams:0.8.0`
+| Disruptor Channels| `co.paralleluniverse:quasar-disruptor:0.8.0`
+| Kotlin (JDK8+)   | `co.paralleluniverse:quasar-kotlin:0.8.0`
 
 Or, build from sources by running:
 
 ```
-gradle install
+./gradlew install
 ```
 
 ## Usage

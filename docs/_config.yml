@@ -6,7 +6,7 @@ baseurl: /quasar
 
 ## Site globals used throughout docs.
 project: Quasar
-version: 0.7.10
+version: 0.8.0
 github: puniverse/quasar
 google_group: "https://groups.google.com/forum/#!forum/quasar-pulsar-user"
 ga_tracking_id: UA-25007319-2
