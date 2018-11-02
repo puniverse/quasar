@@ -1,6 +1,6 @@
 #!/bin/bash
 start=$(date +%s)
-echo -e "Current repo: $TRAVIS_REPO_SLUG Commit: $TRAVIS_COMMIT\n"
+echo -e "Current repo: $TRAVIS_REPO_SLUG Commit: $TRAVIS_COMMIT Branch: $TRAVIS_BRANCH Docs: $DOCS_BRANCH\n"
 
 email="info@paralleluniverse.co"
 username="PU Bot"
