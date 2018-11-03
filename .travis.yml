@@ -10,14 +10,14 @@ branches:
 
 env:
   global:
-    - secure: "NTxp50e11DMSJH1ApQbjlBxY4bcsLAGSw3mYzodOlceybMBh+hbpiAmqBpCZ9878wm5AZcPVq6ULzB47IrdfQG3Xn3SybwWLWpZRI3B0eaqoyhk71J5Uuu9rr+xXoD1C1q/TV1Z0Zf5unR1jz5DmUZ5En8yf4lZ4MI7gft6tDFI="
+    - secure: NAesFfHQFdd72SSPa195zWd79UBaPK+8FSWeg11ds2p8/w6lTZRJns+A30D7bNF+AiHEAmLiQdKXbQxSVHBb0YEkodkvEeztDas2amrm58B/bzSV/BSFD0e5C9EUomEitMZCNO775BBvfWXbHyPtSyFRCLTeqOGhWLfZ/5YxTLE=
     - TERM=dumb
     - DOCS_BRANCH="master"
     - GEN_APIDOCS="gradle javadoc"
 
-# after_success:
-#   - sudo chmod a+x travis/post_build.sh
-#   - ./travis/post_build.sh
+after_success:
+  - sudo chmod a+x travis/post_build.sh
+  - ./travis/post_build.sh
 
 notifications:
   slack: puniverse:OsnbakHrYeTcLyalVgtUeI4F

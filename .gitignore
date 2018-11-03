@@ -1,6 +1,7 @@
 /dist/
 _site/
 .idea/
+/docs/javadoc/
 *.iml
 /artifacts
 /nbproject/private/
