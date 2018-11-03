@@ -15,9 +15,9 @@ env:
     - DOCS_BRANCH="master"
     - GEN_APIDOCS="gradle javadoc"
 
-after_success:
-  - sudo chmod a+x travis/post_build.sh
-  - ./travis/post_build.sh
+# after_success:
+#   - sudo chmod a+x travis/post_build.sh
+#   - ./travis/post_build.sh
 
 notifications:
   slack: puniverse:OsnbakHrYeTcLyalVgtUeI4F
