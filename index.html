@@ -89,6 +89,10 @@
 </ul></li>
 <li>
 <a href="#news" class="cat-link">News</a><ul>
+<li><a href="#november-2-2018">November 2, 2018</a></li>
+<li><a href="#june-10-2018">June 10, 2018</a></li>
+<li><a href="#july-28-2017">July 28, 2017</a></li>
+<li><a href="#may-24-2017">May 24, 2017</a></li>
 <li><a href="#december-2-2016">December 2, 2016</a></li>
 <li><a href="#august-7-2016">August 7, 2016</a></li>
 <li><a href="#may-2-2016">May 2, 2016</a></li>
@@ -194,7 +198,6 @@
 <h3 id="dependencies">Dependencies</h3>
 
 <ul>
-  <li><a href="http://g.oswego.edu/dl/concurrency-interest/">JSR166e</a> (embedded in quasar-core) – java.util.concurrent, by Doug Lea and&nbsp;contributors</li>
   <li><a href="http://asm.ow2.org/"><span class="caps">ASM</span></a> — Java bytecode manipulation and analysis framework, by the <span class="caps">ASM</span>&nbsp;team</li>
   <li><a href="http://metrics.codahale.com/">Metrics</a> — A measurement and monitoring library, by Coda&nbsp;Hale</li>
   <li><a href="https://code.google.com/p/guava-libraries/">Guava</a> — Java utility classes, by&nbsp;Google</li>
@@ -208,6 +211,22 @@
 <p>A core component of Quasar, bytecode instrumentation, is a fork of the wonderful <a href="http://www.matthiasmann.de/content/view/24/26/">Continuations Library</a> by Matthias&nbsp;Mann.</p>
 
 <h2 id="news">News</h2>
+
+<h3 id="november-2-2018">November 2,&nbsp;2018</h3>
+
+<p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.8.0"><span class="caps">0.8.0</span></a> has been&nbsp;released.</p>
+
+<h3 id="june-10-2018">June 10,&nbsp;2018</h3>
+
+<p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.7.10"><span class="caps">0.7.10</span></a> has been&nbsp;released.</p>
+
+<h3 id="july-28-2017">July 28,&nbsp;2017</h3>
+
+<p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.7.9"><span class="caps">0.7.9</span></a> has been&nbsp;released.</p>
+
+<h3 id="may-24-2017">May 24,&nbsp;2017</h3>
+
+<p>Quasar <a href="https://github.com/puniverse/quasar/releases/tag/v0.7.8"><span class="caps">0.7.8</span></a> has been&nbsp;released.</p>
 
 <h3 id="december-2-2016">December 2,&nbsp;2016</h3>
 
@@ -275,11 +294,7 @@
 
 <h3 id="system-requirements">System&nbsp;Requirements</h3>
 
-<p>Quasar runs on Java 7 and&nbsp;higher.</p>
-
-<p>Quasar builds are tested during development in Mac <span class="caps">OS</span> X and Linux environments against the latest production <span class="caps">JDK</span> 7 and <span class="caps">JDK</span> 8 builds, as well as with <a href="https://travis-ci.org/puniverse/quasar">Travis <span class="caps">CI</span></a> using the <a href="https://docs.travis-ci.com/user/trusty-ci-environment/">Trusty Beta</a> environment with the latest production <span class="caps">JDK</span> 7 and <span class="caps">JDK</span> 8&nbsp;builds.</p>
-
-<p>As of June 20, 2016 the Travis <span class="caps">CI</span> build runs against Oracle’s <code>1.7.0_80-b15</code> and <code>1.8.0_91-b14</code> and is known to require at least <span class="caps">JDK</span> 8&nbsp;<code>1.8.0_65</code>.</p>
+<p>As of version <span class="caps">0.8.0</span> Quasar runs on Java 11 and higher. Prior versions support <span class="caps">JDK</span> 7 and 8 (<span class="caps">JDK</span> 8 with the <code>jdk8</code> classifier for the quasar-core&nbsp;component).</p>
 
 <p class="alert alert-warn"><strong>Note</strong>: We recommend using recent <span class="caps">JDK</span> builds as bugs in older releases can negatively affect your&nbsp;application.</p>
 
@@ -297,23 +312,19 @@
   <tbody>
     <tr>
       <td>Core (required)</td>
-      <td><code>co.paralleluniverse:quasar-core:0.7.7[:jdk8]</code> (for <span class="caps">JDK</span> 8 optionally add the <code>jdk8</code> classifier)</td>
+      <td><code>co.paralleluniverse:quasar-core:0.8.0</code></td>
     </tr>
     <tr>
       <td>Actors</td>
-      <td><code>co.paralleluniverse:quasar-actors:0.7.7</code></td>
-    </tr>
-    <tr>
-      <td>Clustering</td>
-      <td><code>co.paralleluniverse:quasar-galaxy:0.7.7</code></td>
+      <td><code>co.paralleluniverse:quasar-actors:0.8.0</code></td>
     </tr>
     <tr>
       <td>Reactive Streams</td>
-      <td><code>co.paralleluniverse:quasar-reactive-streams:0.7.7</code></td>
+      <td><code>co.paralleluniverse:quasar-reactive-streams:0.8.0</code></td>
     </tr>
     <tr>
       <td>Kotlin</td>
-      <td><code>co.paralleluniverse:quasar-kotlin:0.7.7</code></td>
+      <td><code>co.paralleluniverse:quasar-kotlin:0.8.0</code></td>
     </tr>
   </tbody>
 </table>
@@ -406,7 +417,7 @@
 
 <div class="highlight"><pre><code><span id="line-1"><span class="n">dependencies</span> <span class="o">{</span>
 </span><span id="line-2">    <span class="c1">// ....</span>
-</span><span id="line-3">    <span class="n">quasar</span>  <span class="s2">&quot;co.paralleluniverse:quasar-core:0.7.7&quot;</span>
+</span><span id="line-3">    <span class="n">quasar</span>  <span class="s2">&quot;co.paralleluniverse:quasar-core:0.8.0&quot;</span>
 </span><span id="line-4"><span class="o">}</span>
 </span></code></pre></div>
 <p>Finally, in your <code>run</code> task (or any task of type <code>JavaExec</code> or <code>Test</code>), add the system&nbsp;property:</p>
@@ -437,7 +448,7 @@
 
 <h3 id="fibers">Fibers</h3>
 
-<p>Quasar’s chief contribution is that of the lightweight thread, called <em>fiber</em> in Quasar.<br />
+<p>Quasar’s chief contribution is that of the lightweight thread, called <em>fiber</em> in&nbsp;Quasar.
 Fibers provide functionality similar to threads, and a similar <span class="caps">API</span>, but they’re not managed by the <span class="caps">OS.</span> They are lightweight in terms of <span class="caps">RAM</span> (an idle fiber occupies ~400 bytes of <span class="caps">RAM</span>) and put a far lesser burden on the <span class="caps">CPU</span> when task-switching. You can have millions of fibers in an application. If you are familiar with Go, fibers are like goroutines. Fibers in Quasar are scheduled by one or more <a href="http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ForkJoinPool.html">ForkJoinPool</a>s.</p>
 
 <p>Fibers are not meant to replace threads in all circumstances. A fiber should be used when its body (the code it executes) blocks very often waiting on other fibers (e.g. waiting for messages sent by other fibers on a channel, or waiting for the value of a dataflow-variable). For long-running computations that rarely block, traditional threads are preferable. Fortunately, as we shall see, fibers and threads interoperate very&nbsp;well.</p>
@@ -1032,7 +1043,7 @@ co.paralleluniverse.fibers.instrument.UnableToInstrumentException:
 
 <p>All actors extends the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html"><code>Actor</code></a> class. The constructor takes the actor’s name (which does not have to be unique, and may even be <code>null</code>), and its mailbox settings (of type <a href="/quasar/javadoc/co/paralleluniverse/actors/MailboxConfig.html"><code>MailboxConfig</code></a>).</p>
 
-<p><code>MailboxConfig</code> defines the mailbox size (the number of messages that can wait in the mailbox channel), with <code>-1</code> specifying an unbounded mailbox, and an <em>overflow policy</em>. The overflow policy works the same as for plain channels, except that the <code>THROW</code> policy doesn’t cause an exception to be thrown in the sender if the mailbox capacity is exceeded, but rather throws an exception into the receiving actor (the exception will be thrown when the actor next blocks on a&nbsp;<code>receive</code>).</p>
+<p><code>MailboxConfig</code> defines the mailbox size (the number of messages that can wait in the mailbox channel), with <code>-1</code> specifying an unbounded mailbox, and an <em>overflow policy</em>. The overflow policy is currently ignored. If the mailbox capacity is exceeded, an exception will be thrown <em>inside</em> the receiving actor when the actor next blocks on a&nbsp;<code>receive</code>.</p>
 
 <p>An actor is required to implement the <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#doRun()"><code>doRun</code></a> method. This method is the actor body, and is run when the actor is&nbsp;spawned.</p>
 
@@ -1190,7 +1201,7 @@ co.paralleluniverse.fibers.instrument.UnableToInstrumentException:
 
 <p>When <code>receive</code> (or <code>tryReceive</code>) is called, it takes the next message in the mailbox, and passes it to a protected method called <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#filterMessage(java.lang.Object)"><code>filterMessage</code></a>. Whatever <code>filterMessage</code> returns, that’s the message actually returned by <code>receive</code> (or <code>tryReceive</code>), but it <code>filterMessage</code> returns <code>null</code>, <code>receive</code> will not return and wait for the next message (and <code>tryReceive</code> will check if another message is already available, or otherwise return <code>null</code>). The default implementation of <code>filterMessage</code> always returns the message it received unless it is of type <a href="/quasar/javadoc/co/paralleluniverse/actors/LifecycleMessage.html"><code>LifecycleMessage</code></a>, in which case it passes it to the protected <a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#handleLifecycleMessage(co.paralleluniverse.actors.LifecycleMessage)"><code>handleLifecycleMessage</code></a>&nbsp;method.</p>
 
-<p><a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#handleLifecycleMessage(co.paralleluniverse.actors.LifecycleMessage)"><code>handleLifecycleMessage</code></a> examines the message. If it is an <a href="/quasar/javadoc/co/paralleluniverse/actors/ExitMessage.html"><code>ExitMessage</code></a> (which extends <code>LifecycleMessage</code>), it checks to see if it’s been sent as a result of a <em>watch</em> (by testing whether its <a href="/quasar/javadoc/co/paralleluniverse/actors/ExitMessage.html#getWatch()"><code>getWatch</code></a> method returns a non-null value). If it is, it’s silently ignored. But if it’s a result of a <em>linked</em> actor dying (<code>getWatch()</code> returns <code>null</code>), the method throws a <a href="/quasar/javadoc/co/paralleluniverse/actors/LifecycleException.html"><code>LifecycleException</code></a>. This exception is thrown, in turn, by actor A’s call to <code>receive</code> (or <code>tryReceive</code>). You can override <code>handleLifecycleMessage</code> to change this&nbsp;behavior.</p>
+<p><a href="/quasar/javadoc/co/paralleluniverse/actors/Actor.html#handleLifecycleMessage(co.paralleluniverse.actors.LifecycleMessage)"><code>handleLifecycleMessage</code></a> examines the message. If it is about an actor that has died but has been unlinked or unwatched already, it just ignores the message. If it is an <a href="/quasar/javadoc/co/paralleluniverse/actors/ExitMessage.html"><code>ExitMessage</code></a> (which extends <code>LifecycleMessage</code>), it checks to see if it’s been sent as a result of a <em>watch</em> (by testing whether its <a href="/quasar/javadoc/co/paralleluniverse/actors/ExitMessage.html#getWatch()"><code>getWatch</code></a> method returns a non-null value). If it is, it’s silently ignored. But if it’s a result of a <em>linked</em> actor dying (<code>getWatch()</code> returns <code>null</code>), the method throws a <a href="/quasar/javadoc/co/paralleluniverse/actors/LifecycleException.html"><code>LifecycleException</code></a>. This exception is thrown, in turn, by actor A’s call to <code>receive</code> (or <code>tryReceive</code>). You can override <code>handleLifecycleMessage</code> to change this&nbsp;behavior.</p>
 
 <p>If you do not want actor A to die if linked actor B does, you should surround the call to <code>receive</code> or <code>tryReceive</code> with a <code>try {} catch(LifecycleException) {}</code>&nbsp;block.</p>
 
@@ -1433,7 +1444,7 @@ co.paralleluniverse.fibers.instrument.UnableToInstrumentException:
 </span><span id="line-8">            <span class="n">println</span><span class="p">(</span><span class="s">&quot;Pong received &#39;finished&#39;, exiting&quot;</span><span class="p">)</span>
 </span><span id="line-9">            <span class="k">return</span>                      <span class="c1">// Non-local return, exit actor</span>
 </span><span id="line-10">        <span class="p">}</span>
-</span><span id="line-11">        <span class="k">is</span> <span class="n">Timeout</span> <span class="p">-&gt;</span> <span class="p">{</span>
+</span><span id="line-11">        <span class="k">is</span> <span class="n">Companion</span><span class="p">.</span><span class="n">Timeout</span> <span class="p">-&gt;</span> <span class="p">{</span>
 </span><span id="line-12">            <span class="n">println</span><span class="p">(</span><span class="s">&quot;Pong timeout in &#39;receive&#39;, exiting&quot;</span><span class="p">)</span>
 </span><span id="line-13">            <span class="k">return</span>                      <span class="c1">// Non-local return, exit actor</span>
 </span><span id="line-14">        <span class="p">}</span>
@@ -1574,14 +1585,11 @@ You can run them after cloning the&nbsp;repository.</p>
         <div class="container">
             <div id="logo-footer"></div>
             <ul>
-                <li><a href="http://paralleluniverse.co/support/">Support</a></li>
                 <li><a href="http://docs.paralleluniverse.co">Documentation</a></li>
-                <li><a href="http://paralleluniverse.co/about/">Company</a></li>
+                <li><a href="http://paralleluniverse.co">Company</a></li>
                 <li><a href="http://blog.paralleluniverse.co">Blog</a></li>
             </ul>
-            <a href="https://www.facebook.com/puniverseco" class="social social1">social</a>
             <a href="https://twitter.com/puniverseco" class="social social2">social</a>
-            <a href=" http://www.linkedin.com/company/parallel-universe?trk=company_name" class="social social3">social</a>
         </div><!--container-->
 </footer>
 
