@@ -710,7 +710,7 @@ public class ScheduledSingleThreadExecutor extends AbstractExecutorService imple
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         long nanos = unit.toNanos(timeout);
         long millis = TimeUnit.MILLISECONDS.convert(nanos, TimeUnit.NANOSECONDS);
-        worker.join(millis, (int) (nanos - millis));
+        worker.join(millis, (int) (nanos - millis * 1000000));
         return !worker.isAlive();
     }
 
