@@ -217,6 +217,9 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
     @Override
     public Map<String, String> getRunawayFibers() {
         Map<String, String> map = new HashMap<>();
+	if (problemFibers == null) {
+	    return map;
+	}
         for (Map.Entry<Fiber, StackTraceElement[]> e : problemFibers.entrySet())
             map.put(e.getKey().toString(), Strand.toString(e.getValue()));
         return map;
