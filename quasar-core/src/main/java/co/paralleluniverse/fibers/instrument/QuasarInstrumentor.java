@@ -49,6 +49,7 @@ public final class QuasarInstrumentor {
     private boolean allowMonitors;
     private boolean allowBlocking;
     private final Collection<Pattern> exclusions = new ArrayList<>();
+    private final Collection<Pattern> excludedClassLoaders = new ArrayList<>();
     private Log log;
     private boolean verbose;
     private boolean debug;
@@ -66,6 +67,11 @@ public final class QuasarInstrumentor {
     @SuppressWarnings("unused")
     public boolean isAOT() {
         return aot;
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    public boolean shouldInstrument(ClassLoader loader) {
+        return loader != null && !isExcludedClassLoader(loader.getClass().getName());
     }
 
     @SuppressWarnings("WeakerAccess")
@@ -272,6 +278,54 @@ public final class QuasarInstrumentor {
             }
         }
         return false;
+    }
+
+    synchronized boolean isExcludedClassLoader(String classLoaderName) {
+        for (Pattern pattern : excludedClassLoaders) {
+            if (pattern.matcher(classLoaderName).matches())
+                return true;
+        }
+        return false;
+    }
+
+    public synchronized void addExcludedClassLoader(String glob) {
+        excludedClassLoaders.add(classLoaderPattern(glob));
+    }
+
+    private static Pattern classLoaderPattern(String glob) {
+        StringBuilder out = new StringBuilder(glob.length() + 5).append('^');
+        int i = 0;
+        while (i < glob.length()) {
+            final char c = glob.charAt(i);
+            switch (c) {
+                case '.':
+                    out.append("\\.");
+                    break;
+                case '?':
+                    out.append('.');
+                    break;
+                case '*':
+                    int j = i + 1;
+                    if (j < glob.length()) {
+                        char next = glob.charAt(j);
+                        if (next == '*') {
+                            out.append(".*");
+                            ++i;
+                            break;
+                        }
+                    }
+                    out.append("[^.]+");
+                    break;
+                case '$':
+                    out.append("\\$");
+                    break;
+                default:
+                    out.append(c);
+            }
+            ++i;
+        }
+        out.append('$');
+        return Pattern.compile(out.toString());
     }
 
     private synchronized void setLogLevelMask() {
