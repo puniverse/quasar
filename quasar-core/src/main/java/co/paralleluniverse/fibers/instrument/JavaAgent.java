@@ -95,6 +95,7 @@ import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
  * @author Matthias Mann
  */
 public class JavaAgent {
+    private static final String USAGE = "Usage: vdmcbx(exclusion;...)l(exclusion;...) (verbose, debug, allow monitors, check class, allow blocking)";
     private static volatile boolean ACTIVE;
     private static final Set<WeakReference<ClassLoader>> classLoaders = Collections.newSetFromMap(MapUtil.<WeakReference<ClassLoader>, Boolean>newConcurrentHashMap());
 
@@ -102,7 +103,6 @@ public class JavaAgent {
         if (!instrumentation.isRetransformClassesSupported())
             System.err.println("Retransforming classes is not supported!");
 
-        final ClassLoader cl = Thread.currentThread().getContextClassLoader();
         final QuasarInstrumentor instrumentor = new QuasarInstrumentor(false);
         ACTIVE = true;
         SuspendableHelper.javaAgent = true;
@@ -135,11 +135,10 @@ public class JavaAgent {
                         i++;
                         c = agentArguments.charAt(i);
                         if (c != '(')
-                            throw new IllegalStateException("Usage: vdmcbx(exclusion;...) (verbose, debug, allow monitors, check class, allow blocking)");
-                        i++;
+                            throw new IllegalStateException(USAGE);
                         StringBuilder sb = new StringBuilder();
                         while(true) {
-                            c = agentArguments.charAt(i++);
+                            c = agentArguments.charAt(++i);
                             if (c == ')')
                                 break;
                             sb.append(c);
@@ -149,8 +148,24 @@ public class JavaAgent {
                             instrumentor.addExcludedPackage(x);
                         break;
 
+                    case 'l':
+                        ++i;
+                        c = agentArguments.charAt(i);
+                        if (c != '(') {
+                            throw new IllegalStateException(USAGE);
+                        }
+                        int j = agentArguments.indexOf(')', ++i);
+                        if (j == -1) {
+                            throw new IllegalStateException(USAGE);
+                        }
+                        String[] classLoaderExclusions = agentArguments.substring(i, j).split(";", 0);
+                        for (String x : classLoaderExclusions) {
+                            instrumentor.addExcludedClassLoader(x);
+                        }
+                        i = j;
+                        break;
                     default:
-                        throw new IllegalStateException("Usage: vdmcbx(exclusion;...) (verbose, debug, allow monitors, check class, allow blocking)");
+                        throw new IllegalStateException(USAGE);
                 }
             }
         }
@@ -192,6 +207,17 @@ public class JavaAgent {
 
         @Override
         public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
+            if (loader == null) {
+                loader = Thread.currentThread().getContextClassLoader();
+                if (loader == null) {
+                    loader = ClassLoader.getSystemClassLoader();
+                }
+            }
+
+            if (!instrumentor.shouldInstrument(loader)) {
+                return null;
+            }
+
             if (className != null && className.startsWith("clojure/lang/Compiler"))
                 return crazyClojureOnceDisable(loader, className, classBeingRedefined, protectionDomain, classfileBuffer);
 
