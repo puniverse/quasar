@@ -27,7 +27,7 @@ import java.lang.Thread.UncaughtExceptionHandler;
  * May be {@code "JMX"} (the defualt), {@code "METRICS"}, or {@code "NONE"}.</li>
  * <li>{@code "co.paralleluniverse.fibers.DefaultFiberPool.detailedFiberInfo"} - whether the fibers monitor collects detailed information about running fibers.
  * May be {@code "true"} or {@code "false"} (the default)</li>
- * <ul>
+ * </ul>
  *
  * @author pron
  */

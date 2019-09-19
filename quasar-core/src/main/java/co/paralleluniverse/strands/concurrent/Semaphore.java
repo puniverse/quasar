@@ -25,6 +25,7 @@ import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
 
 /**
  * A counting semaphore.  Conceptually, a semaphore maintains a set of
@@ -37,7 +38,7 @@ import java.util.concurrent.TimeUnit;
  * <p>Semaphores are often used to restrict the number of threads than can
  * access some (physical or logical) resource. For example, here is
  * a class that uses a semaphore to control access to a pool of items:
- * <pre>
+ * <pre>{@code 
  * class Pool {
  *   private static final int MAX_AVAILABLE = 100;
  *   private final Semaphore available = new Semaphore(MAX_AVAILABLE, true);
@@ -81,7 +82,7 @@ import java.util.concurrent.TimeUnit;
  *   }
  *
  * }
- * </pre>
+ * }</pre>
  *
  * <p>Before obtaining an item each thread must acquire a permit from
  * the semaphore, guaranteeing that an item is available for use. When
@@ -92,7 +93,7 @@ import java.util.concurrent.TimeUnit;
  * from being returned to the pool.  The semaphore encapsulates the
  * synchronization needed to restrict access to the pool, separately
  * from any synchronization needed to maintain the consistency of the
- * pool itself.
+ * pool itself.</p>
  *
  * <p>A semaphore initialized to one, and which is used such that it
  * only has at most one permit available, can serve as a mutual
@@ -103,7 +104,7 @@ import java.util.concurrent.TimeUnit;
  * implementations), that the &quot;lock&quot; can be released by a
  * thread other than the owner (as semaphores have no notion of
  * ownership).  This can be useful in some specialized contexts, such
- * as deadlock recovery.
+ * as deadlock recovery.</p>
  *
  * <p> The constructor for this class optionally accepts a
  * <em>fairness</em> parameter. When set false, this class makes no
@@ -122,24 +123,24 @@ import java.util.concurrent.TimeUnit;
  * the other, and similarly upon return from the method.
  * Also note that the untimed {@link #tryAcquire() tryAcquire} methods do not
  * honor the fairness setting, but will take any permits that are
- * available.
+ * available.</p>
  *
  * <p>Generally, semaphores used to control resource access should be
  * initialized as fair, to ensure that no thread is starved out from
  * accessing a resource. When using semaphores for other kinds of
  * synchronization control, the throughput advantages of non-fair
- * ordering often outweigh fairness considerations.
+ * ordering often outweigh fairness considerations.</p>
  *
  * <p>This class also provides convenience methods to {@link
  * #acquire(int) acquire} and {@link #release(int) release} multiple
  * permits at a time.  Beware of the increased risk of indefinite
- * postponement when these methods are used without fairness set true.
+ * postponement when these methods are used without fairness set true.</p>
  *
  * <p>Memory consistency effects: Actions in a thread prior to calling
  * a "release" method such as {@code release()}
  * <a href="package-summary.html#MemoryVisibility"><i>happen-before</i></a>
  * actions following a successful "acquire" method such as {@code acquire()}
- * in another thread.
+ * in another thread.</p>
  *
  * @since 1.5
  * @author Doug Lea

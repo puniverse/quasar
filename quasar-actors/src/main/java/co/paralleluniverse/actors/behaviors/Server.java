@@ -44,11 +44,11 @@ public class Server<CallMessage, V, CastMessage> extends Behavior {
      * Sets a default timeout for non-timed {@link #call(Object) call}s on this server reference.
      * Non-timed calls that take longer than the default timeout, will throw a {@link TimeoutException}
      * wrapped in a {@link RuntimeException}. Timed calls (those that take a timeout parameter) will not be affected.
-     * <p/>
+     * <p>
      * This method only affects calls made through this particular server actor reference and not calls to the same server actor
-     * through other references.
-     * <p/>
-     * <b>This method has nothing to do with {@link ServerActor#setTimeout(long, TimeUnit) ServerActor.setTimeout}</b>
+     * through other references.</p>
+     * <p>
+     * <b>This method has nothing to do with {@link ServerActor#setTimeout(long, TimeUnit) ServerActor.setTimeout}</b></p>
      *
      * @param timeout the timeout duration
      * @param unit    the time unit of the timeout, or {@code null} to unset.
@@ -64,8 +64,8 @@ public class Server<CallMessage, V, CastMessage> extends Behavior {
      * Sends a synchronous request to the actor, and awaits a response.
      * This method will wait indefinitely for the actor to respond unless a default timeout has been set for this
      * server reference with {@link #setDefaultTimeout(long, TimeUnit) setDefaultTimeout}.
-     * <p/>
-     * This method may be safely called by actors and non-actor strands alike.
+     * <p>
+     * This method may be safely called by actors and non-actor strands alike.</p>
      *
      * @param m the request
      * @return the value sent as a response from the actor
@@ -88,8 +88,8 @@ public class Server<CallMessage, V, CastMessage> extends Behavior {
 
     /**
      * Sends a synchronous request to the actor, and awaits a response, but no longer than the given timeout.
-     * <p/>
-     * This method may be safely called by actors and non-actor strands alike.
+     * <p>
+     * This method may be safely called by actors and non-actor strands alike.</p>
      *
      * @param m       the request
      * @param timeout the maximum duration to wait for a response.
@@ -105,8 +105,8 @@ public class Server<CallMessage, V, CastMessage> extends Behavior {
 
     /**
      * Sends a synchronous request to the actor, and awaits a response, but no longer than the given timeout.
-     * <p/>
-     * This method may be safely called by actors and non-actor strands alike.
+     * <p>
+     * This method may be safely called by actors and non-actor strands alike.</p>
      *
      * @param m       the request
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}

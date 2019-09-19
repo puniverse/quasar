@@ -35,7 +35,7 @@ public final class Classes {
         new BlockingMethod("java/lang/Object", "wait", "()V", "(J)V", "(JI)V"),};
 
     private static final Set<String> yieldMethods = new HashSet<>(Arrays.asList(new String[]{
-        "park", "yield", "parkAndUnpark", "yieldAndUnpark", "parkAndSerialize"
+        "park", "yield", "parkAndUnpark", "yieldAndUnpark", "parkAndSerialize", "parkAndCustomSerialize"
     }));
 
     // Don't load the classes

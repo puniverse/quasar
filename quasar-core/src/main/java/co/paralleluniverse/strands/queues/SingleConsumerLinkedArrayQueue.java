@@ -15,10 +15,11 @@ package co.paralleluniverse.strands.queues;
 
 import co.paralleluniverse.common.util.UtilUnsafe;
 import com.google.common.collect.Lists;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
-import sun.misc.Unsafe;
 
 /**
  *
@@ -305,44 +306,85 @@ abstract class SingleConsumerLinkedArrayQueue<E> extends SingleConsumerQueue<E> 
     }
 
     ////////////////////////////////////////////////////////////////////////
-    static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long headOffset;
-    private static final long tailOffset;
-    private static final long nextOffset;
-    private static final long prevOffset;
+    private static final VarHandle HEAD;
+    private static final VarHandle TAIL;
+    private static final VarHandle NEXT;
+    private static final VarHandle PREV;
 
     static {
         try {
-            headOffset = UNSAFE.objectFieldOffset(SingleConsumerLinkedArrayQueue.class.getDeclaredField("head"));
-            tailOffset = UNSAFE.objectFieldOffset(SingleConsumerLinkedArrayQueue.class.getDeclaredField("tail"));
-            nextOffset = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("next"));
-            prevOffset = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("prev"));
-        } catch (Exception ex) {
-            throw new Error(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            HEAD = l.findVarHandle(SingleConsumerLinkedArrayQueue.class, "head", Node.class);
+            TAIL = l.findVarHandle(SingleConsumerLinkedArrayQueue.class, "tail", Node.class);
+            NEXT = l.findVarHandle(Node.class, "next", Node.class);
+            PREV = l.findVarHandle(Node.class, "prev", Node.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
-
+    
     boolean compareAndSetHead(Node update) {
-        return UNSAFE.compareAndSwapObject(this, headOffset, null, update);
+        return HEAD.compareAndSet(this, null, update);
     }
 
     void orderedSetHead(Node value) {
-        UNSAFE.putOrderedObject(this, headOffset, value);
+        HEAD.setOpaque(this, value); // UNSAFE.putOrderedObject(this, headOffset, value);
     }
 
     boolean compareAndSetTail(Node expect, Node update) {
-        return UNSAFE.compareAndSwapObject(this, tailOffset, expect, update);
+        return TAIL.compareAndSet(this, expect, update);
     }
 
     static boolean compareAndSetNext(Node node, Node expect, Node update) {
-        return UNSAFE.compareAndSwapObject(node, nextOffset, expect, update);
+        return NEXT.compareAndSet(node, expect, update);
     }
 
     private static void clearNext(Node node) {
-        UNSAFE.putOrderedObject(node, nextOffset, null);
+        NEXT.setOpaque(node, null);
     }
 
     private static void clearPrev(Node node) {
-        UNSAFE.putOrderedObject(node, prevOffset, null);
+        PREV.setOpaque(node, null);
     }
+    
+//    static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
+//    private static final long headOffset;
+//    private static final long tailOffset;
+//    private static final long nextOffset;
+//    private static final long prevOffset;
+//
+//    static {
+//        try {
+//            headOffset = UNSAFE.objectFieldOffset(SingleConsumerLinkedArrayQueue.class.getDeclaredField("head"));
+//            tailOffset = UNSAFE.objectFieldOffset(SingleConsumerLinkedArrayQueue.class.getDeclaredField("tail"));
+//            nextOffset = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("next"));
+//            prevOffset = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("prev"));
+//        } catch (Exception ex) {
+//            throw new Error(ex);
+//        }
+//    }
+//
+//    boolean compareAndSetHead(Node update) {
+//        return UNSAFE.compareAndSwapObject(this, headOffset, null, update);
+//    }
+//
+//    void orderedSetHead(Node value) {
+//        UNSAFE.putOrderedObject(this, headOffset, value);
+//    }
+//
+//    boolean compareAndSetTail(Node expect, Node update) {
+//        return UNSAFE.compareAndSwapObject(this, tailOffset, expect, update);
+//    }
+//
+//    static boolean compareAndSetNext(Node node, Node expect, Node update) {
+//        return UNSAFE.compareAndSwapObject(node, nextOffset, expect, update);
+//    }
+//
+//    private static void clearNext(Node node) {
+//        UNSAFE.putOrderedObject(node, nextOffset, null);
+//    }
+//
+//    private static void clearPrev(Node node) {
+//        UNSAFE.putOrderedObject(node, prevOffset, null);
+//    }
 }

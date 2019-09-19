@@ -26,9 +26,9 @@ public class MailboxConfig implements java.io.Serializable {
 
     /**
      * Specifies a mailbox configuration with a given size and overflow policy.
-     * <p/>
+     * <p>
      * <b>Note: The overflow policy is currently ignored. An mailbox overflow will result in an exception being thrown inside
-     * the actor by {@code receive()} regardless of policy.</b>
+     * the actor by {@code receive()} regardless of policy.</b></p>
      *
      * @param mailboxSize The number of messages that can wait in the mailbox channel, with {@code -1} specifying an unbounded mailbox.
      * @param policy      Specifies what to do when the mailbox is full and a new message is added.

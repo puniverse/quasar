@@ -1,13 +1,13 @@
 /dist/
-/out/
 _site/
-/docs/javadoc/
 .idea/
+/docs/javadoc/
 *.iml
 /artifacts
 /nbproject/private/
 /.nb-gradle
 build/
+out/
 private/
 .DS_Store
 .gradle/

@@ -92,7 +92,7 @@ class Pong : Actor() {
                         println("${now()} Pong received 'finished', exiting")
                         return                      // Non-local return, exit actor
                     }
-                    is Timeout -> {
+                    is Companion.Timeout -> {
                         println("${now()} Pong timeout in 'receive', exiting")
                         return                      // Non-local return, exit actor
                     }

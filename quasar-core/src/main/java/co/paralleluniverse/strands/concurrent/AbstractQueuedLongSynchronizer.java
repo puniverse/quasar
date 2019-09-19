@@ -31,16 +31,17 @@
 
 package co.paralleluniverse.strands.concurrent;
 
-import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.concurrent.locks.Condition;
-import sun.misc.Unsafe;
+import java.util.concurrent.locks.Lock;
 
 /**
  * A version of {@link AbstractQueuedSynchronizer} in
@@ -343,7 +344,7 @@ public abstract class AbstractQueuedLongSynchronizer
      */
     protected final boolean compareAndSetState(long expect, long update) {
         // See below for intrinsics setup to support this
-        return unsafe.compareAndSwapLong(this, stateOffset, expect, update);
+        return STATE.compareAndSet(this, expect, update);
     }
 
     // Queuing utilities
@@ -2072,60 +2073,46 @@ public abstract class AbstractQueuedLongSynchronizer
         }
     }
 
-    /**
-     * Setup to support compareAndSet. We need to natively implement
-     * this here: For the sake of permitting future enhancements, we
-     * cannot explicitly subclass AtomicLong, which would be
-     * efficient and useful otherwise. So, as the lesser of evils, we
-     * natively implement using hotspot intrinsics API. And while we
-     * are at it, we do the same for other CASable fields (which could
-     * otherwise be done with atomic field updaters).
-     */
-    private static final Unsafe unsafe = UtilUnsafe.getUnsafe();
-    private static final long stateOffset;
-    private static final long headOffset;
-    private static final long tailOffset;
-    private static final long waitStatusOffset;
-    private static final long nextOffset;
-
+    private static final VarHandle STATE;
+    private static final VarHandle HEAD;
+    private static final VarHandle TAIL;
+    private static final VarHandle WAIT_STATUS;
+    private static final VarHandle NEXT;
     static {
         try {
-            stateOffset = unsafe.objectFieldOffset
-                (AbstractQueuedLongSynchronizer.class.getDeclaredField("state"));
-            headOffset = unsafe.objectFieldOffset
-                (AbstractQueuedLongSynchronizer.class.getDeclaredField("head"));
-            tailOffset = unsafe.objectFieldOffset
-                (AbstractQueuedLongSynchronizer.class.getDeclaredField("tail"));
-            waitStatusOffset = unsafe.objectFieldOffset
-                (Node.class.getDeclaredField("waitStatus"));
-            nextOffset = unsafe.objectFieldOffset
-                (Node.class.getDeclaredField("next"));
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            STATE = l.findVarHandle(AbstractQueuedLongSynchronizer.class, "state", long.class);
+            HEAD  = l.findVarHandle(AbstractQueuedLongSynchronizer.class, "head", Node.class);
+            TAIL  = l.findVarHandle(AbstractQueuedLongSynchronizer.class, "tail", Node.class);
+            WAIT_STATUS = l.findVarHandle(Node.class, "waitStatus", int.class);
+            NEXT        = l.findVarHandle(Node.class, "next", Node.class);
 
-        } catch (Exception ex) { throw new Error(ex); }
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
+        }
     }
-
+    
     /**
      * CAS head field. Used only by enq.
      */
     private final boolean compareAndSetHead(Node update) {
-        return unsafe.compareAndSwapObject(this, headOffset, null, update);
+        return HEAD.compareAndSet(this, null, update);
     }
 
     /**
      * CAS tail field. Used only by enq.
      */
     private final boolean compareAndSetTail(Node expect, Node update) {
-        return unsafe.compareAndSwapObject(this, tailOffset, expect, update);
+        return TAIL.compareAndSet(this, expect, update);
     }
 
     /**
      * CAS waitStatus field of a node.
      */
-    private static final boolean compareAndSetWaitStatus(Node node,
+    private static final boolean compareAndSetWaitStatus(Node node, 
                                                          int expect,
                                                          int update) {
-        return unsafe.compareAndSwapInt(node, waitStatusOffset,
-                                        expect, update);
+        return WAIT_STATUS.compareAndSet(node, expect, update);
     }
 
     /**
@@ -2134,6 +2121,71 @@ public abstract class AbstractQueuedLongSynchronizer
     private static final boolean compareAndSetNext(Node node,
                                                    Node expect,
                                                    Node update) {
-        return unsafe.compareAndSwapObject(node, nextOffset, expect, update);
+        return NEXT.compareAndSet(node, expect, update);
     }
+    
+//    /**
+//     * Setup to support compareAndSet. We need to natively implement
+//     * this here: For the sake of permitting future enhancements, we
+//     * cannot explicitly subclass AtomicLong, which would be
+//     * efficient and useful otherwise. So, as the lesser of evils, we
+//     * natively implement using hotspot intrinsics API. And while we
+//     * are at it, we do the same for other CASable fields (which could
+//     * otherwise be done with atomic field updaters).
+//     */
+//    private static final Unsafe unsafe = UtilUnsafe.getUnsafe();
+//    private static final long stateOffset;
+//    private static final long headOffset;
+//    private static final long tailOffset;
+//    private static final long waitStatusOffset;
+//    private static final long nextOffset;
+//
+//    static {
+//        try {
+//            stateOffset = unsafe.objectFieldOffset
+//                (AbstractQueuedLongSynchronizer.class.getDeclaredField("state"));
+//            headOffset = unsafe.objectFieldOffset
+//                (AbstractQueuedLongSynchronizer.class.getDeclaredField("head"));
+//            tailOffset = unsafe.objectFieldOffset
+//                (AbstractQueuedLongSynchronizer.class.getDeclaredField("tail"));
+//            waitStatusOffset = unsafe.objectFieldOffset
+//                (Node.class.getDeclaredField("waitStatus"));
+//            nextOffset = unsafe.objectFieldOffset
+//                (Node.class.getDeclaredField("next"));
+//
+//        } catch (Exception ex) { throw new Error(ex); }
+//    }
+//
+//    /**
+//     * CAS head field. Used only by enq.
+//     */
+//    private final boolean compareAndSetHead(Node update) {
+//        return unsafe.compareAndSwapObject(this, headOffset, null, update);
+//    }
+//
+//    /**
+//     * CAS tail field. Used only by enq.
+//     */
+//    private final boolean compareAndSetTail(Node expect, Node update) {
+//        return unsafe.compareAndSwapObject(this, tailOffset, expect, update);
+//    }
+//
+//    /**
+//     * CAS waitStatus field of a node.
+//     */
+//    private static final boolean compareAndSetWaitStatus(Node node,
+//                                                         int expect,
+//                                                         int update) {
+//        return unsafe.compareAndSwapInt(node, waitStatusOffset,
+//                                        expect, update);
+//    }
+//
+//    /**
+//     * CAS next field of a node.
+//     */
+//    private static final boolean compareAndSetNext(Node node,
+//                                                   Node expect,
+//                                                   Node update) {
+//        return unsafe.compareAndSwapObject(node, nextOffset, expect, update);
+//    }
 }

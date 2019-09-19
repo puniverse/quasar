@@ -39,9 +39,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 import org.junit.rules.TestRule;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -231,7 +230,7 @@ public class ServerTest {
     @Test
     public void whenHandleCallThrowsExceptionThenItPropagatesToCaller() throws Exception {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
-        when(server.handleCall(any(ActorRef.class), anyObject(), any(Message.class))).thenThrow(new RuntimeException("my exception"));
+        when(server.handleCall(any(ActorRef.class), any(), any(Message.class))).thenThrow(new RuntimeException("my exception"));
 
         final Server<Message, Integer, Message> s = spawnServer(server);
 
@@ -258,7 +257,7 @@ public class ServerTest {
     @Test
     public void whenHandleCallThrowsExceptionThenItPropagatesToThreadCaller() throws Exception {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
-        when(server.handleCall(any(ActorRef.class), anyObject(), any(Message.class))).thenThrow(new RuntimeException("my exception"));
+        when(server.handleCall(any(ActorRef.class), any(), any(Message.class))).thenThrow(new RuntimeException("my exception"));
 
         final Server<Message, Integer, Message> s = spawnServer(server);
 
@@ -564,7 +563,7 @@ public class ServerTest {
         s.shutdown();
         LocalActor.join(s);
 
-        verify(server).handleCast(any(ActorRef.class), anyObject(), eq(new Message(3, 4)));
+        verify(server).handleCast(isNull(), any(), eq(new Message(3, 4)));
     }
 
     @Test
@@ -596,7 +595,7 @@ public class ServerTest {
         final ServerHandler<Message, Integer, Message> server = mock(ServerHandler.class);
 
         final Exception myException = new RuntimeException("my exception");
-        doThrow(myException).when(server).handleInfo(anyObject());
+        doThrow(myException).when(server).handleInfo(any());
         final Server<Message, Integer, Message> s = spawnServer(server);
 
         s.send("foo");

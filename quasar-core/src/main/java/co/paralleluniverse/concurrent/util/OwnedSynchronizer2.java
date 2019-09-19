@@ -13,10 +13,11 @@
 package co.paralleluniverse.concurrent.util;
 
 import co.paralleluniverse.common.util.UtilUnsafe;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
-import sun.misc.Unsafe;
 
 /**
  *
@@ -99,18 +100,18 @@ class OwnedSynchronizer2 extends OwnedSynchronizer {
     public void await(long timeout, TimeUnit unit) throws InterruptedException {
         awaitNanos(TimeUnit.NANOSECONDS.convert(timeout, unit));
     }
-    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long waiterOffset;
-
+    
+    private static final VarHandle WAITER;
     static {
         try {
-            waiterOffset = UNSAFE.objectFieldOffset(OwnedSynchronizer2.class.getDeclaredField("waiter"));
-        } catch (Exception ex) {
-            throw new Error(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            WAITER = l.findVarHandle(OwnedSynchronizer2.class, "waiter", Thread.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
 
     private boolean casWaiter(Thread expected, Thread update) {
-        return UNSAFE.compareAndSwapObject(this, waiterOffset, expected, update);
+        return WAITER.compareAndSet(this, expected, update);
     }
 }

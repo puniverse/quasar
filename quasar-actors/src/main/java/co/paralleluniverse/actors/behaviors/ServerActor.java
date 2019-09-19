@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A {@link BehaviorActor behavior} implementing a <i>server<i/> that responds to request messages.
+ * A {@link BehaviorActor behavior} implementing a <i>server</i> that responds to request messages.
  * The {@code ServerActor}'s behavior is implemented by either 1) subclassing this class and overriding some or all of:
  * {@link #init() init}, {@link #terminate(java.lang.Throwable) terminate},
  * {@link #handleCall(ActorRef, Object, Object) handleCall}, {@link #handleCast(ActorRef, Object, Object) handleCast},
@@ -204,9 +204,9 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
 
     /**
      * {@inheritDoc}
-     * <p/>
+     * <p>
      * This method implements the {@code ServerActor} behavior, dispatching message to {@link #handleCall(ActorRef, Object, Object) handleCall},
-     * {@link #handleCast(ActorRef, Object, Object) handleCast} or {@link #handleInfo(Object) handleInfo} as appropriate.
+     * {@link #handleCast(ActorRef, Object, Object) handleCast} or {@link #handleInfo(Object) handleInfo} as appropriate.</p>
      */
     @Override
     protected void handleMessage(Object m) throws InterruptedException, SuspendExecution {
@@ -252,9 +252,9 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
 
     /**
      * Called to handle a synchronous request (one waiting for a response).
-     * <p/>
+     * <p>
      * By default, this method calls {@link #server() server}.{@link ServerHandler#handleCall(ActorRef, Object, Object) handleCall} if a server object was supplied
-     * at construction time. Otherwise, it throws an {@link UnsupportedOperationException}, which will be sent back to the requester.
+     * at construction time. Otherwise, it throws an {@link UnsupportedOperationException}, which will be sent back to the requester.</p>
      * <ul>
      * <li>If this method returns a non-null value, it will be sent back to the sender of the request wrapped by an {@link ErrorResponseMessage};
      * if the request was sent via {@link Server#call(Object) Server.call} (which is how it's usually done), this value will be returned
@@ -282,13 +282,13 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
 
     /**
      * Replies with a result to a call request, if the {@link #handleCall(ActorRef, Object, Object) handleCall} method returned null.
-     * <p/>
+     * <p>
      * If the request has been sent by a call to {@link Server#call(Object) Server.call} (which is how it's usually done), the
-     * {@code result} argument will be the value returned by {@link Server#call(Object) call}.
-     * <p/>
-     * This method can only be called by this actor.
-     * <p/>
-     * Internally this method uses a {@link ValueResponseMessage} to send the reply.
+     * {@code result} argument will be the value returned by {@link Server#call(Object) call}.</p>
+     * <p>
+     * This method can only be called by this actor.</p>
+     * <p>
+     * Internally this method uses a {@link ValueResponseMessage} to send the reply.</p>
      *
      * @param to    the actor we're responding to (the request's sender)
      * @param id    the request's identifier
@@ -303,10 +303,10 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * Replies with an exception to a call request, if the {@link #handleCall(ActorRef, Object, Object) handleCall} method returned null.
      * If the request has been sent by a call to {@link Server#call(Object) Server.call} (which is how it's usually done), the
      * {@code e} argument will be the exception thrown by {@link Server#call(Object) call} (possibly wrapped by a {@link RuntimeException}).
-     * <p/>
-     * This method can only be called by this actor.
-     * <p/>
-     * Internally this method uses an {@link ErrorResponseMessage} to send the reply.
+     * <p>
+     * This method can only be called by this actor.</p>
+     * <p>
+     * Internally this method uses an {@link ErrorResponseMessage} to send the reply.</p>
      *
      * @param to    the actor we're responding to (the request's sender)
      * @param id    the request's identifier
@@ -319,9 +319,9 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
 
     /**
      * Called to handle an asynchronous request (one that does not for a response).
-     * <p/>
+     * <p>
      * By default, this method calls {@link #server() server}.{@link ServerHandler#handleCast(ActorRef, Object, Object)  handleCast} if a server object was supplied
-     * at construction time. Otherwise, it throws an {@link UnsupportedOperationException}, which will result in this actor's death, unless caught.
+     * at construction time. Otherwise, it throws an {@link UnsupportedOperationException}, which will result in this actor's death, unless caught.</p>
      *
      * @param from the sender of the request
      * @param id   the request's unique id
@@ -336,9 +336,9 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
 
     /**
      * Called to handle any message sent to this actor that is neither a {@link #handleCall(ActorRef, Object, Object) call} nor a {@link #handleCast(ActorRef, Object, Object) cast}.
-     * <p/>
+     * <p>
      * By default, this method calls {@link #server() server}.{@link ServerHandler#handleInfo(Object) handleInfo} if a server object was supplied
-     * at construction time. Otherwise, it does nothing.
+     * at construction time. Otherwise, it does nothing.</p>
      *
      * @param m the message
      */
@@ -351,9 +351,9 @@ public class ServerActor<CallMessage, V, CastMessage> extends BehaviorActor {
      * Called whenever the timeout set with {@link #setTimeout(long, TimeUnit) setTimeout} or supplied at construction expires without any message
      * received. The countdown is reset after every received message. This method will be triggered multiple times if a message is not received
      * for a period of time longer than multiple timeout durations.
-     * <p/>
+     * <p>
      * By default, this method calls {@link #server() server}.{@link ServerHandler#handleTimeout() handleTimeout} if a server object was supplied
-     * at construction time. Otherwise, it does nothing.
+     * at construction time. Otherwise, it does nothing.</p>
      */
     protected void handleTimeout() throws SuspendExecution {
         if (server() != null)

@@ -65,6 +65,7 @@ class ExtendedStackTraceClassContext extends ExtendedStackTrace {
     static boolean skipSTE(StackTraceElement ste) {
         final String className = ste.getClassName();
         return (className.startsWith("sun.reflect")
+                || className.startsWith("jdk.internal.reflect.")
                 || className.equals("java.lang.reflect.Method")
                 || className.startsWith("java.lang.invoke.")
                 // Originated from http://bugs.java.com/view_bug.do?bug_id=8025636, Quasar PR #207

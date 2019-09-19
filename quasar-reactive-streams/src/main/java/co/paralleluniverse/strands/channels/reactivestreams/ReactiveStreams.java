@@ -79,12 +79,12 @@ public class ReactiveStreams {
      * <p>
      * The publisher will allow a single subscription, unless the channel is a {@link Channels#isTickerChannel(ReceivePort) ticker channel}
      * in which case, multiple subscribers will be allowed, and a new {@link Channels#newTickerConsumerFor(Channel) ticker consumer}
-     * will be created for each.
+     * will be created for each.</p>
      * <p>
      * Every subscription to the returned publisher creates an internal fiber, that will receive items from the
-     * channel and publish them.
+     * channel and publish them.</p>
      * <p>
-     * Calling this method is the same as calling {@link #toPublisher(ReceivePort, FiberFactory) toPublisher(channel, null)
+     * Calling this method is the same as calling {@link #toPublisher(ReceivePort, FiberFactory) toPublisher(channel, null)}</p>
      *
      * @param channel the channel
      * @return a new publisher for the channel's items
@@ -133,12 +133,12 @@ public class ReactiveStreams {
      * Turns a {@link Topic topic} to a {@link Publisher}. All items sent to the topic will be published by
      * the publisher.
      * <p>
-     * A new <i>transfer channel</i> (i.e. a blocking channel with a buffer of size 0) subscribed to the topic will be created for every subscriber.
+     * A new <i>transfer channel</i> (i.e. a blocking channel with a buffer of size 0) subscribed to the topic will be created for every subscriber.</p>
      * <p>
      * Every subscription to the returned publisher creates an internal fiber, that will receive items from the
-     * subscription's channel and publish them.
+     * subscription's channel and publish them.</p>
      * <p>
-     * Calling this method is the same as calling {@link #toPublisher(ReceivePort, FiberFactory) toPublisher(channel, null)
+     * Calling this method is the same as calling {@link #toPublisher(ReceivePort, FiberFactory) toPublisher(channel, null)}</p>
      *
      * @param topic the topic
      * @return a new publisher for the topic's items
@@ -156,12 +156,12 @@ public class ReactiveStreams {
      * @param ff          the {@link FiberFactory} to create the internal fiber(s); if {@code null} then a default factory is used.
      * @param bufferSize  the size of the buffer of the internal channel; may be {@code -1} for unbounded, but may not be {@code 0})
      * @param policy      the {@link OverflowPolicy} of the internal channel.
-     * @param batch       if the channel has a bounded buffer, whether to request further elements from the publisher in batches
-     *                    whenever the channel's buffer is depleted, or after consuming each element.
      * @param transformer a function that reads from it's input channel and writes to its output channel
      * @return a {@code Processor} running the given transformer.
      */
     public static <T, R> Processor<T, R> toProcessor(FiberFactory ff, int bufferSize, OverflowPolicy policy, SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends R>> transformer) {
+     // @param batch       if the channel has a bounded buffer, whether to request further elements from the publisher in batches
+     //                    whenever the channel's buffer is depleted, or after consuming each element.
         final Channel<T> in = Channels.newChannel(bufferSize, policy, true, true);
         final Channel<R> out = Channels.newChannel(bufferSize, policy, true, true);
         return new ChannelProcessor<T, R>(ff, false, in, out, transformer);
@@ -172,19 +172,18 @@ public class ReactiveStreams {
      * The transformer will run in its own fiber.
      * <p>
      * Same as calling 
-     * {@link #toProcessor(FiberFactory, int, OverflowPolicy, boolean, SuspendableAction2) toProcessor(null, bufferSize, policy, transformer)
+     * {@link #toProcessor(FiberFactory, int, OverflowPolicy, SuspendableAction2) toProcessor(null, bufferSize, policy, transformer)}</p>
      *
      * @param <T>         the type of elements flowing into the transformer
      * @param <R>         the type of elements flowing out of the transformer
-     * @param ff          the {@link FiberFactory} to create the internal fiber(s); if {@code null} then a default factory is used.
      * @param bufferSize  the size of the buffer of the internal channel; may be {@code -1} for unbounded, but may not be {@code 0})
      * @param policy      the {@link OverflowPolicy} of the internal channel.
-     * @param batch       if the channel has a bounded buffer, whether to request further elements from the publisher in batches
-     *                    whenever the channel's buffer is depleted, or after consuming each element.
      * @param transformer a function that reads from it's input channel and writes to its output channel
      * @return a {@code Processor} running the given transformer.
      */
     public static <T, R> Processor<T, R> toProcessor(int bufferSize, OverflowPolicy policy, SuspendableAction2<? extends ReceivePort<? super T>, ? extends SendPort<? extends R>> transformer) {
+     // @param batch       if the channel has a bounded buffer, whether to request further elements from the publisher in batches
+     //                    whenever the channel's buffer is depleted, or after consuming each element.
         return toProcessor(null, bufferSize, policy, transformer);
     }
 }

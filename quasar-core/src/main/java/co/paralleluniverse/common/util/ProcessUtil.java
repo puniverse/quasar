@@ -12,24 +12,25 @@
  */
 package co.paralleluniverse.common.util;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.RuntimeMXBean;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import sun.management.VMManagement;
+//import java.lang.management.ManagementFactory;
+//import java.lang.management.RuntimeMXBean;
+//import java.lang.reflect.Field;
+//import java.lang.reflect.Method;
+//import sun.management.VMManagement;
 
 public class ProcessUtil {
     public static int getCurrentPid() {
-        try {
-            RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
-            Field jvmField = runtimeMXBean.getClass().getDeclaredField("jvm");
-            jvmField.setAccessible(true);
-            VMManagement vmManagement = (VMManagement) jvmField.get(runtimeMXBean);
-            Method getProcessIdMethod = vmManagement.getClass().getDeclaredMethod("getProcessId");
-            getProcessIdMethod.setAccessible(true);
-            return (Integer) getProcessIdMethod.invoke(vmManagement);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        throw new UnsupportedOperationException();
+//        try {
+//            RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
+//            Field jvmField = runtimeMXBean.getClass().getDeclaredField("jvm");
+//            jvmField.setAccessible(true);
+//            VMManagement vmManagement = (VMManagement) jvmField.get(runtimeMXBean);
+//            Method getProcessIdMethod = vmManagement.getClass().getDeclaredMethod("getProcessId");
+//            getProcessIdMethod.setAccessible(true);
+//            return (Integer) getProcessIdMethod.invoke(vmManagement);
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        }
     }
 }

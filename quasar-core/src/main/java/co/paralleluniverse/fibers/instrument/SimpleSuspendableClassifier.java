@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.common.reflection.ClassLoaderUtil;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import java.io.BufferedReader;
 import java.io.File;
@@ -73,7 +74,7 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
 
     private void readFiles(ClassLoader classLoader, String fileName, Set<String> set, Set<String> classSet) {
         try {
-            for (Enumeration<URL> susFiles = classLoader.getResources(PREFIX + fileName); susFiles.hasMoreElements();) {
+            for (Enumeration<URL> susFiles = ClassLoaderUtil.getResources(classLoader, PREFIX + fileName); susFiles.hasMoreElements();) {
                 URL file = susFiles.nextElement();
                 // System.err.println("RRRRR: " + file);
                 parse(file, set, classSet);

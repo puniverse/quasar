@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A {@link BehaviorActor behavior} implementing a <i>finite-state-machine<i/>.
+ * A {@link BehaviorActor behavior} implementing a <i>finite-state-machine</i>.
  * The {@code FiniteStateMachineActor}'s behavior is implemented by overriding the {@link #initialState()} method to return an initial *state*
  * which then runs as the actor's body until it returns a next state, and so on until a state returns {@link #TERMINATE TERMINATE},
  * in which case the actor terminates.
@@ -198,9 +198,9 @@ public class FiniteStateMachineActor extends BehaviorActor {
     /**
      * Performs a selective receive. This method blocks until a message that is {@link MessageProcessor#process(java.lang.Object) selected} by
      * the given {@link MessageProcessor} is available in the mailbox, and returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param proc performs the selection.
      * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}
@@ -215,9 +215,9 @@ public class FiniteStateMachineActor extends BehaviorActor {
      * {@link MessageProcessor#process(java.lang.Object) selected} by the given {@link MessageProcessor} is available in the mailbox,
      * and returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
      * If the given timeout expires, this method returns {@code null}.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param timeout the duration to wait for a matching message to arrive.
      * @param unit    timeout's time unit.
@@ -234,11 +234,10 @@ public class FiniteStateMachineActor extends BehaviorActor {
      * {@link MessageProcessor#process(java.lang.Object) selected} by the given {@link MessageProcessor} is available in the mailbox,
      * and returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
      * If the given timeout expires, this method returns {@code null}.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
-     * @param <T>     The type of the returned value
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @param proc    performs the selection.
      * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}, or {@code null} if the timeout expired.
@@ -252,9 +251,9 @@ public class FiniteStateMachineActor extends BehaviorActor {
      * Tries to perform a selective receive. If a message {@link MessageProcessor#process(java.lang.Object) selected} by
      * the given {@link MessageProcessor} is immediately available in the mailbox, returns the value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}.
      * This method never blocks.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param proc performs the selection.
      * @return The non-null value returned by {@link MessageProcessor#process(java.lang.Object) MessageProcessor.process}, or {@code null} if no message was slected.
@@ -266,9 +265,9 @@ public class FiniteStateMachineActor extends BehaviorActor {
     /**
      * Performs a selective receive based on type. This method blocks until a message of the given type is available in the mailbox,
      * and returns it.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param type the type of the messages to select
      * @return The next message of the wanted type.
@@ -281,9 +280,9 @@ public class FiniteStateMachineActor extends BehaviorActor {
     /**
      * Performs a selective receive based on type. This method blocks (but for no longer than the given timeout) until a message of the given type
      * is available in the mailbox, and returns it. If the given timeout expires, this method returns {@code null}.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param timeout the duration to wait for a matching message to arrive.
      * @param unit    timeout's time unit.
@@ -299,9 +298,9 @@ public class FiniteStateMachineActor extends BehaviorActor {
     /**
      * Performs a selective receive based on type. This method blocks (but for no longer than the given timeout) until a message of the given type
      * is available in the mailbox, and returns it. If the given timeout expires, this method returns {@code null}.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @param type    the type of the messages to select
@@ -317,9 +316,9 @@ public class FiniteStateMachineActor extends BehaviorActor {
      * Tries to performs a selective receive based on type. If a message of the given type is immediately found in the mailbox, it is returned.
      * Otherwise this method returns {@code null}.
      * This method never blocks.
-     * <p/>
+     * <p>
      * Messages that are not selected, are temporarily skipped. They will remain in the mailbox until another call to receive (selective or
-     * non-selective) retrieves them.
+     * non-selective) retrieves them.</p>
      *
      * @param type the type of the messages to select
      * @return The next message of the wanted type if immediately found; {@code null} otherwise.

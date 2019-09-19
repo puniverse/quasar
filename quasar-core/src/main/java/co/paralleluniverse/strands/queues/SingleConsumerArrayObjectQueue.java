@@ -13,6 +13,9 @@
  */
 package co.paralleluniverse.strands.queues;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+
 /**
  *
  * @author pron
@@ -66,35 +69,49 @@ public class SingleConsumerArrayObjectQueue<E> extends SingleConsumerArrayQueue<
     void copyValue(int to, int from) {
         array[to] = array[from]; // orderedSet(to, array[from]);
     }
-
-    private static final int base;
-    private static final int shift;
-
-    static {
-        try {
-            base = UNSAFE.arrayBaseOffset(Object[].class);
-            int scale = UNSAFE.arrayIndexScale(Object[].class);
-            if ((scale & (scale - 1)) != 0)
-                throw new Error("data type scale not a power of two");
-            shift = 31 - Integer.numberOfLeadingZeros(scale);
-        } catch (Exception ex) {
-            throw new Error(ex);
-        }
-    }
-
-    private static long byteOffset(int i) {
-        return ((long) i << shift) + base;
-    }
-
+    
+    private static final VarHandle ARRAY = MethodHandles.arrayElementVarHandle(Object[].class);
+    
     private void volatileSet(int i, Object value) {
-        UNSAFE.putObjectVolatile(array, byteOffset(i), value);
+        ARRAY.setVolatile(array, i, value);
     }
-
+    
     private void orderedSet(int i, Object value) {
-        UNSAFE.putOrderedObject(array, byteOffset(i), value);
+        ARRAY.setOpaque(array, i, value);
     }
 
     private Object get(int i) {
-        return UNSAFE.getObjectVolatile(array, byteOffset(i));
+        return ARRAY.getVolatile(array, i);
     }
+    
+//    private static final int base;
+//    private static final int shift;
+//
+//    static {
+//        try {
+//            base = UNSAFE.arrayBaseOffset(Object[].class);
+//            int scale = UNSAFE.arrayIndexScale(Object[].class);
+//            if ((scale & (scale - 1)) != 0)
+//                throw new Error("data type scale not a power of two");
+//            shift = 31 - Integer.numberOfLeadingZeros(scale);
+//        } catch (Exception ex) {
+//            throw new Error(ex);
+//        }
+//    }
+//
+//    private static long byteOffset(int i) {
+//        return ((long) i << shift) + base;
+//    }
+//
+//    private void volatileSet(int i, Object value) {
+//        UNSAFE.putObjectVolatile(array, byteOffset(i), value);
+//    }
+//
+//    private void orderedSet(int i, Object value) {
+//        UNSAFE.putOrderedObject(array, byteOffset(i), value);
+//    }
+//
+//    private Object get(int i) {
+//        return UNSAFE.getObjectVolatile(array, byteOffset(i));
+//    }
 }

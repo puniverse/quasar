@@ -56,21 +56,23 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 // import java.lang.reflect.Executable;
 import java.lang.reflect.Member;
 
 /**
  * A lightweight thread.
- * <p/>
+ * <p>
  * There are two ways to create a new fiber: either subclass the {@code Fiber} class and override the {@code run} method,
  * or pass the code to be executed in the fiber as the {@code target} parameter to the constructor. All in all, the Fiber API
- * resembles the {@link Thread} class in many ways.
- * <p/>
- * A fiber runs inside a ForkJoinPool.
- * <p/>
- * A Fiber can be serialized if it's not running and all involved classes and data types are also {@link Serializable}.
- * <p/>
- * A new Fiber occupies under 400 bytes of memory (when using the default stack size, and compressed OOPs are turned on, as they are by default).
+ * resembles the {@link Thread} class in many ways.</p>
+ * <p>
+ * A fiber runs inside a ForkJoinPool.</p>
+ * <p>
+ * A Fiber can be serialized if it's not running and all involved classes and data types are also {@link Serializable}.</p>
+ * <p>
+ * A new Fiber occupies under 400 bytes of memory (when using the default stack size, and compressed OOPs are turned on, as they are by default).</p>
  *
  * @param <V> The type of the fiber's result value. Should be set to {@link Void} if no value is to be returned by the fiber.
  *
@@ -1100,9 +1102,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     /**
      * Causes the current strand's {@link ThreadLocal thread-locals} to be inherited by this fiber. By default only {@link InheritableThreadLocal}s
-     * are inherited.<p/>
+     * are inherited.<p>
      * This method must be called <i>before</i> the fiber is started (i.e. before the {@link #start() start} method is called.
-     * Otherwise, an {@link IllegalStateException} is thrown.
+     * Otherwise, an {@link IllegalStateException} is thrown.</p>
      *
      * @return {@code this}
      */
@@ -1843,23 +1845,22 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         stack.resetStack();
     }
 
-    private static final sun.misc.Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long stateOffset;
-
+    private static final VarHandle STATE;
     static {
         try {
-            stateOffset = UNSAFE.objectFieldOffset(Fiber.class.getDeclaredField("state"));
-        } catch (Exception ex) {
-            throw new AssertionError(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            STATE = l.findVarHandle(Fiber.class, "state", Strand.State.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
 
     private boolean casState(State expected, State update) {
-        return UNSAFE.compareAndSwapObject(this, stateOffset, expected, update);
+        return STATE.compareAndSet(this, expected, update);
     }
 
     private void orderedSetState(State value) {
-        UNSAFE.putOrderedObject(this, stateOffset, value);
+        STATE.setOpaque(this, value); // UNSAFE.putOrderedObject(this, stateOffset, value);
     }
 
     //<editor-fold defaultstate="collapsed" desc="Recording">
@@ -1997,6 +1998,24 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     /**
+     * Parks the fiber and allows the given callback to serialize it, optimized for use cases where
+     * the callback object has a custom way to obtain the required serializer (e.g. from a serializer pool)
+     *
+     * @param writer a callback that can serialize the fiber.
+     * @throws SuspendExecution
+     */
+    @SuppressWarnings("empty-statement")
+    public static void parkAndCustomSerialize(final CustomFiberWriter writer) throws SuspendExecution {
+        while (!park(SERIALIZER_BLOCKER, new ParkAction() {
+            @Override
+            public void run(Fiber f) {
+                f.record(1, "Fiber", "parkAndCustomSerialize", "Serializing fiber %s", f);
+                writer.write(f);
+            }
+        })) ;
+    }
+
+    /**
      * Deserializes a fiber from the given byte array and unparks it.
      *
      * @param serFiber  The byte array containing a fiber's serialized form.
@@ -2056,6 +2075,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         s.getKryo().addDefaultSerializer(Fiber.class, new FiberSerializer(includeThreadLocals));
         s.getKryo().addDefaultSerializer(ThreadLocal.class, new ThreadLocalSerializer());
         s.getKryo().addDefaultSerializer(FiberWriter.class, new FiberWriterSerializer());
+        s.getKryo().addDefaultSerializer(CustomFiberWriter.class, new CustomFiberWriterSerializer());
         s.getKryo().register(Fiber.class);
         s.getKryo().register(ThreadLocal.class);
         s.getKryo().register(InheritableThreadLocal.class);

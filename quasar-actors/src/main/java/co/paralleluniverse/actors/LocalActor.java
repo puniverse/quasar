@@ -26,9 +26,9 @@ import java.util.concurrent.TimeoutException;
  * Static methods that provide access to {@link Actor}'s functionality through an {@link ActorRef} if the actor is local.
  * With the exception of the {@link #self()} method, application code shouldn't normally use these methods.
  * They are provided mainly for testing, and defining sophisticated behaviors.
- * <p/>
+ * <p>
  * These services are provided as static methods rather than return a reference to the actor, as references to the actor
- * should not leak outside the actor itself.
+ * should not leak outside the actor itself.</p>
  *
  * @author pron
  */

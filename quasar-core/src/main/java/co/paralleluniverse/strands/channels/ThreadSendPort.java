@@ -42,7 +42,6 @@ public class ThreadSendPort<Message> {
      * the channel. The behavior is determined by the channel's {@link Channels.OverflowPolicy OverflowPolicy}, set at construction time.
      *
      * @param message
-     * @throws SuspendExecution
      */
     public void send(Message message) throws InterruptedException {
         if (Strand.isCurrentFiber())
@@ -65,7 +64,6 @@ public class ThreadSendPort<Message> {
      * @param timeout the maximum duration this method is allowed to wait.
      * @param unit the timeout's time unit
      * @return {@code true} if the message has been sent successfully; {@code false} if the timeout has expired.
-     * @throws SuspendExecution
      */
     public boolean send(Message message, long timeout, TimeUnit unit) throws InterruptedException {
         if (Strand.isCurrentFiber())

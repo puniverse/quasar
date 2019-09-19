@@ -41,9 +41,9 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
     /**
      * All messages sent to the mailbox are passed to this method. If this method returns a non-null value, this value will be returned
      * from the {@code receive} methods. If it returns {@code null}, then {@code receive} will keep waiting.
-     * <p/>
+     * <p>
      * By default, this message passes all {@link LifecycleMessage} messages to {@link #handleLifecycleMessage(LifecycleMessage) handleLifecycleMessage}, while
-     * other messages are returned (and will be returned by {@code receive}.
+     * other messages are returned (and will be returned by {@code receive}.</p>
      *
      * @param m the message
      */
@@ -143,9 +143,9 @@ public abstract class FakeActor<Message> extends ActorImpl<Message> {
      * When the other actor dies, this actor receives an {@link ExitMessage}, that is
      * handled by {@link #handleLifecycleMessage(LifecycleMessage) handleLifecycleMessage}. This message does not cause an exception to be thrown,
      * unlike the case where it is received as a result of a linked actor's death.
-     * <p/>
+     * <p>
      * Unlike a link, a watch is asymmetric, and it is also composable, namely, calling this method twice with the same argument would result in two different values
-     * returned, and in an {@link ExitMessage} to be received twice.
+     * returned, and in an {@link ExitMessage} to be received twice.</p>
      *
      * @param other the other actor
      * @return a {@code watchId} object that identifies this watch in messages, and used to remove the watch by the {@link #unwatch(ActorRef, Object) unwatch} method.

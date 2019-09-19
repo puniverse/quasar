@@ -98,9 +98,9 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
 
     /**
      * Runs the asynchronous operation, blocks until it completes and returns its result. Throws an exception if the operation has failed.
-     * <p/>
+     * <p>
      * In immediate exec mode, when this method returns we are running within the handler, and will need to call {@link Fiber#yield()}
-     * to return from the handler.
+     * to return from the handler.</p>
      *
      * @return the result of the async operation as set in the call to {@link #asyncCompleted(java.lang.Object) asyncCompleted}.
      * @throws E                    if the async computation failed and an exception was set in a call to {@link #asyncFailed(java.lang.Throwable) asyncFailed}.
@@ -154,9 +154,9 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
     /**
      * Runs the asynchronous operation, blocks until it completes (but only up to the given timeout duration) and returns its result.
      * Throws an exception if the operation has failed.
-     * <p/>
+     * <p>
      * In immediate exec mode, when this method returns we are running within the handler, and will need to call {@link Fiber#yield()}
-     * to return from the handler.
+     * to return from the handler.</p>
      *
      * @param timeout the maximum duration to wait for the result
      * @param unit    {@code timeout}'s time unit
@@ -230,9 +230,9 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
     /**
      * Runs the asynchronous operation, blocks until it completes (but only up to the given timeout duration) and returns its result.
      * Throws an exception if the operation has failed.
-     * <p/>
+     * <p>
      * In immediate exec mode, when this method returns we are running within the handler, and will need to call {@link Fiber#yield()}
-     * to return from the handler.
+     * to return from the handler.</p>
      *
      * @param timeout the method will not block for longer than the amount remaining in the {@link Timeout}
      * @return the result of the async operation as set in the call to {@link #asyncCompleted(java.lang.Object) asyncCompleted}.

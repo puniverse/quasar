@@ -33,8 +33,8 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
     /**
      * Returns a {@link TransformingSendPort} that filters messages that satisfy a predicate before sending to this channel.
      * Messages that don't satisfy the predicate will be silently discarded when sent.
-     * <p/>
-     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     * <p>
+     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.</p>
      *
      * @param pred    the filtering predicate
      * @return A {@link TransformingSendPort} that will send only those messages which satisfy the predicate (i.e. the predicate returns {@code true}) to the given channel.
@@ -45,8 +45,8 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
 
     /**
      * Returns a {@link TransformingSendPort} that transforms messages by applying a given mapping function before sending this channel.
-     * <p/>
-     * The returned {@code TransformingSendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     * <p>
+     * The returned {@code TransformingSendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.</p>
      *
      * @param f       the mapping function
      * @return a {@link TransformingSendPort} that passes messages to the given channel after transforming them by applying the mapping function.
@@ -57,8 +57,8 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
 
     /**
      * Returns a {@link TransformingSendPort} to which sending messages that are transformed towards a channel by a reduction function.
-     * <p/>
-     * The returned {@code TransformingSendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     * <p>
+     * The returned {@code TransformingSendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.</p>
      *
      * @param f       The reduction function.
      * @param init    The initial input to the reduction function.
@@ -72,15 +72,15 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
      * Returns a {@link SendPort} that sends messages that are transformed by a given flat-mapping function into this channel.
      * Unlike {@link #map(Function) map}, the mapping function does not returns a single output message for every input message, but
      * a new {@code ReceivePort}. All the returned ports are concatenated and sent to the channel.
-     * <p/>
+     * <p>
      * To return a single value the mapping function can make use of {@link Channels#singletonReceivePort(Object)}. To return a collection,
      * it can make use of {@link Channels#toReceivePort(Iterable)}. To emit no values, the function can return {@link Channels#emptyReceivePort()}
-     * or {@code null}.
-     * <p/>
+     * or {@code null}.</p>
+     * <p>
      * If multiple producers send messages into the channel, the messages from the {@code ReceivePort}s returned by the mapping function
-     * may be interleaved with other messages.
-     * <p/>
-     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.
+     * may be interleaved with other messages.</p>
+     * <p>
+     * The returned {@code SendPort} has the same {@link Object#hashCode() hashCode} as {@code channel} and is {@link Object#equals(Object) equal} to it.</p>
      *
      * @param pipe    an intermediate channel used in the flat-mapping operation. Messages are first sent to this channel before being transformed.
      * @param f       the mapping function
@@ -92,9 +92,9 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
 
     /**
      * Spawns a fiber that transforms values read from the {@code in} channel and writes values to this channel.
-     * <p/>
+     * <p>
      * When the transformation terminates. the output channel is automatically closed. If the transformation terminates abnormally 
-     * (throws an exception), this channel is {@link SendPort#close(Throwable) closed with that exception}.
+     * (throws an exception), this channel is {@link SendPort#close(Throwable) closed with that exception}.</p>
      * 
      * @param in          the input channel
      * @param transformer the transforming operation
@@ -108,9 +108,9 @@ public class TransformingSendPort<T> extends DelegatingSendPort<T> {
     
     /**
      * Spawns a fiber that transforms values read from the {@code in} channel and writes values to this channel.
-     * <p/>
+     * <p>
      * When the transformation terminates. the output channel is automatically closed. If the transformation terminates abnormally 
-     * (throws an exception), this channel is {@link SendPort#close(Throwable) closed with that exception}.
+     * (throws an exception), this channel is {@link SendPort#close(Throwable) closed with that exception}.</p>
      * 
      * @param fiberFactory  will be used to create the fiber
      * @param in           the input channel

@@ -50,7 +50,6 @@ import java.util.concurrent.locks.ReadWriteLock;
  * constraints.  A nonfair lock that is continuously contended may
  * indefinitely postpone one or more reader or writer strands, but
  * will normally have higher throughput than a fair lock.
- * <p>
  *
  * <dt><b><i>Fair mode</i></b>
  * <dd> When constructed as fair, strands contend for entry using an

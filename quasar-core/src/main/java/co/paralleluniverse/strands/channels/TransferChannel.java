@@ -27,6 +27,8 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Synchronization;
 import co.paralleluniverse.strands.Timeout;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -295,12 +297,12 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
 
         // CAS methods for fields
         final boolean casNext(Node cmp, Node val) {
-            return UNSAFE.compareAndSwapObject(this, nextOffset, cmp, val);
+            return NEXT.compareAndSet(this, cmp, val);
         }
 
         final boolean casItem(Object cmp, Object val) {
             // assert cmp == null || cmp.getClass() != Node.class;
-            return UNSAFE.compareAndSwapObject(this, itemOffset, cmp, val);
+            return ITEM.compareAndSet(this, cmp, val);
         }
 
         /**
@@ -308,13 +310,13 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
          * only be seen after publication via casNext.
          */
         Node(SelectActionImpl sa) {
-            UNSAFE.putObject(this, itemOffset, sa.message()); // relaxed write
-            UNSAFE.putObject(this, saOffset, sa); // relaxed write
+            ITEM.set(this, sa.message()); // UNSAFE.putObject(this, itemOffset, sa.message()); // relaxed write
+            SA.set(this, sa); // UNSAFE.putObject(this, saOffset, sa); // relaxed write
             this.isData = sa.isData();
         }
 
         Node(Object item, boolean isData) {
-            UNSAFE.putObject(this, itemOffset, item); // relaxed write
+            ITEM.set(this, item); // UNSAFE.putObject(this, itemOffset, item); // relaxed write
             this.isData = isData;
         }
 
@@ -323,7 +325,7 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
          * only after CASing head field, so uses relaxed write.
          */
         final void forgetNext() {
-            UNSAFE.putObject(this, nextOffset, this);
+            NEXT.set(this, this); // UNSAFE.putObject(this, nextOffset, this);
         }
 
         /**
@@ -336,9 +338,9 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
          * else we don't care).
          */
         final void forgetContents() {
-            UNSAFE.putObject(this, itemOffset, this);
-            UNSAFE.putObject(this, saOffset, null);
-            UNSAFE.putObject(this, waiterOffset, null);
+            ITEM.set(this, this); // UNSAFE.putObject(this, itemOffset, this);
+            SA.set(this, null); // UNSAFE.putObject(this, saOffset, null);
+            WAITER.set(this, null); // UNSAFE.putObject(this, waiterOffset, null);
         }
 
         /**
@@ -403,25 +405,43 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
             }
         }
         private static final long serialVersionUID = -3375979862319811754L;
-        // Unsafe mechanics
-        private static final sun.misc.Unsafe UNSAFE;
-        private static final long itemOffset;
-        private static final long saOffset;
-        private static final long nextOffset;
-        private static final long waiterOffset;
+        
+        private static final VarHandle ITEM;
+        private static final VarHandle SA;
+        private static final VarHandle NEXT;
+        private static final VarHandle WAITER;
 
         static {
             try {
-                UNSAFE = UtilUnsafe.getUnsafe();
+                MethodHandles.Lookup l = MethodHandles.lookup();
                 Class k = Node.class;
-                itemOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("item"));
-                saOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("sa"));
-                nextOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("next"));
-                waiterOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("waiter"));
-            } catch (Exception e) {
-                throw new Error(e);
+                ITEM   = l.findVarHandle(k, "item",   Object.class);
+                SA     = l.findVarHandle(k, "sa",     SelectActionImpl.class);
+                NEXT   = l.findVarHandle(k, "next",   k);
+                WAITER = l.findVarHandle(k, "waiter", Strand.class);
+            } catch (ReflectiveOperationException e) {
+                throw new ExceptionInInitializerError(e);
             }
         }
+//        // Unsafe mechanics
+//        private static final sun.misc.Unsafe UNSAFE;
+//        private static final long itemOffset;
+//        private static final long saOffset;
+//        private static final long nextOffset;
+//        private static final long waiterOffset;
+//
+//        static {
+//            try {
+//                UNSAFE = UtilUnsafe.getUnsafe();
+//                Class k = Node.class;
+//                itemOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("item"));
+//                saOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("sa"));
+//                nextOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("next"));
+//                waiterOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("waiter"));
+//            } catch (Exception e) {
+//                throw new Error(e);
+//            }
+//        }
     }
 
     static class Token {
@@ -448,15 +468,15 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
 
     // CAS methods for fields
     private boolean casTail(Node cmp, Node val) {
-        return UNSAFE.compareAndSwapObject(this, tailOffset, cmp, val);
+        return TAIL.compareAndSet(this, cmp, val); // UNSAFE.compareAndSwapObject(this, tailOffset, cmp, val);
     }
 
     private boolean casHead(Node cmp, Node val) {
-        return UNSAFE.compareAndSwapObject(this, headOffset, cmp, val);
+        return HEAD.compareAndSet(this, cmp, val); // UNSAFE.compareAndSwapObject(this, headOffset, cmp, val);
     }
 
     private boolean casSweepVotes(int cmp, int val) {
-        return UNSAFE.compareAndSwapInt(this, sweepVotesOffset, cmp, val);
+        return SWEEP_VOTES.compareAndSet(this, cmp, val); // UNSAFE.compareAndSwapInt(this, sweepVotesOffset, cmp, val);
     }
 
     /*
@@ -896,21 +916,37 @@ public class TransferChannel<Message> implements StandardChannel<Message>, Selec
     public int getWaitingConsumerCount() {
         return countOfMode(false);
     }
-    // Unsafe mechanics
-    private static final sun.misc.Unsafe UNSAFE;
-    private static final long headOffset;
-    private static final long tailOffset;
-    private static final long sweepVotesOffset;
+
+    private static final VarHandle HEAD;
+    private static final VarHandle TAIL;
+    private static final VarHandle SWEEP_VOTES;
 
     static {
         try {
-            UNSAFE = UtilUnsafe.getUnsafe();
+            MethodHandles.Lookup l = MethodHandles.lookup();
             Class k = TransferChannel.class;
-            headOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("head"));
-            tailOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("tail"));
-            sweepVotesOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("sweepVotes"));
-        } catch (Exception e) {
-            throw new Error(e);
+            HEAD = l.findVarHandle(k, "head", Node.class);
+            TAIL = l.findVarHandle(k, "tail", Node.class);
+            SWEEP_VOTES = l.findVarHandle(k, "sweepVotes", int.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
+//    // Unsafe mechanics
+//    private static final sun.misc.Unsafe UNSAFE;
+//    private static final long headOffset;
+//    private static final long tailOffset;
+//    private static final long sweepVotesOffset;
+//
+//    static {
+//        try {
+//            UNSAFE = UtilUnsafe.getUnsafe();
+//            Class k = TransferChannel.class;
+//            headOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("head"));
+//            tailOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("tail"));
+//            sweepVotesOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("sweepVotes"));
+//        } catch (Exception e) {
+//            throw new Error(e);
+//        }
+//    }
 }

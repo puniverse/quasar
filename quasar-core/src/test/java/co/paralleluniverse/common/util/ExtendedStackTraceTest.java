@@ -115,7 +115,9 @@ public class ExtendedStackTraceTest {
 
     private boolean skipJunit(ExtendedStackTraceElement este) {
         final String name = este.getClassName();
-        return name.contains("junit.") || name.contains("gradle.") || name.contains("com.sun.proxy") || name.contains("sun.reflect.Generated");
+        return name.contains("junit.") || name.contains("gradle.")
+                || name.startsWith("com.sun.proxy") || name.startsWith("sun.reflect.Generated")
+                || name.startsWith("jdk.internal.proxy") || name.startsWith("jdk.internal.reflect.Generated") ;
     }
 
     private static class A {

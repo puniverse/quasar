@@ -137,10 +137,10 @@ public class StrandFactoryBuilder {
     }
 
     /**
-     * Sets the {@link UncaughtExceptionHandler} for new threads created with this
+     * Sets the {@link Strand.UncaughtExceptionHandler} for new threads created with this
      * ThreadFactory.
      *
-     * @param uncaughtExceptionHandler the uncaught exception handler
+     * @param ueh the uncaught exception handler
      * @return {@code this}
      */
     public StrandFactoryBuilder setUncaughtExceptionHandler(Strand.UncaughtExceptionHandler ueh) {

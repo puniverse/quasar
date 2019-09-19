@@ -203,7 +203,7 @@ class OOTest {
             fiberSleepInline()
             return true
         }
-        @Suspendable inline set(v) {
+        @Suspendable inline set(_) {
             fiberSleepInline()
         }
 
@@ -332,7 +332,7 @@ class OOTest {
             fiberSleepInline()
             return true
         }
-        @Suspendable set(v) {
+        @Suspendable set(_) {
             fiberSleepInline()
         }
 
@@ -386,7 +386,7 @@ class OOTest {
             fiberSleepInline()
             return true
         }
-        @Suspendable inline set(v) {
+        @Suspendable inline set(_) {
             fiberSleepInline()
         }
 

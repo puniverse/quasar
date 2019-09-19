@@ -200,12 +200,10 @@ public class JavaAgent {
 
             Retransform.beforeTransform(className, classBeingRedefined, classfileBuffer);
 
-            classLoaders.add(new WeakReference<>(loader));
+            if (loader != null)
+                classLoaders.add(new WeakReference<>(loader));
 
             try {
-                if (loader == null)
-                    loader = Thread.currentThread().getContextClassLoader();
-
                 final byte[] transformed = instrumentor.instrumentClass(loader, className, classfileBuffer);
 
                 if (transformed != null)

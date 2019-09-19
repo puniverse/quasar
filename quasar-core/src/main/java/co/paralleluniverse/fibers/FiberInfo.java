@@ -15,7 +15,7 @@ package co.paralleluniverse.fibers;
 
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Strand.State;
-import java.beans.ConstructorProperties;
+import javax.management.ConstructorParameters;
 //import javax.management.openmbean.CompositeData;
 
 /**
@@ -57,7 +57,7 @@ public class FiberInfo {
         this.stackTrace = stackTrace;
     }
 
-    @ConstructorProperties({"id", "name", "state", "blocker", "stackTrace"})
+    @ConstructorParameters({"id", "name", "state", "blocker", "stackTrace"})
     public FiberInfo(long id, String name, State state, String blockerName, StackTraceElement[] stackTrace) {
         this.id = id;
         this.name = name;

@@ -14,18 +14,19 @@
 package co.paralleluniverse.fibers;
 
 /**
+ * <p>
  * An exception used to initiate the control transfer.
  * Methods which are declared to throw this exception are "suspendable". This
- * exception must always be propagated and never be caught.
- * <p/>
- * Try/catch handlers are allowed:<br/>
- * {@code try{ doSomething(); } catch(Throwable ex) { handleException(ex); } }
- * <p/>
+ * exception must always be propagated and never be caught.</p>
+ * <p>
+ * Try/catch handlers are allowed:<br>
+ * {@code try{ doSomething(); } catch(Throwable ex) { handleException(ex); } }</p>
+ * <p>
  * Quasar instrumentation will enhance the bytecode of these methods to
- * support suspension and continuation of their execution; they will not catch {@code SuspendExecution}.
- * <p/>
+ * support suspension and continuation of their execution; they will not catch {@code SuspendExecution}.</p>
+ * <p>
  * This class is for internal Quasar use. 
- * Throwing an instance of this class or a subclass of it will break things in strange ways.
+ * Throwing an instance of this class or a subclass of it will break things in strange ways.</p>
  */
 public final class SuspendExecution extends Exception { // InterruptedException {
     static final SuspendExecution PARK = new SuspendExecution();

@@ -94,7 +94,7 @@ public class Val<V> implements Future<V> {
     /**
      * Sets an exception that will be thrown by {@code get}, wrapped by {@link RuntimeExecutionException}.
      *
-     * @param Throwable t the exception
+     * @param t the exception
      * @throws IllegalStateException if the value has already been set.
      */
     public final void setException(Throwable t) {

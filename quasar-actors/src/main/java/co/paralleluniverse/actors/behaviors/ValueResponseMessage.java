@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import java.beans.ConstructorProperties;
+import javax.management.ConstructorParameters;
 
 /**
  * A simple subclass of {@link ResponseMessage} that encapsulates a single response value.
@@ -29,7 +29,7 @@ public class ValueResponseMessage<V> extends ResponseMessage implements IdMessag
      * @param id    the {@link RequestMessage#getId() id} of the {@link RequestMessage} this is a response to.
      * @param value the response value, i.e. the result of the request
      */
-    @ConstructorProperties({"id", "value"})
+    @ConstructorParameters({"id", "value"})
     public ValueResponseMessage(Object id, V value) {
         super(id);
         this.value = value;

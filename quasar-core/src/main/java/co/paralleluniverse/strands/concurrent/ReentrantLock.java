@@ -540,7 +540,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
     /**
      * Queries if this lock is held by the current strand.
      *
-     * <p>Analogous to the {@link Strand#holdsLock} method for built-in
+     * <p>Analogous to the {@link Thread#holdsLock} method for built-in
      * monitor locks, this method is typically used for debugging and
      * testing. For example, a method that should only be called while
      * a lock is held can assert that this is the case:

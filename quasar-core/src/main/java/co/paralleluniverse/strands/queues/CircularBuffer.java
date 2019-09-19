@@ -13,8 +13,8 @@
  */
 package co.paralleluniverse.strands.queues;
 
-import co.paralleluniverse.common.util.UtilUnsafe;
-import sun.misc.Unsafe;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 
 /**
  *
@@ -174,28 +174,27 @@ public abstract class CircularBuffer<E> implements BasicQueue<E> {
         protected abstract E getValue();
     }
     ////////////////////////////////////////////////////////////////////////
-    static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long tailOffset;
-    private static final long lastWrittenOffset;
-
+    private static final VarHandle TAIL;
+    private static final VarHandle LAST_WRITTEN;
     static {
         try {
-            tailOffset = UNSAFE.objectFieldOffset(CircularBuffer.class.getDeclaredField("tail"));
-            lastWrittenOffset = UNSAFE.objectFieldOffset(CircularBuffer.class.getDeclaredField("lastWritten"));
-        } catch (Exception ex) {
-            throw new Error(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            TAIL = l.findVarHandle(CircularBuffer.class, "tail", long.class);
+            LAST_WRITTEN = l.findVarHandle(CircularBuffer.class, "lastWritten", long.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
 
     private void orderedSetTail(long value) {
-        UNSAFE.putOrderedLong(this, tailOffset, value);
+        TAIL.setOpaque(this, value); // UNSAFE.putOrderedLong(this, tailOffset, value);
     }
 
     boolean casTail(long expected, long update) {
-        return UNSAFE.compareAndSwapLong(this, tailOffset, expected, update);
+        return TAIL.compareAndSet(this, expected, update);
     }
 
     boolean casLastWritten(long expected, long update) {
-        return UNSAFE.compareAndSwapLong(this, lastWrittenOffset, expected, update);
+        return LAST_WRITTEN.compareAndSet(this, expected, update);
     }
 }

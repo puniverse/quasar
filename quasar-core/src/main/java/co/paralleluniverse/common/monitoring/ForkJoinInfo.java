@@ -12,7 +12,7 @@
  */
 package co.paralleluniverse.common.monitoring;
 
-import java.beans.ConstructorProperties;
+import javax.management.ConstructorParameters;
 
 /**
  *
@@ -25,7 +25,7 @@ public final class ForkJoinInfo {
     private final long queuedTaskCount; // Returns an estimate of the total number of tasks currently held in queues by worker threads (but not including tasks submitted to the pool that have not begun executing).
     private final long stealCount; // Returns an estimate of the total number of tasks stolen from one thread's work queue by another.
 
-    @ConstructorProperties({"activeThreadCount", "runningThreadCount", "queuedSumbmissionCount", "queuedTaskCount", "stealCount"})
+    @ConstructorParameters({"activeThreadCount", "runningThreadCount", "queuedSumbmissionCount", "queuedTaskCount", "stealCount"})
     public ForkJoinInfo(int activeThreadCount, int runningThreadCount, int queuedSumbmissionCount, long queuedTaskCount, long stealCount) {
         this.activeThreadCount = activeThreadCount;
         this.runningThreadCount = runningThreadCount;

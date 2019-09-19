@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
+import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorBuilder;
 import co.paralleluniverse.actors.ActorRef;
 import co.paralleluniverse.actors.LocalActor;

@@ -70,7 +70,7 @@ public class SupervisorTest {
 
     public SupervisorTest() throws Exception {
         factory = scheduler = new FiberForkJoinScheduler("test", 4, null, false);
-        java.util.logging.LogManager.getLogManager().readConfiguration(); // gradle messes with the configurations
+//        java.util.logging.LogManager.getLogManager().readConfiguration(); // gradle messes with the configurations
     }
 
     private static class Actor1 extends BasicActor<Object, Integer> {

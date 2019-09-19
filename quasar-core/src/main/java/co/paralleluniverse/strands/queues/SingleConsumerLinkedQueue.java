@@ -15,9 +15,10 @@ package co.paralleluniverse.strands.queues;
 
 import co.paralleluniverse.common.util.UtilUnsafe;
 import com.google.common.collect.Lists;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.List;
-import sun.misc.Unsafe;
 
 /**
  *
@@ -260,59 +261,106 @@ abstract class SingleConsumerLinkedQueue<E> extends SingleConsumerQueue<E> {
         }
     }
     ////////////////////////////////////////////////////////////////////////
-    static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long headOffset;
-    private static final long tailOffset;
-    private static final long nextOffset;
-    private static final long prevOffset;
+    private static final VarHandle HEAD;
+    private static final VarHandle TAIL;
+    private static final VarHandle NEXT;
+    private static final VarHandle PREV;
 
     static {
         try {
-            headOffset = UNSAFE.objectFieldOffset(SingleConsumerLinkedQueue.class.getDeclaredField("head"));
-            tailOffset = UNSAFE.objectFieldOffset(SingleConsumerLinkedQueue.class.getDeclaredField("tail"));
-            nextOffset = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("next"));
-            prevOffset = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("prev"));
-        } catch (Exception ex) {
-            throw new Error(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            HEAD = l.findVarHandle(SingleConsumerLinkedQueue.class, "head", Node.class);
+            TAIL = l.findVarHandle(SingleConsumerLinkedQueue.class, "tail", Node.class);
+            NEXT = l.findVarHandle(Node.class, "next", Node.class);
+            PREV = l.findVarHandle(Node.class, "prev", Node.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
-
+    
     /**
      * CAS head field. Used only by enq.
      */
     boolean compareAndSetHead(Node update) {
-        return UNSAFE.compareAndSwapObject(this, headOffset, null, update);
+        return HEAD.compareAndSet(this, null, update);
     }
 
     void orderedSetHead(Node value) {
-        UNSAFE.putOrderedObject(this, headOffset, value);
-    }
-
-    void volatileSetHead(Node value) {
-        UNSAFE.putObjectVolatile(this, headOffset, value);
+        HEAD.setOpaque(this, value); // UNSAFE.putOrderedObject(this, headOffset, value);
     }
 
     /**
      * CAS tail field. Used only by enq.
      */
     boolean compareAndSetTail(Node expect, Node update) {
-        return UNSAFE.compareAndSwapObject(this, tailOffset, expect, update);
+        return TAIL.compareAndSet(this, expect, update);
     }
 
-    /**
-     * CAS next field of a node.
-     */
     static boolean compareAndSetNext(Node node, Node expect, Node update) {
-        return UNSAFE.compareAndSwapObject(node, nextOffset, expect, update);
+        return NEXT.compareAndSet(node, expect, update);
     }
 
-    static void clearNext(Node node) {
-        UNSAFE.putOrderedObject(node, nextOffset, null);
+    private static void clearNext(Node node) {
+        NEXT.setOpaque(node, null);
     }
 
-    static void clearPrev(Node node) {
-        UNSAFE.putOrderedObject(node, prevOffset, null);
+    private static void clearPrev(Node node) {
+        PREV.setOpaque(node, null);
     }
-
+    
     abstract void clearValue(Node node);
+        
+//    static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
+//    private static final long headOffset;
+//    private static final long tailOffset;
+//    private static final long nextOffset;
+//    private static final long prevOffset;
+//
+//    static {
+//        try {
+//            headOffset = UNSAFE.objectFieldOffset(SingleConsumerLinkedQueue.class.getDeclaredField("head"));
+//            tailOffset = UNSAFE.objectFieldOffset(SingleConsumerLinkedQueue.class.getDeclaredField("tail"));
+//            nextOffset = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("next"));
+//            prevOffset = UNSAFE.objectFieldOffset(Node.class.getDeclaredField("prev"));
+//        } catch (Exception ex) {
+//            throw new Error(ex);
+//        }
+//    }
+//
+//    /**
+//     * CAS head field. Used only by enq.
+//     */
+//    boolean compareAndSetHead(Node update) {
+//        return UNSAFE.compareAndSwapObject(this, headOffset, null, update);
+//    }
+//
+//    void orderedSetHead(Node value) {
+//        UNSAFE.putOrderedObject(this, headOffset, value);
+//    }
+//
+//    void volatileSetHead(Node value) {
+//        UNSAFE.putObjectVolatile(this, headOffset, value);
+//    }
+//
+//    /**
+//     * CAS tail field. Used only by enq.
+//     */
+//    boolean compareAndSetTail(Node expect, Node update) {
+//        return UNSAFE.compareAndSwapObject(this, tailOffset, expect, update);
+//    }
+//
+//    /**
+//     * CAS next field of a node.
+//     */
+//    static boolean compareAndSetNext(Node node, Node expect, Node update) {
+//        return UNSAFE.compareAndSwapObject(node, nextOffset, expect, update);
+//    }
+//
+//    static void clearNext(Node node) {
+//        UNSAFE.putOrderedObject(node, nextOffset, null);
+//    }
+//
+//    static void clearPrev(Node node) {
+//        UNSAFE.putOrderedObject(node, prevOffset, null);
+//    }
 }

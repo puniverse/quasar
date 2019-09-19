@@ -16,12 +16,13 @@ package co.paralleluniverse.strands;
 import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import sun.misc.Unsafe;
 
 /**
  *
@@ -144,18 +145,18 @@ public class AbstractFuture<V> implements Future<V> {
 
     protected void interruptTask() {
     }
-    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long settingOffset;
-
+    
+    private static final VarHandle SETTING;
     static {
         try {
-            settingOffset = UNSAFE.objectFieldOffset(AbstractFuture.class.getDeclaredField("setting"));
-        } catch (Exception ex) {
-            throw new AssertionError(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            SETTING = l.findVarHandle(AbstractFuture.class, "setting", int.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
 
     private boolean casSetting(int expected, int update) {
-        return UNSAFE.compareAndSwapInt(this, settingOffset, expected, update);
+        return SETTING.compareAndSet(this, expected, update);
     }
 }

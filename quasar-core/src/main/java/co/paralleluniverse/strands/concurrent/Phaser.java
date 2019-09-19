@@ -21,10 +21,11 @@
  */
 package co.paralleluniverse.strands.concurrent;
 
-import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import co.paralleluniverse.strands.Strand;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -369,7 +370,7 @@ public class Phaser {
             else if (counts == EMPTY || unarrived < 0) {
                 if (root == this || reconcileState() == s)
                     throw new IllegalStateException(badArrive(s));
-            } else if (UNSAFE.compareAndSwapLong(this, stateOffset, s, s -= adj)) {
+            } else if (STATE.compareAndSet(this, s, s -= adj)) {
                 if (unarrived == 0) {
                     long n = s & PARTIES_MASK;  // base of next state
                     int nextUnarrived = (int) n >>> PARTIES_SHIFT;
@@ -383,7 +384,7 @@ public class Phaser {
                     else
                         n |= nextUnarrived;
                     n |= (long) ((phase + 1) & MAX_PHASE) << PHASE_SHIFT;
-                    UNSAFE.compareAndSwapLong(this, stateOffset, s, n);
+                    STATE.compareAndSet(this, s, n);
                     releaseWaiters(phase);
                 }
                 return phase;
@@ -415,13 +416,13 @@ public class Phaser {
                 if (parent == null || reconcileState() == s) {
                     if (unarrived == 0)             // wait out advance
                         root.internalAwaitAdvance(phase, null); // does not block when node == null
-                    else if (UNSAFE.compareAndSwapLong(this, stateOffset,
+                    else if (STATE.compareAndSet(this,
                             s, s + adj))
                         break;
                 }
             } else if (parent == null) {              // 1st root registration
                 long next = ((long) phase << PHASE_SHIFT) | adj;
-                if (UNSAFE.compareAndSwapLong(this, stateOffset, s, next))
+                if (STATE.compareAndSet(this, s, next))
                     break;
             } else {
                 // System.out.println("PHASER " + (System.currentTimeMillis() % 300000) + " " + (int) (state >>> PHASE_SHIFT) + " " + Fiber.currentFiber() + " " + Thread.currentThread() + " - LOCK");
@@ -432,7 +433,7 @@ public class Phaser {
                         do {                        // force current phase
                             phase = (int) (root.state >>> PHASE_SHIFT);
                             // assert phase < 0 || (int)state == EMPTY;
-                        } while (!UNSAFE.compareAndSwapLong(this, stateOffset, state,
+                        } while (!STATE.compareAndSet(this, state,
                                 ((long) phase << PHASE_SHIFT) | adj));
                         break;
                     }
@@ -465,7 +466,7 @@ public class Phaser {
             // CAS root phase with current parties; possibly trip unarrived
             while ((phase = (int) (root.state >>> PHASE_SHIFT))
                     != (int) (s >>> PHASE_SHIFT)
-                    && !UNSAFE.compareAndSwapLong(this, stateOffset, s,
+                    && !STATE.compareAndSet(this, s,
                     s = (((long) phase << PHASE_SHIFT)
                     | (s & PARTIES_MASK)
                     | ((p = (int) s >>> PARTIES_SHIFT) == 0 ? EMPTY
@@ -671,7 +672,7 @@ public class Phaser {
                 else if (counts == EMPTY || unarrived < 0) {
                     if (reconcileState() == s)
                         throw new IllegalStateException(badArrive(s));
-                } else if (UNSAFE.compareAndSwapLong(this, stateOffset, s,
+                } else if (STATE.compareAndSet(this, s,
                         s -= ONE_ARRIVAL)) {
                     if (unarrived != 0)
                         return root.internalAwaitAdvance(phase, null);
@@ -687,7 +688,7 @@ public class Phaser {
                         n |= nextUnarrived;
                     int nextPhase = (phase + 1) & MAX_PHASE;
                     n |= (long) nextPhase << PHASE_SHIFT;
-                    if (!UNSAFE.compareAndSwapLong(this, stateOffset, s, n))
+                    if (!STATE.compareAndSet(this, s, n))
                         return (int) (state >>> PHASE_SHIFT); // terminated
                     releaseWaiters(phase);
                     return nextPhase;
@@ -818,7 +819,7 @@ public class Phaser {
         final Phaser root = this.root;
         long s;
         while ((s = root.state) >= 0) {
-            if (UNSAFE.compareAndSwapLong(root, stateOffset,
+            if (STATE.compareAndSet(this,
                     s, s | TERMINATION_BIT)) {
                 // signal all threads
                 releaseWaiters(0);
@@ -1163,17 +1164,28 @@ public class Phaser {
             return isReleasable();
         }
     }
-    // Unsafe mechanics
-    private static final sun.misc.Unsafe UNSAFE;
-    private static final long stateOffset;
-
+    
+    private static final VarHandle STATE;
     static {
         try {
-            UNSAFE = UtilUnsafe.getUnsafe();
+            MethodHandles.Lookup l = MethodHandles.lookup();
             Class k = Phaser.class;
-            stateOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("state"));
-        } catch (Exception e) {
-            throw new Error(e);
+            STATE = l.findVarHandle(k, "state", long.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
+//    // Unsafe mechanics
+//    private static final sun.misc.Unsafe UNSAFE;
+//    private static final long stateOffset;
+//
+//    static {
+//        try {
+//            UNSAFE = UtilUnsafe.getUnsafe();
+//            Class k = Phaser.class;
+//            stateOffset = UNSAFE.objectFieldOffset(k.getDeclaredField("state"));
+//        } catch (Exception e) {
+//            throw new Error(e);
+//        }
+//    }
 }

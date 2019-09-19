@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2016, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2018, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -41,12 +41,16 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.common.reflection.ClassLoaderUtil;
+import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,7 +71,6 @@ import org.objectweb.asm.Opcodes;
  * @author pron
  */
 public class MethodDatabase {
-    private static final int ASMAPI = Opcodes.ASM5;
     private final WeakReference<ClassLoader> clRef;
     private final SuspendableClassifier classifier;
     private final NavigableMap<String, ClassEntry> classes;
@@ -76,10 +79,7 @@ public class MethodDatabase {
 
     public MethodDatabase(QuasarInstrumentor instrumentor, ClassLoader classloader, SuspendableClassifier classifier) {
         this.instrumentor = instrumentor;
-        if (classloader == null)
-            throw new NullPointerException("classloader");
-
-        this.clRef = new WeakReference<>(classloader);
+        this.clRef = classloader != null ? new WeakReference<>(classloader) : null;
         this.classifier = classifier;
 
         classes = new TreeMap<>();
@@ -307,76 +307,66 @@ public class MethodDatabase {
     }
 
     protected ClassEntry checkClass(String className) {
-        ClassLoader cl = clRef.get();
-        if (cl == null) {
-            log(LogLevel.INFO, "Can't check class: %s", className);
-            return null;
+        ClassLoader cl = null;
+        if (clRef != null) {
+            cl = clRef.get();
+            if (cl == null) {
+                log(LogLevel.INFO, "Can't check class: %s", className);
+                return null;
+            }
         }
 
         log(LogLevel.INFO, "Reading class: %s", className);
-        final InputStream is = cl.getResourceAsStream(className + ".class");
-        if (is == null) {
-            log(LogLevel.INFO, "Class not found: %s", className);
-            return null;
-        }
-        ClassEntry entry = getClassEntry(className); // getResourceAsStream may have triggered instrumentation
-        if (entry == null) {
-            final CheckInstrumentationVisitor civ = checkFileAndClose(is, className);
-            if (civ != null) {
-                entry = civ.getClassEntry();
-                recordSuspendableMethods(className, entry);
-            } else
+        try (final InputStream is = ClassLoaderUtil.getResourceAsStream(cl, className + ".class")) {
+            if (is == null) {
                 log(LogLevel.INFO, "Class not found: %s", className);
-        } else {
-            try {
-                is.close();
-            } catch (IOException e) {
-                error(className, e);
+                return null;
             }
+            ClassEntry entry = getClassEntry(className); // getResourceAsStream may have triggered instrumentation
+            if (entry == null) {
+                final CheckInstrumentationVisitor civ = checkFileAndClose(is, className);
+                if (civ != null) {
+                    entry = civ.getClassEntry();
+                    recordSuspendableMethods(className, entry);
+                } else
+                    log(LogLevel.INFO, "Class not found: %s", className);
+            }
+            return entry;
+        } catch(IOException e) {
+            throw new RuntimeException("While opening " + className, e);
+//            return null;
         }
-
-        return entry;
     }
 
-    private CheckInstrumentationVisitor checkFileAndClose(InputStream is, String name) {
+    private CheckInstrumentationVisitor checkFileAndClose(InputStream is, String name) throws IOException {
         try {
-            try {
-                ClassReader r = new ClassReader(is);
+            ClassReader r = new ClassReader(is);
 
-                CheckInstrumentationVisitor civ = new CheckInstrumentationVisitor(this);
-                r.accept(civ, ClassReader.SKIP_FRAMES | ClassReader.SKIP_CODE);
+            CheckInstrumentationVisitor civ = new CheckInstrumentationVisitor(this);
+            r.accept(civ, ClassReader.SKIP_FRAMES | ClassReader.SKIP_CODE);
 
-                return civ;
-            } finally {
-                is.close();
-            }
-        } catch (UnableToInstrumentException ex) {
-            throw ex;
-        } catch (Exception ex) {
-            error(name, ex);
+            return civ;
+        } finally {
+            is.close();
         }
-        return null;
     }
 
     private String extractSuperClass(String className) {
-        ClassLoader cl = clRef.get();
-        if (cl == null)
-            return null;
-
-        final InputStream is = cl.getResourceAsStream(className + ".class");
-        if (is != null) {
-            try {
-                try {
-                    ClassReader r = new ClassReader(is);
-                    ExtractSuperClass esc = new ExtractSuperClass();
-                    r.accept(esc, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
-                    return esc.superClass;
-                } finally {
-                    is.close();
-                }
-            } catch (IOException ex) {
-                error(className, ex);
+        ClassLoader cl = null;
+        if (clRef != null) {
+            cl = clRef.get();
+            if (cl == null) {
+                return null;
             }
+        }
+
+        try (final InputStream is = ClassLoaderUtil.getResourceAsStream(cl, className + ".class")) {
+            ClassReader r = new ClassReader(is);
+            ExtractSuperClass esc = new ExtractSuperClass();
+            r.accept(esc, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+            return esc.superClass;
+        } catch (IOException ex) {
+            error(className, ex);
         }
         return null;
     }
@@ -443,6 +433,7 @@ public class MethodDatabase {
         return className.startsWith("java/")
                || className.startsWith("javax/")
                || className.startsWith("sun/")
+               || className.startsWith("jdk/")
                || (className.startsWith("com/sun/") && !className.startsWith("com/sun/jersey"));
     }
 

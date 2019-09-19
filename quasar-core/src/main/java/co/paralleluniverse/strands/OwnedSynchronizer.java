@@ -13,9 +13,9 @@
  */
 package co.paralleluniverse.strands;
 
-import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.fibers.SuspendExecution;
-import sun.misc.Unsafe;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 
 /**
  *
@@ -66,18 +66,18 @@ public class OwnedSynchronizer extends ConditionSynchronizer implements Conditio
             Strand.yieldAndUnpark(s, owner);
         }
     }
-    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long waiterOffset;
-
+    
+    private static final VarHandle WAITER;
     static {
         try {
-            waiterOffset = UNSAFE.objectFieldOffset(OwnedSynchronizer.class.getDeclaredField("waiter"));
-        } catch (Exception ex) {
-            throw new Error(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            WAITER = l.findVarHandle(OwnedSynchronizer.class, "waiter", Strand.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
 
     private boolean casWaiter(Strand expected, Strand update) {
-        return UNSAFE.compareAndSwapObject(this, waiterOffset, expected, update);
+        return WAITER.compareAndSet(this, expected, update);
     }
 }

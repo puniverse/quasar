@@ -13,17 +13,8 @@
 package co.paralleluniverse.common.test;
 
 import org.hamcrest.Matcher;
-import org.mockito.internal.matchers.Contains;
-import org.mockito.internal.matchers.EndsWith;
-import org.mockito.internal.matchers.EqualsWithDelta;
-import org.mockito.internal.matchers.Find;
-import org.mockito.internal.matchers.GreaterOrEqual;
-import org.mockito.internal.matchers.GreaterThan;
-import org.mockito.internal.matchers.InstanceOf;
-import org.mockito.internal.matchers.LessOrEqual;
-import org.mockito.internal.matchers.LessThan;
-import org.mockito.internal.matchers.Matches;
-import org.mockito.internal.matchers.StartsWith;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
 
 /**
  *
@@ -32,54 +23,175 @@ import org.mockito.internal.matchers.StartsWith;
 public final class Matchers {
 
     // Comparable
+    private static abstract class ComparableMatcher<T extends Comparable<T>> extends BaseMatcher<T> {
 
-    public static <T extends Comparable<T>> Matcher<T> lessThan(Comparable<T> value) {
-        return new LessThan<T>(value);
+        private final T item;
+
+        public ComparableMatcher(T item) {
+            this.item = item;
+        }
+
+        @Override
+        public boolean matches(Object other) {
+            try {
+                return matches(-item.compareTo((T) other)); // invert
+            } catch (ClassCastException e) {
+                return false;
+            }
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendText(this.toString());
+        }
+
+        protected abstract boolean matches(int result);
     }
 
-    public static <T extends Comparable<T>> Matcher<T> lessOrEqual(Comparable<T> value) {
-        return new LessOrEqual<T>(value);
+    public static <T extends Comparable<T>> Matcher<T> lessThan(T value) {
+        return new ComparableMatcher<T>(value) {
+            @Override
+            protected boolean matches(int result) {
+                return result < 0;
+            }
+
+            @Override
+            public String toString() {
+                return "less than " + value;
+            }
+        };
     }
 
-    public static <T extends Comparable<T>> Matcher<T> greaterThan(Comparable<T> value) {
-        return new GreaterThan<T>(value);
+    public static <T extends Comparable<T>> Matcher<T> lessOrEqual(T value) {
+        return new ComparableMatcher<T>(value) {
+            @Override
+            protected boolean matches(int result) {
+                return result <= 0;
+            }
+
+            @Override
+            public String toString() {
+                return "less than or equal to " + value;
+            }
+        };
     }
 
-    public static <T extends Comparable<T>> Matcher<T> greaterOrEqual(Comparable<T> value) {
-        return new GreaterOrEqual<T>(value);
+    public static <T extends Comparable<T>> Matcher<T> greaterThan(T value) {
+        return new ComparableMatcher<T>(value) {
+            @Override
+            protected boolean matches(int result) {
+                return result > 0;
+            }
+
+            @Override
+            public String toString() {
+                return "greater than " + value;
+            }
+        };
+    }
+
+    public static <T extends Comparable<T>> Matcher<T> greaterOrEqual(T value) {
+        return new ComparableMatcher<T>(value) {
+            @Override
+            protected boolean matches(int result) {
+                return result >= 0;
+            }
+
+            @Override
+            public String toString() {
+                return "greater than or equal to " + value;
+            }
+        };
     }
 
     // Number
-    public static Matcher<Number> equalsWithDelta(Number value, Number delta) {
-        return new EqualsWithDelta(value, delta);
-    }
+//    public static Matcher<Number> equalsWithDelta(Number value, Number delta) {
+//        return new EqualsWithDelta(value, delta);
+//    }
+
     
     // String
+    
+    private static abstract class StringMatcher extends BaseMatcher<String> {
+        @Override
+        public boolean matches(Object item) {
+            if (!(item instanceof String))
+                return false;
+            return matches((String) item);
+        }
 
-    public static Matcher<String> startsWith(String prefix) {
-        return new StartsWith(prefix);
+        protected abstract boolean matches(String item);
+    }
+    
+    public static Matcher<String> startsWith(final String prefix) {
+        return new StringMatcher() {
+            @Override
+            protected boolean matches(String value) {
+                return value.startsWith(prefix);
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("startsWith");
+            }
+        };
     }
 
-    public static Matcher<String> endsWith(String suffix) {
-        return new EndsWith(suffix);
+    public static Matcher<String> endsWith(final String suffix) {
+        return new StringMatcher() {
+            @Override
+            protected boolean matches(String value) {
+                return value.endsWith(suffix);
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("endsWith");
+            }
+        };
     }
 
-    public static Matcher<String> contains(String string) {
-        return new Contains(string);
+    public static Matcher<String> contains(final String string) {
+       return new StringMatcher() {
+            @Override
+            protected boolean matches(String value) {
+                return value.contains(string);
+            }
+
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("contains");
+            }
+        };
     }
 
-    public static Matcher<String> matches(String regex) {
-        return (Matcher<String>)((Object)new Matches(regex));
-    }
+    public static Matcher<String> matches(final String regex) {
+        return new StringMatcher() {
+            @Override
+            protected boolean matches(String value) {
+                return value.matches(regex);
+            }
 
-    public static Matcher<String> find(String regex) {
-        return new Find(regex);
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("matches");
+            }
+        };
     }
 
     // Object
+    public static Matcher<Object> instanceOf(final Class clazz) {
+        return new BaseMatcher<Object>() {
+            @Override
+            public boolean matches(Object value) {
+                return clazz.isInstance(value);
+            }
 
-    public static Matcher<Object> instanceOf(Class clazz) {
-        return new InstanceOf(clazz);
+            @Override
+            public void describeTo(Description description) {
+                description.appendText("instanceOf");
+            }
+        };
     }
 
     // 

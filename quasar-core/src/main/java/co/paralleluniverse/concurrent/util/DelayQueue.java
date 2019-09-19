@@ -29,15 +29,15 @@ import java.util.concurrent.locks.*;
 
 /**
  * An unbounded {@linkplain BlockingQueue blocking queue} of
- * <tt>Delayed</tt> elements, in which an element can only be taken
+ * {@code Delayed} elements, in which an element can only be taken
  * when its delay has expired. The <em>head</em> of the queue is that
- * <tt>Delayed</tt> element whose delay expired furthest in the
- * past. If no delay has expired there is no head and <tt>poll</tt>
- * will return <tt>null</tt>. Expiration occurs when an element's
- * <tt>getDelay(TimeUnit.NANOSECONDS)</tt> method returns a value less
+ * {@code Delayed} element whose delay expired furthest in the
+ * past. If no delay has expired there is no head and {@code poll}
+ * will return {@code null}. Expiration occurs when an element's
+ * {@code getDelay(TimeUnit.NANOSECONDS)} method returns a value less
  * than or equal to zero. Even though unexpired elements cannot be
- * removed using <tt>take</tt> or <tt>poll</tt>, they are otherwise
- * treated as normal elements. For example, the <tt>size</tt> method
+ * removed using {@code take} or {@code poll}, they are otherwise
+ * treated as normal elements. For example, the {@code size} method
  * returns the count of both expired and unexpired elements.
  * This queue does not permit null elements.
  *
@@ -82,13 +82,13 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E> implements B
     private final Condition available = lock.newCondition();
 
     /**
-     * Creates a new <tt>DelayQueue</tt> that is initially empty.
+     * Creates a new {@code DelayQueue} that is initially empty.
      */
     public DelayQueue() {
     }
 
     /**
-     * Creates a <tt>DelayQueue</tt> initially containing the elements of the
+     * Creates a {@code DelayQueue} initially containing the elements of the
      * given collection of {@link Delayed} instances.
      *
      * @param c the collection of elements to initially contain
@@ -103,7 +103,7 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E> implements B
      * Inserts the specified element into this delay queue.
      *
      * @param e the element to add
-     * @return <tt>true</tt> (as specified by {@link Collection#add})
+     * @return {@code true} (as specified by {@link Collection#add})
      * @throws NullPointerException if the specified element is null
      */
     public boolean add(E e) {
@@ -114,7 +114,7 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E> implements B
      * Inserts the specified element into this delay queue.
      *
      * @param e the element to add
-     * @return <tt>true</tt>
+     * @return {@code true}
      * @throws NullPointerException if the specified element is null
      */
     public boolean offer(E e) {
@@ -164,7 +164,7 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E> implements B
      * @param e       the element to add
      * @param timeout This parameter is ignored as the method never blocks
      * @param unit    This parameter is ignored as the method never blocks
-     * @return <tt>true</tt>
+     * @return {@code true}
      * @throws NullPointerException {@inheritDoc}
      */
     public boolean offer(E e, long timeout, TimeUnit unit) {
@@ -172,10 +172,10 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E> implements B
     }
 
     /**
-     * Retrieves and removes the head of this queue, or returns <tt>null</tt>
+     * Retrieves and removes the head of this queue, or returns {@code null}
      * if this queue has no elements with an expired delay.
      *
-     * @return the head of this queue, or <tt>null</tt> if this
+     * @return the head of this queue, or {@code null} if this
      *         queue has no elements with an expired delay
      */
     public E poll() {
@@ -237,7 +237,7 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E> implements B
      * until an element with an expired delay is available on this queue,
      * or the specified wait time expires.
      *
-     * @return the head of this queue, or <tt>null</tt> if the
+     * @return the head of this queue, or {@code null} if the
      *         specified waiting time elapses before an element with
      *         an expired delay becomes available
      * @throws InterruptedException {@inheritDoc}
@@ -284,12 +284,12 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E> implements B
 
     /**
      * Retrieves, but does not remove, the head of this queue, or
-     * returns <tt>null</tt> if this queue is empty. Unlike
-     * <tt>poll</tt>, if no expired elements are available in the queue,
+     * returns {@code null} if this queue is empty. Unlike
+     * {@code poll}, if no expired elements are available in the queue,
      * this method returns the element that will expire next,
      * if one exists.
      *
-     * @return the head of this queue, or <tt>null</tt> if this
+     * @return the head of this queue, or {@code null} if this
      *         queue is empty.
      */
     public E peek() {
@@ -387,10 +387,10 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E> implements B
     }
 
     /**
-     * Always returns <tt>Integer.MAX_VALUE</tt> because
-     * a <tt>DelayQueue</tt> is not capacity constrained.
+     * Always returns {@code Integer.MAX_VALUE} because
+     * a {@code DelayQueue} is not capacity constrained.
      *
-     * @return <tt>Integer.MAX_VALUE</tt>
+     * @return {@code Integer.MAX_VALUE}
      */
     public int remainingCapacity() {
         return Integer.MAX_VALUE;
@@ -430,7 +430,7 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E> implements B
      * <p>If this queue fits in the specified array with room to spare
      * (i.e., the array has more elements than this queue), the element in
      * the array immediately following the end of the queue is set to
-     * <tt>null</tt>.
+     * {@code null}.
      *
      * <p>Like the {@link #toArray()} method, this method acts as bridge between
      * array-based and collection-based APIs. Further, this method allows
@@ -438,13 +438,13 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E> implements B
      * under certain circumstances, be used to save allocation costs.
      *
      * <p>The following code can be used to dump a delay queue into a newly
-     * allocated array of <tt>Delayed</tt>:
+     * allocated array of {@code Delayed}:
      *
      * <pre>
      *     Delayed[] a = q.toArray(new Delayed[0]);</pre>
      *
-     * Note that <tt>toArray(new Object[0])</tt> is identical in function to
-     * <tt>toArray()</tt>.
+     * Note that {@code toArray(new Object[0])} is identical in function to
+     * {@code toArray()}.
      *
      * @param a the array into which the elements of the queue are to
      *          be stored, if it is big enough; otherwise, a new array of the

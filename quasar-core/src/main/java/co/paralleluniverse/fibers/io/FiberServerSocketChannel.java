@@ -17,10 +17,7 @@ import co.paralleluniverse.fibers.SuspendExecution;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.SocketOption;
-import java.nio.channels.AsynchronousChannelGroup;
-import java.nio.channels.NetworkChannel;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.ShutdownChannelGroupException;
+import java.nio.channels.*;
 import java.util.Set;
 
 /**
@@ -33,11 +30,11 @@ public abstract class FiberServerSocketChannel implements NetworkChannel {
      * Opens an server-socket channel.
      *
      * <p>
-     * If the group parameter is <tt>null</tt> then the
+     * If the group parameter is {@code null} then the
      * resulting channel is created by the system-wide default provider, and
      * bound to the <em>default group</em>.
      *
-     * @param group The group to which the newly constructed channel should be bound, or <tt>null</tt> for the default group
+     * @param group The group to which the newly constructed channel should be bound, or {@code null} for the default group
      *
      * @return A new server socket channel
      *
@@ -52,7 +49,7 @@ public abstract class FiberServerSocketChannel implements NetworkChannel {
 
     /**
      * Opens a server-socket channel.
-     * Same as {@link #open(java.nio.channels.AsynchronousChannelGroup) open((AsynchronousChannelGroup) null)}.
+     * Same as {@link #open(java.nio.channels.ChannelGroup) open((AsynchronousChannelGroup) null)}.
      *
      * @return A new server socket channel
      * @throws IOException If an I/O error occurs
@@ -72,7 +69,7 @@ public abstract class FiberServerSocketChannel implements NetworkChannel {
      * <p>
      * When a new connection is accepted then the resulting {@code
      * FiberSocketChannel} will be bound to the same {@link
-     * AsynchronousChannelGroup} as this channel. If the group is {@link
+     * ChannelGroup} as this channel. If the group is {@link
      * AsynchronousChannelGroup#isShutdown shutdown} and a connection is accepted,
      * then the connection is closed, and the method throws an {@code
      * IOException} with cause {@link ShutdownChannelGroupException}.
@@ -110,7 +107,7 @@ public abstract class FiberServerSocketChannel implements NetworkChannel {
      * bind(local, 0);
      * </pre></blockquote>
      *
-     * @param local The local address to bind the socket, or <tt>null</tt> to bind
+     * @param local The local address to bind the socket, or {@code null} to bind
      *              to an automatically assigned socket address
      *
      * @return This channel

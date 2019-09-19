@@ -17,15 +17,15 @@ import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.SystemProperties;
-import co.paralleluniverse.common.util.UtilUnsafe;
 import static co.paralleluniverse.fibers.FiberTask.*;
 import co.paralleluniverse.fibers.instrument.DontInstrument;
 import co.paralleluniverse.strands.SettableFuture;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import sun.misc.Unsafe;
 
 /**
  *
@@ -307,7 +307,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
     }
 
     boolean compareAndSetState(int expect, int update) {
-        return UNSAFE.compareAndSwapInt(this, stateOffset, expect, update);
+        return STATE.compareAndSet(this, expect, update);
     }
 
     @Override
@@ -348,14 +348,14 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
         if (RECORDER != null)
             RECORDER.record(1, new FlightRecorderMessage("RunnableFiberTask", method, format, new Object[]{arg1, arg2, arg3, arg4, arg5}));
     }
-    private static final Unsafe UNSAFE = UtilUnsafe.getUnsafe();
-    private static final long stateOffset;
 
+    private static final VarHandle STATE;
     static {
         try {
-            stateOffset = UNSAFE.objectFieldOffset(RunnableFiberTask.class.getDeclaredField("state"));
-        } catch (Exception ex) {
-            throw new AssertionError(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            STATE = l.findVarHandle(RunnableFiberTask.class, "state", int.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
 

@@ -16,6 +16,7 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.common.reflection.ClassLoaderUtil;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
 import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;
+import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 import static co.paralleluniverse.fibers.instrument.Classes.SUSPENDABLE_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
@@ -30,6 +31,7 @@ import java.io.PrintStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.net.URLConnection;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -64,8 +66,6 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 public class SuspendablesScanner extends Task {
-    private static final int ASMAPI = Opcodes.ASM5;
-    //
     private final Map<String, MethodNode> methods = new HashMap<>();
     private final Map<String, ClassNode> classes = new HashMap<>();
     private final Set<MethodNode> knownSuspendablesOrSupers = new HashSet<>();
@@ -105,7 +105,7 @@ public class SuspendablesScanner extends Task {
 
     /**
      * Whether suspendables should be found based on the method call-graph.
-     * I false, only suspendabel-supers of known suspendables will be found.
+     * If false, only suspendable-supers of known suspendables will be found.
      */
     public void setAuto(boolean value) {
         this.auto = value;
@@ -167,9 +167,11 @@ public class SuspendablesScanner extends Task {
                 for (FileSet fs : filesets)
                     us.add(fs.getDir().toURI().toURL());
             } else {
-                final URLClassLoader ucl = (URLClassLoader) getClass().getClassLoader();
-                us.addAll(Arrays.asList(ucl.getURLs()));
+//                final URLClassLoader ucl = (URLClassLoader) getClass().getClassLoader();
+//                us.addAll(Arrays.asList(ucl.getURLs()));
             }
+            if (this.urls != null) // only in tests
+                us.addAll(Arrays.asList(this.urls));
             setURLs(us);
 
             log("Classpath URLs: " + Arrays.toString(this.urls), Project.MSG_INFO);
@@ -226,12 +228,15 @@ public class SuspendablesScanner extends Task {
                 if (resource.startsWith("java/util") || resource.startsWith("java/lang") || resource.startsWith("co/paralleluniverse/asm"))
                     return;
                 if (isClassFile(url.getFile())) {
-                    try (InputStream is = cl.getResourceAsStream(resource)) { // cl.getResourceAsStream(resource)
+                    URLConnection uc = url.openConnection();
+                    uc.setUseCaches(false);
+                    try (InputStream is = uc.getInputStream()) {
+                        if (is == null)
+                            throw new IOException("Resource " + resource + " not found (" + url + ")");
                         new ClassReader(is)
                                 .accept(new SuspendableClassifier(false, ASMAPI, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
                     } catch (Exception e) {
-                        System.err.println("Exception thrown during processing of " + resource + " at " + url);
-                        throw e;
+                        throw new RuntimeException("Exception thrown during processing (aaa) of " + resource + /*"(classloader: " + Arrays.toString(SuspendablesScanner.this.cl.getURLs()) + ")" +*/ " at " + url, e);
                     }
                 }
             }
@@ -660,18 +665,16 @@ public class SuspendablesScanner extends Task {
     }
 
     private ClassNode fill(ClassNode node) {
-        try {
-            if (node.supers == null) {
-                try (InputStream is = cl.getResourceAsStream(classToResource(node.name))) {
-                    final ClassReader cr = new ClassReader(is);
-                    cr.accept(new ClassNodeVisitor(false, ASMAPI, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
-                    assert node.supers != null;
-                }
+        if (node.supers == null) {
+            try (InputStream is = ClassLoaderUtil.getResourceAsStream(cl, classToResource(node.name))) {
+                final ClassReader cr = new ClassReader(is);
+                cr.accept(new ClassNodeVisitor(false, ASMAPI, null), ClassReader.SKIP_DEBUG | ClassReader.SKIP_CODE);
+                assert node.supers != null;
+            } catch (IOException e) {
+                throw new RuntimeException("during processing of " + node.name, e);
             }
-            return node;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
+        return node;
     }
 
     private ClassNode getClassNode(MethodNode m) {

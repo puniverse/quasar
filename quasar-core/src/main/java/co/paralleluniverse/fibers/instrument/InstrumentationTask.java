@@ -67,14 +67,13 @@ import org.apache.tools.ant.types.FileSet;
  * the classpath of the task. If a referenced class is not found a warning is
  * generated and the instrumentation will result in less efficent code.</p>
  *
- * <p>
  * The following options can be set:<ul>
- * <li>check - default: false<br/>The resulting code is run through a verifier.</li>
- * <li>verbose - default: false<br/>The name of each processed class and all suspendable method calles is displayed.</li>
- * <li>debug - default: false<br/>Prints internal debugging information.</li>
- * <li>allowmonitors - default: false<br/>Allows the use of synchronized statements - this is DANGEROUS !</li>
- * <li>allowblocking - default: false<br/>Allows the use known blocking calls like Thread.sleep, Object.wait etc.</li>
- * </ul></p>
+ * <li>check - default: false<br>The resulting code is run through a verifier.</li>
+ * <li>verbose - default: false<br>The name of each processed class and all suspendable method calles is displayed.</li>
+ * <li>debug - default: false<br>Prints internal debugging information.</li>
+ * <li>allowmonitors - default: false<br>Allows the use of synchronized statements - this is DANGEROUS !</li>
+ * <li>allowblocking - default: false<br>Allows the use known blocking calls like Thread.sleep, Object.wait etc.</li>
+ * </ul>
  *
  * @see <a href="http://ant.apache.org/manual/CoreTypes/fileset.html">ANT FileSet</a>
  * @author Matthias Mann

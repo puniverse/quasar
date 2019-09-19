@@ -14,15 +14,15 @@
 package co.paralleluniverse.fibers;
 
 import java.util.Arrays;
-import org.cliffc.high_scale_lib.NonBlockingHashMapLong;
-import org.cliffc.high_scale_lib.NonBlockingHashMapLong.IteratorLong;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  *
  * @author pron
  */
 class FibersDetailedMonitor {
-    private final NonBlockingHashMapLong<Fiber> fibers = new NonBlockingHashMapLong<Fiber>();
+    private final Map<Long, Fiber> fibers = new ConcurrentHashMap<>();
 
     void fiberStarted(Fiber fiber) {
         fibers.put(fiber.getId(), fiber);
@@ -34,11 +34,10 @@ class FibersDetailedMonitor {
 
     public long[] getAllFiberIds() {
         int size = fibers.size();
-        IteratorLong it = (IteratorLong) fibers.keys();
         long[] ids = new long[size];
         int i = 0;
-        while (it.hasNext() && i < size) {
-            ids[i] = it.nextLong();
+        for (long id : fibers.keySet()) {
+            ids[i] = id;
             i++;
         }
         if (i < size)

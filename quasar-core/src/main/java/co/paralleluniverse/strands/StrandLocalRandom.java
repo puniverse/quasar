@@ -23,6 +23,7 @@ package co.paralleluniverse.strands;
 
 import co.paralleluniverse.fibers.TrueThreadLocal;
 import java.util.Random;
+import java.util.concurrent.ForkJoinTask;
 
 /**
  * A random number generator isolated to the current thread.  Like the
@@ -40,10 +41,10 @@ import java.util.Random;
  * {@code ThreadLocalRandom.current().nextX(...)} (where
  * {@code X} is {@code Int}, {@code Long}, etc).
  * When all usages are of this form, it is never possible to
- * accidently share a {@code ThreadLocalRandom} across multiple threads.
+ * accidently share a {@code ThreadLocalRandom} across multiple threads.</p>
  *
  * <p>This class also provides additional commonly used bounded random
- * generation methods.
+ * generation methods.</p>
  *
  * @since 1.7
  * @author Doug Lea

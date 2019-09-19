@@ -951,9 +951,9 @@ public abstract class Strand {
      * <p>
      * When a fiber is about to terminate due to an uncaught exception,
      * the Java Virtual Machine will query the fiber for its
-     * <tt>UncaughtExceptionHandler</tt> using
+     * {@code UncaughtExceptionHandler} using
      * {@link #getUncaughtExceptionHandler} and will invoke the handler's
-     * <tt>uncaughtException</tt> method, passing the fiber and the
+     * {@code uncaughtException} method, passing the fiber and the
      * exception as arguments.
      *
      * @see #setUncaughtExceptionHandler(UncaughtExceptionHandler)

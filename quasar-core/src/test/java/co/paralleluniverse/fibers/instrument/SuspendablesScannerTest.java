@@ -19,6 +19,7 @@ import co.paralleluniverse.fibers.Suspendable;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import static org.junit.Assert.*;
@@ -35,17 +36,35 @@ public class SuspendablesScannerTest {
     @BeforeClass
     public static void buildGraph() throws Exception {
         // find test classes directory
-        final String resource = SuspendablesScannerTest.class.getName().replace('.', '/') + ".class";
-        final URL url = SuspendablesScannerTest.class.getClassLoader().getResource(resource);
-        final Path p1 = Paths.get(resource);
-        final Path p2 = Paths.get(url.toURI()).toAbsolutePath();
-        final Path p = p2.getRoot().resolve(p2.subpath(0, p2.getNameCount() - p1.getNameCount()));
-        System.out.println("Test classes: " + p);
+        final Path project;
+        {
+            final String resource = SuspendablesScannerTest.class.getName().replace('.', '/') + ".class";
+            final URL url = SuspendablesScannerTest.class.getClassLoader().getResource(resource);
+            final Path p1 = Paths.get(resource);
+            final Path p2 = Paths.get(url.toURI()).toAbsolutePath();
+            final Path p = p2.getRoot().resolve(p2.subpath(0, p2.getNameCount() - p1.getNameCount()));
+            project = p;
+        }
+        System.out.println("Test classes: " + project);
+        
+        // find quasar core directory
+        final Path core;
+        {
+            final String resource = Fiber.class.getName().replace('.', '/') + ".class";
+            final URL url = Fiber.class.getClassLoader().getResource(resource);
+            final Path p1 = Paths.get(resource);
+            final Path p2 = Paths.get(url.toURI()).toAbsolutePath();
+            final Path p = p2.getRoot().resolve(p2.subpath(0, p2.getNameCount() - p1.getNameCount()));
+            core = p;
+        }
+        System.out.println("Core classes: " + core);
 
-        scanner = new SuspendablesScanner(p);
+        scanner = new SuspendablesScanner(project);
 //        scanner = new AutoSuspendablesScanner(
 //                Paths.get(AutoSuspendablesScannerTest.class.getClassLoader()
 //                        .getResource(AutoSuspendablesScannerTest.class.getName().replace('.', '/') + ".class").toURI()));
+        
+        scanner.setURLs(Collections.singletonList(core.toUri().toURL()));
         scanner.setAuto(true);
         scanner.run();
         scanner.putSuspendablesAndSupers(suspendables, suspendableSupers);

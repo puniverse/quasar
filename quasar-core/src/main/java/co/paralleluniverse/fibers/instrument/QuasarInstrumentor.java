@@ -1,6 +1,6 @@
 /*
  * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2013-2017, Parallel Universe Software Co. All rights reserved.
+ * Copyright (c) 2013-2018, Parallel Universe Software Co. All rights reserved.
  * 
  * This program and the accompanying materials are dual-licensed under
  * either the terms of the Eclipse Public License v1.0 as published by
@@ -38,11 +38,12 @@ import java.util.regex.Pattern;
  */
 public final class QuasarInstrumentor {
     @SuppressWarnings("WeakerAccess")
-    public static final int ASMAPI = Opcodes.ASM5;
+    public static final int ASMAPI = Opcodes.ASM7;
 
     private final static String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClasses");
     private static final boolean allowJdkInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.allowJdkInstrumentation");
     private WeakHashMap<ClassLoader, MethodDatabase> dbForClassloader = new WeakHashMap<>();
+    private MethodDatabase bootstrapDB;
     private boolean check;
     private final boolean aot;
     private boolean allowMonitors;
@@ -77,7 +78,9 @@ public final class QuasarInstrumentor {
                 return false;
             if (className.equals(Classes.STACK_NAME))
                 return false;
-            if (className.startsWith("org/objectweb/asm/"))
+            if (className.startsWith("org/objectweb/asm/") || className.startsWith("co/paralleluniverse/asm/"))
+                return false;
+            if (className.startsWith("org/gradle/"))
                 return false;
             if (className.startsWith("org/netbeans/lib/"))
                 return false;
@@ -177,8 +180,12 @@ public final class QuasarInstrumentor {
     
     @SuppressWarnings("WeakerAccess")
     public synchronized MethodDatabase getMethodDatabase(ClassLoader loader) {
-        if (loader == null)
-            throw new IllegalArgumentException();
+        if (loader == null) {
+            if (bootstrapDB == null) {
+                bootstrapDB = new MethodDatabase(this, null, new DefaultSuspendableClassifier(null));
+            }
+            return bootstrapDB;
+        }
         if (!dbForClassloader.containsKey(loader)) {
             MethodDatabase newDb = new MethodDatabase(this, loader, new DefaultSuspendableClassifier(loader));
             dbForClassloader.put(loader, newDb);

@@ -27,7 +27,6 @@ import javax.management.ObjectName;
 /**
  * A {@link MetricSet} that monitors CPU usage using HotSpot MBeans.
  * Some of the metrics reported may not be available on non-HotSpot JVMs.
- * <p/>
  * 
  * <ul>
  *  <li>{@code process.cpuUsage} – the CPU percentage currently used by the process (averaged between measurements).

@@ -55,8 +55,8 @@ public final class RequestReplyHelper {
      * Sets a default timeout for non-timed {@link #call(ActorRef, RequestMessage) call}s on this strand.
      * Non-timed calls that take longer than the default timeout, will throw a {@link TimeoutException}
      * wrapped in a {@link RuntimeException}. Timed calls (those that take a timeout parameter) will not be affected.
-     * <p/>
-     * This method only affects the current strand.
+     * <p>
+     * This method only affects the current strand.</p>
      *
      * @param timeout the timeout duration
      * @param unit    the time unit of the timeout, or {@code null} to unset.
@@ -84,10 +84,10 @@ public final class RequestReplyHelper {
      * Sends a request message to an actor, awaits a response value and returns it.
      * This method can be called by any code, even non-actor code.
      * If the actor responds with an error message, a {@link RuntimeException} will be thrown by this method.
-     * <br/>
+     * <br>
      * The message's {@code id} and {@code from} properties may be left unset.
-     * <p/>
-     * This method should be used as in the following example (assuming a {@code String} return value:
+     * <p>
+     * This method should be used as in the following example (assuming a {@code String} return value:</p>
      * <pre> {@code
      * String res = call(actor, new MyRequest());
      * }</pre>
@@ -122,10 +122,10 @@ public final class RequestReplyHelper {
      * Sends a request message to an actor, awaits a response value (but no longer than the given timeout) and returns it.
      * This method can be called by any code, even non-actor code.
      * If the actor responds with an error message, a {@link RuntimeException} will be thrown by this method.
-     * <br/>
+     * <br>
      * The message's {@code id} and {@code from} properties may be left unset.
-     * <p/>
-     * This method should be used as in the following example (assuming a {@code String} return value:
+     * <p>
+     * This method should be used as in the following example (assuming a {@code String} return value:</p>
      * <pre> {@code
      * String res = call(actor, new MyRequest());
      * }</pre>
@@ -196,10 +196,10 @@ public final class RequestReplyHelper {
      * Sends a request message to an actor, awaits a response value (but no longer than the given timeout) and returns it.
      * This method can be called by any code, even non-actor code.
      * If the actor responds with an error message, a {@link RuntimeException} will be thrown by this method.
-     * <br/>
+     * <br>
      * The message's {@code id} and {@code from} properties may be left unset.
-     * <p/>
-     * This method should be used as in the following example (assuming a {@code String} return value:
+     * <p>
+     * This method should be used as in the following example (assuming a {@code String} return value:</p>
      * <pre> {@code
      * String res = call(actor, new MyRequest());
      * }</pre>
@@ -223,8 +223,8 @@ public final class RequestReplyHelper {
      * If the request has been sent by a call to {@link #call(ActorRef, RequestMessage) call}, the
      * {@code result} argument will be the value returned by {@link #call(ActorRef, RequestMessage) call}.
      * This method should only be called by an actor.
-     * <p/>
-     * Internally this method uses a {@link ValueResponseMessage} to send the reply.
+     * <p>
+     * Internally this method uses a {@link ValueResponseMessage} to send the reply.</p>
      *
      * @param req    the request we're responding to
      * @param result the result of the request
@@ -238,8 +238,8 @@ public final class RequestReplyHelper {
      * If the request has been sent by a call to {@link #call(ActorRef, RequestMessage) call}, the
      * {@code e} argument will be the exception thrown by {@link #call(ActorRef, RequestMessage) call} (possibly wrapped by a {@link RuntimeException}).
      * This method should only be called by an actor.
-     * <p/>
-     * Internally this method uses an {@link ErrorResponseMessage} to send the reply.
+     * <p>
+     * Internally this method uses an {@link ErrorResponseMessage} to send the reply.</p>
      *
      * @param req the request we're responding to
      * @param e   the error the request has caused

@@ -13,6 +13,9 @@
  */
 package co.paralleluniverse.strands.queues;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
+
 /**
  *
  * @author pron
@@ -57,13 +60,14 @@ abstract class SingleConsumerArrayPrimitiveQueue<E> extends SingleConsumerArrayQ
             ;
         }
     }
-    private static final long maxReadIndexOffset;
-
+    
+    private static final VarHandle MAX_READ_INDEX;
     static {
         try {
-            maxReadIndexOffset = UNSAFE.objectFieldOffset(SingleConsumerArrayPrimitiveQueue.class.getDeclaredField("maxReadIndex"));
-        } catch (Exception ex) {
-            throw new Error(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            MAX_READ_INDEX = l.findVarHandle(SingleConsumerArrayPrimitiveQueue.class, "maxReadIndex", long.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
 
@@ -71,6 +75,6 @@ abstract class SingleConsumerArrayPrimitiveQueue<E> extends SingleConsumerArrayQ
      * CAS maxReadIndex field. Used only by postEnq.
      */
     private boolean compareAndSetMaxReadIndex(long expect, long update) {
-        return UNSAFE.compareAndSwapLong(this, maxReadIndexOffset, expect, update);
+        return MAX_READ_INDEX.compareAndSet(this, expect, update);
     }
 }

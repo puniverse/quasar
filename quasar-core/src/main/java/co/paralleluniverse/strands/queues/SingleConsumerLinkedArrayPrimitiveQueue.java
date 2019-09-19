@@ -13,6 +13,8 @@
  */
 package co.paralleluniverse.strands.queues;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.NoSuchElementException;
 
 /**
@@ -109,23 +111,45 @@ public abstract class SingleConsumerLinkedArrayPrimitiveQueue<E> extends SingleC
     private static boolean getBit(short bits, int index) {
         return (bits >>> index & 1) != 0;
     }
-    private static final long tailIndexOffset;
-    private static final long maxReadIndexOffset;
+
+    private static final VarHandle TAIL_INDEX;
+    private static final VarHandle MAX_READ_INDEX;
 
     static {
         try {
-            tailIndexOffset = UNSAFE.objectFieldOffset(PrimitiveNode.class.getDeclaredField("tailIndex"));
-            maxReadIndexOffset = UNSAFE.objectFieldOffset(PrimitiveNode.class.getDeclaredField("maxReadIndex"));
-        } catch (Exception ex) {
-            throw new Error(ex);
+            MethodHandles.Lookup l = MethodHandles.lookup();
+            TAIL_INDEX     = l.findVarHandle(PrimitiveNode.class, "tailIndex",    int.class);
+            MAX_READ_INDEX = l.findVarHandle(PrimitiveNode.class, "maxReadIndex", int.class);
+        } catch (ReflectiveOperationException e) {
+            throw new ExceptionInInitializerError(e);
         }
     }
 
     private boolean compareAndSetTailIndex(Node n, int expect, int update) {
-        return UNSAFE.compareAndSwapInt((PrimitiveNode) n, tailIndexOffset, expect, update);
+        return TAIL_INDEX.compareAndSet((PrimitiveNode) n, expect, update);
     }
 
     private boolean compareAndSetMaxReadIndex(Node n, int expect, int update) {
-        return UNSAFE.compareAndSwapInt((PrimitiveNode) n, maxReadIndexOffset, expect, update);
+        return MAX_READ_INDEX.compareAndSet((PrimitiveNode) n, expect, update);
     }
+
+//    private static final long tailIndexOffset;
+//    private static final long maxReadIndexOffset;
+//
+//    static {
+//        try {
+//            tailIndexOffset = UNSAFE.objectFieldOffset(PrimitiveNode.class.getDeclaredField("tailIndex"));
+//            maxReadIndexOffset = UNSAFE.objectFieldOffset(PrimitiveNode.class.getDeclaredField("maxReadIndex"));
+//        } catch (Exception ex) {
+//            throw new Error(ex);
+//        }
+//    }
+//
+//    private boolean compareAndSetTailIndex(Node n, int expect, int update) {
+//        return UNSAFE.compareAndSwapInt((PrimitiveNode) n, tailIndexOffset, expect, update);
+//    }
+//
+//    private boolean compareAndSetMaxReadIndex(Node n, int expect, int update) {
+//        return UNSAFE.compareAndSwapInt((PrimitiveNode) n, maxReadIndexOffset, expect, update);
+//    }
 }
