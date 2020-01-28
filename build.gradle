@@ -9,6 +9,8 @@ buildscript {
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.2'
         classpath 'net.saliman:gradle-cobertura-plugin:2.5.4'
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.9.6"
         classpath 'gradle.plugin.org.javamodularity:moduleplugin:1.0.1'
     }
 }
@@ -20,6 +22,8 @@ plugins {
 
 subprojects {
     apply plugin: 'java'
+    apply plugin: 'maven-publish'
+    apply plugin: 'com.jfrog.artifactory'
     apply plugin: 'org.javamodularity.moduleplugin'
 
     sourceCompatibility = '10'
@@ -49,12 +53,6 @@ subprojects {
     ext.guavaVer  = '26.0-jre'
     ext.asmVer    = '7.0'
     ext.kotlinVer = '1.3.0'
-
-    if (!project.hasProperty("sonatypeUsername") || !project.hasProperty("sonatypePassword")) {
-        println "sonatype username or password not set"
-        ext.sonatypeUsername = ""
-        ext.sonatypePassword = ""
-    }
 
     if (!project.hasProperty('mainClass')) { // must use project.hasProperty() rather than hasProperty in subprojects (gradle bug)
         ext.mainClass = ''
@@ -316,63 +314,6 @@ subprojects {
 
     ///////// Publish Artifacts
     apply plugin: 'maven'
-    apply plugin: 'signing'
-
-    artifacts {
-        archives jar
-        archives sourcesJar
-        archives javadocJar
-    }
-
-    signing {
-        required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
-        sign configurations.archives
-    }
-
-    uploadArchives {
-        repositories {
-            mavenDeployer {
-                beforeDeployment { deployment -> signing.signPom(deployment) }
-
-                repository(
-                    url: (isReleaseVersion ?
-                        "https://oss.sonatype.org/service/local/staging/deploy/maven2" :
-                        "https://oss.sonatype.org/content/repositories/snapshots")) {
-                    // User and Password are taken from ~/.gradle/gradle.properties
-                    authentication(userName: project.sonatypeUsername, password: project.sonatypePassword)
-                }
-                pom.project {
-                    name project.name
-                    packaging 'jar'
-                    description project.description
-                    url project.url
-                    scm {
-                        url project.scmUrl
-                        connection project.scmConnection
-                        developerConnection project.scmConnection
-                    }
-                    licenses {
-                        license {
-                            name project.licenseName1
-                            url project.licenseUrl1
-                            distribution 'repo'
-                        }
-                        license {
-                            name project.licenseName2
-                            url project.licenseUrl2
-                            distribution 'repo'
-                        }
-                    }
-                    developers {
-                        developer {
-                            id 'pron'
-                            name 'Ron Pressler'
-                        }
-                    }
-                }
-            }
-        }
-    }
 }
 
 def scanAndInstrument(sset, configs) {
@@ -563,13 +504,9 @@ project (':quasar-core') {
     assemble.dependsOn shadowJar
     build.dependsOn shadowJar
     install.dependsOn shadowJar
-    signArchives.dependsOn shadowJar
-    uploadArchives.dependsOn shadowJar
 
     def installer = install.repositories.mavenInstaller
-    def deployer = uploadArchives.repositories.mavenDeployer
-
-    [installer, deployer]*.pom*.whenConfigured {
+    [installer]*.pom*.whenConfigured {
         it.dependencies.removeAll { dep ->
 //          dep.artifactId.startsWith('jsr166e') ||
 //          dep.artifactId.startsWith('high-scale-lib') ||
@@ -758,3 +695,93 @@ task clean(dependsOn: subprojects.clean) {
 }
 
 def capitalize(s) { s[0].toUpperCase() + s[1..-1].toLowerCase() }
+
+def publishedProjects = subprojects
+
+configure(publishedProjects) { subproject ->
+    apply plugin: 'java'
+    apply plugin: 'maven-publish'
+    apply plugin: 'com.jfrog.artifactory'
+
+    task sourceJar(type: Jar, dependsOn: subproject.classes) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+//  task javadocJar(type: Jar, dependsOn: subproject.javadoc) {
+//    classifier = 'javadoc'
+//    from javadoc.destinationDir
+//  }
+//
+    publishing {
+        publications {
+            create(subproject.name, MavenPublication) {
+                from components.java
+
+                groupId subproject.group
+                artifactId subproject.name
+                artifact tasks.sourceJar
+                artifact tasks.javadocJar
+
+                pom {
+                    name = subproject.name
+                    packaging = 'jar'
+                    description = subproject.description
+                    url = subproject.url
+
+                    scm {
+                        url = subproject.scmUrl
+                        connection = subproject.scmConnection
+                        developerConnection = subproject.scmConnection
+                    }
+                    licenses {
+                        license {
+                            name = subproject.licenseName1
+                            url = subproject.licenseUrl1
+                            distribution = 'repo'
+                        }
+                        license {
+                            name = subproject.licenseName2
+                            url = subproject.licenseUrl2
+                            distribution = 'repo'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'pron'
+                            name = 'Ron Pressler'
+                        }
+                    }
+                }
+                pom.withXml {
+                    Node pomNode = asNode()
+                    pomNode.dependencies.'*'.findAll() {
+                        it.artifactId.text().startsWith('jsr166e') ||
+                                it.artifactId.text().startsWith('high-scale-lib') ||
+                                it.artifactId.text().startsWith('org.ow2.asm')
+                    }.each() {
+                        it.parent().remove(it)
+                    }
+                }
+            }
+        }
+    }
+}
+
+artifactory {
+    publish {
+        contextUrl = 'https://ci-artifactory.corda.r3cev.com/artifactory'
+        repository {
+            repoKey = 'corda-dependencies'
+            username = System.getenv('CORDA_ARTIFACTORY_USERNAME') ?: System.getProperty('corda.artifactory.username')
+            password = System.getenv('CORDA_ARTIFACTORY_PASSWORD') ?: System.getProperty('corda.artifactory.password')
+            maven = true
+        }
+
+        defaults {
+            if (publishedProjects.contains(project)) {
+                publications(project.name)
+            }
+        }
+    }
+}
