@@ -14,9 +14,9 @@ package co.paralleluniverse.common.util;
 
 import co.paralleluniverse.common.reflection.ASMUtil;
 import java.lang.reflect.Constructor;
-//import java.lang.reflect.Executable;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
@@ -26,6 +26,8 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+
+import static java.security.AccessController.doPrivileged;
 
 /**
  * @author pron
@@ -145,29 +147,32 @@ public class ExtendedStackTrace implements Iterable<ExtendedStackTraceElement> {
         return ((Method)m).getName();
     }
 
-    protected static final String getDescriptor(Member m) {
+    protected static String getDescriptor(Member m) {
         if (m instanceof Constructor)
             return Type.getConstructorDescriptor((Constructor) m);
         return Type.getMethodDescriptor((Method) m);
     }
 
     protected final Member[] getMethods(Class<?> clazz) {
-//        synchronized (this) {
-        Member[] es;
-//            if (methods == null)
-//                methods = new HashMap<>();
-//            es = methods.get(clazz);
-//            if (es == null) {
-        Method[] ms = clazz.getDeclaredMethods();
-        Constructor[] cs = clazz.getDeclaredConstructors();
-        es = new Member[ms.length + cs.length];
-        System.arraycopy(cs, 0, es, 0, cs.length);
-        System.arraycopy(ms, 0, es, cs.length, ms.length);
+        return doPrivileged(new GetMethods(clazz));
+    }
 
-//                methods.put(clazz, es);
-//            }
-        return es;
-//        }
+    private static final class GetMethods implements PrivilegedAction<Member[]> {
+        private final Class<?> clazz;
+
+        GetMethods(Class<?> clazz) {
+            this.clazz = clazz;
+        }
+
+        @Override
+        public Member[] run() {
+            Method[] ms = clazz.getDeclaredMethods();
+            Constructor[] cs = clazz.getDeclaredConstructors();
+            Member[] es = new Member[ms.length + cs.length];
+            System.arraycopy(cs, 0, es, 0, cs.length);
+            System.arraycopy(ms, 0, es, cs.length, ms.length);
+            return es;
+        }
     }
 
     protected class BasicExtendedStackTraceElement extends ExtendedStackTraceElement {

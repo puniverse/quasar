@@ -25,8 +25,11 @@ import java.lang.reflect.Constructor;
 // import java.lang.reflect.Executable;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.security.PrivilegedAction;
 import java.util.Collections;
 import java.util.Set;
+
+import static java.security.AccessController.doPrivileged;
 
 /**
  *
@@ -52,14 +55,27 @@ public final class SuspendableHelper {
         if (ste.getMethod() != null)
             return ste.getMethod();
 
-        for (final Method m : ste.getDeclaringClass().getDeclaredMethods()) {
-            if (m.getName().equals(ste.getMethodName())) {
-                final Instrumented i = getAnnotation(m, Instrumented.class);
-                if (m.isSynthetic() || isWaiver(m.getDeclaringClass().getName(), m.getName()) || i != null && ste.getLineNumber() >= i.methodStart() && ste.getLineNumber() <= i.methodEnd())
-                    return m;
-            }
+        return doPrivileged(new LookupMethod(ste));
+    }
+
+    static final class LookupMethod implements PrivilegedAction<Method> {
+        private final ExtendedStackTraceElement ste;
+
+        LookupMethod(ExtendedStackTraceElement ste) {
+            this.ste = ste;
         }
-        return null;
+
+        @Override
+        public Method run() {
+            for (final Method m : ste.getDeclaringClass().getDeclaredMethods()) {
+                if (m.getName().equals(ste.getMethodName())) {
+                    final Instrumented i = getAnnotation(m, Instrumented.class);
+                    if (m.isSynthetic() || isWaiver(m.getDeclaringClass().getName(), m.getName()) || i != null && ste.getLineNumber() >= i.methodStart() && ste.getLineNumber() <= i.methodEnd())
+                        return m;
+                }
+            }
+            return null;
+        }
     }
 
     public static Pair<Boolean, Instrumented> isCallSiteInstrumented(/*Executable*/ Member m, int sourceLine, int bci, ExtendedStackTraceElement[] stes, int currentSteIdx) {
@@ -87,7 +103,7 @@ public final class SuspendableHelper {
                     final String methodName = "." + calleeSte.getMethodName() + "(";
                     for (String callsite : i.suspendableCallSiteNames()) {
                         if (callsite.contains(methodName)) {
-                            return new Pair(true, i);
+                            return new Pair<>(true, i);
                         }
                     }
                 } else {
@@ -102,8 +118,8 @@ public final class SuspendableHelper {
                             }
                             if (callsiteOwner != null) {
                                 final Class<?> owner = callee.getDeclaringClass();
-                                if (declareInCommonAncestor(nameAndDescSuffix, owner, callsiteOwner)) {
-                                    return new Pair(true, i);
+                                if (doPrivileged(new DeclareInCommonAncestor(nameAndDescSuffix, owner, callsiteOwner))) {
+                                    return new Pair<>(true, i);
                                 }
                             }
                         }
@@ -125,6 +141,23 @@ public final class SuspendableHelper {
                 }
             }
             return new Pair<>(false, i);
+        }
+    }
+
+    static final class DeclareInCommonAncestor implements PrivilegedAction<Boolean> {
+        private final String nameAndDescSuffix;
+        private final Class<?> owner;
+        private final Class<?> callsiteOwner;
+
+        DeclareInCommonAncestor(String nameAndDescSuffix, Class<?> owner, Class<?> callsiteOwner) {
+            this.nameAndDescSuffix = nameAndDescSuffix;
+            this.owner = owner;
+            this.callsiteOwner = callsiteOwner;
+        }
+
+        @Override
+        public Boolean run() {
+            return declareInCommonAncestor(nameAndDescSuffix, owner, callsiteOwner);
         }
     }
 

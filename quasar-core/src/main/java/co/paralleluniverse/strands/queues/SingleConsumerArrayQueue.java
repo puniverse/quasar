@@ -13,7 +13,6 @@
  */
 package co.paralleluniverse.strands.queues;
 
-import co.paralleluniverse.common.util.UtilUnsafe;
 import com.google.common.collect.Lists;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;

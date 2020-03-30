@@ -23,7 +23,6 @@ import co.paralleluniverse.common.util.ExtendedStackTraceElement;
 import co.paralleluniverse.common.util.Objects;
 import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.common.util.SystemProperties;
-import co.paralleluniverse.common.util.UtilUnsafe;
 import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
@@ -37,6 +36,7 @@ import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.SuspendableUtils.VoidSuspendableCallable;
 import static co.paralleluniverse.strands.SuspendableUtils.runnableToCallable;
+import static java.security.AccessController.doPrivileged;
 import co.paralleluniverse.strands.dataflow.Val;
 import java.io.PrintWriter;
 import java.io.Serializable;
@@ -44,6 +44,7 @@ import java.io.StringWriter;
 import java.lang.reflect.Method;
 import java.security.AccessControlContext;
 import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -58,7 +59,6 @@ import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
-// import java.lang.reflect.Executable;
 import java.lang.reflect.Member;
 
 /**
@@ -1807,30 +1807,43 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private static boolean isInstrumented(Class clazz) {
         boolean res = clazz.isAnnotationPresent(Instrumented.class);
         if (!res)
-            res = isInstrumented0(clazz); // a second chance
+            res = doPrivileged(new CheckInstrumented(clazz)); // a second chance
         return res;
     }
 
-    private static boolean isInstrumented0(Class clazz) {
-        // Sometimes, a child class does not implement any suspendable methods AND is loaded before its superclass (that does). Test for that:
-        Class superclazz = clazz.getSuperclass();
-        if (superclazz != null) {
-            if (superclazz.isAnnotationPresent(Instrumented.class)) {
-                // make sure the child class doesn't have any suspendable methods
-                Method[] ms = clazz.getDeclaredMethods();
-                for (Method m : ms) {
-                    for (Class et : m.getExceptionTypes()) {
-                        if (et.equals(SuspendExecution.class))
+    private static final class CheckInstrumented implements PrivilegedAction<Boolean> {
+        private final Class<?> clazz;
+
+        CheckInstrumented(Class<?> clazz) {
+            this.clazz = clazz;
+        }
+
+        @Override
+        public Boolean run() {
+            return isInstrumented0(clazz);
+        }
+
+        private static boolean isInstrumented0(Class clazz) {
+            // Sometimes, a child class does not implement any suspendable methods AND is loaded before its superclass (that does). Test for that:
+            Class superclazz = clazz.getSuperclass();
+            if (superclazz != null) {
+                if (superclazz.isAnnotationPresent(Instrumented.class)) {
+                    // make sure the child class doesn't have any suspendable methods
+                    Method[] ms = clazz.getDeclaredMethods();
+                    for (Method m : ms) {
+                        for (Class et : m.getExceptionTypes()) {
+                            if (et.equals(SuspendExecution.class))
+                                return false;
+                        }
+                        if (m.isAnnotationPresent(Suspendable.class))
                             return false;
                     }
-                    if (m.isAnnotationPresent(Suspendable.class))
-                        return false;
-                }
-                return true;
+                    return true;
+                } else
+                    return isInstrumented0(superclazz);
             } else
-                return isInstrumented0(superclazz);
-        } else
-            return false;
+                return false;
+        }
     }
 
     @VisibleForTesting
@@ -2154,7 +2167,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 final Registration reg = kryo.readClass(input);
                 if (reg == null)
                     return null;
-                f = (Fiber) new FieldSerializer(kryo, reg.getType()).read(kryo, input, reg.getType());
+                f = (Fiber) new FieldSerializer<>(kryo, reg.getType()).read(kryo, input, reg.getType());
 
                 if (!f.noLocals) {
                     f.fiberLocals = ThreadAccess.getThreadLocals(currentThread);

@@ -12,6 +12,7 @@
  */
 package co.paralleluniverse.io.serialization.kryo;
 
+import co.paralleluniverse.common.reflection.GetAccessDeclaredMethod;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Registration;
 import com.esotericsoftware.kryo.Serializer;
@@ -22,6 +23,9 @@ import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.security.PrivilegedActionException;
+
+import static java.security.AccessController.doPrivileged;
 
 /**
  * A subclass of {@link Kryo} that respects {@link Serializable java.io.Serializable}'s {@code writeReplace} and {@code readResolve}.
@@ -134,20 +138,32 @@ public class ReplaceableObjectKryo extends Kryo {
         return replaceMethodsCache.get(clazz);
     }
 
+    private static Method getDeclaredMethod(Class<?> clazz, String methodName, Class<?>... args) throws NoSuchMethodException {
+        try {
+            return doPrivileged(new GetAccessDeclaredMethod(clazz, methodName, args));
+        } catch (PrivilegedActionException e) {
+            Throwable t = e.getCause();
+            if (t instanceof NoSuchMethodException) {
+                throw (NoSuchMethodException) t;
+            }
+            throw new RuntimeException(t);
+        }
+    }
+
     private static Method getMethodByReflection(Class clazz, final String methodName, Class<?>... paramTypes) throws SecurityException {
         if (!Serializable.class.isAssignableFrom(clazz))
             return null;
 
         Method m = null;
         try {
-            m = clazz.getDeclaredMethod(methodName, paramTypes);
+            m = getDeclaredMethod(clazz, methodName, paramTypes);
         } catch (NoSuchMethodException ex) {
             Class ancestor = clazz.getSuperclass();
             while (ancestor != null) {
                 if (!Serializable.class.isAssignableFrom(ancestor))
                     return null;
                 try {
-                    m = ancestor.getDeclaredMethod(methodName, paramTypes);
+                    m = getDeclaredMethod(ancestor, methodName, paramTypes);
                     if (!Modifier.isPublic(m.getModifiers()) && !Modifier.isProtected(m.getModifiers()))
                         return null;
                     break;
@@ -156,8 +172,6 @@ public class ReplaceableObjectKryo extends Kryo {
                 }
             }
         }
-        if (m != null)
-            m.setAccessible(true);
         return m;
     }
 

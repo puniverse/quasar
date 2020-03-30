@@ -14,8 +14,11 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.common.reflection.ASMUtil;
+import co.paralleluniverse.common.reflection.GetDeclaredMethod;
 import co.paralleluniverse.fibers.Suspendable;
 import static co.paralleluniverse.common.reflection.ASMUtil.*;
+import static java.security.AccessController.doPrivileged;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -24,6 +27,7 @@ import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.security.PrivilegedActionException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -291,9 +295,13 @@ public class OldSuspendablesScanner extends Task {
 
         if (!cls.equals(method.getDeclaringClass())) {
             try {
-                cls.getDeclaredMethod(method.getName(), method.getParameterTypes());
+                doPrivileged(new GetDeclaredMethod(cls, method.getName(), method.getParameterTypes()));
                 results.add(cls.getName() + '.' + method.getName());
-            } catch (NoSuchMethodException e) {
+            } catch (PrivilegedActionException e) {
+                Throwable t = e.getCause();
+                if (!(t instanceof NoSuchMethodException)) {
+                    throw new RuntimeException(t);
+                }
             }
         }
 

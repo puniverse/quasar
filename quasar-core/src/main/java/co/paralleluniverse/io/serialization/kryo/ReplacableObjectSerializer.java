@@ -12,6 +12,7 @@
  */
 package co.paralleluniverse.io.serialization.kryo;
 
+import co.paralleluniverse.common.reflection.GetAccessDeclaredMethod;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
@@ -20,6 +21,9 @@ import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.security.PrivilegedActionException;
+
+import static java.security.AccessController.doPrivileged;
 
 /**
  *
@@ -40,6 +44,18 @@ class ReplacableObjectSerializer extends FieldSerializer<Object> {
         return getReplacement(super.read(kryo, input, type), "readResolve");
     }
 
+    private static Method getDeclaredMethod(Class<?> clazz, String methodName) throws NoSuchMethodException {
+        try {
+            return doPrivileged(new GetAccessDeclaredMethod(clazz, methodName));
+        } catch (PrivilegedActionException e) {
+            Throwable t = e.getCause();
+            if (t instanceof NoSuchMethodException) {
+                throw (NoSuchMethodException) t;
+            }
+            throw new RuntimeException(t);
+        }
+    }
+
     private static Object getReplacement(Object obj, final String replaceMethodName) {
         try {
             Class clazz = obj.getClass();
@@ -48,14 +64,14 @@ class ReplacableObjectSerializer extends FieldSerializer<Object> {
 
             Method m = null;
             try {
-                m = clazz.getDeclaredMethod(replaceMethodName);
+                m = getDeclaredMethod(clazz, replaceMethodName);
             } catch (NoSuchMethodException ex) {
                 Class ancestor = clazz.getSuperclass();
                 while (ancestor != null) {
                     if (!Serializable.class.isAssignableFrom(ancestor))
                         return obj;
                     try {
-                        m = ancestor.getDeclaredMethod(replaceMethodName);
+                        m = getDeclaredMethod(ancestor, replaceMethodName);
                         if (!Modifier.isPublic(m.getModifiers()) && !Modifier.isProtected(m.getModifiers()))
                             return obj;
                         break;
@@ -66,9 +82,7 @@ class ReplacableObjectSerializer extends FieldSerializer<Object> {
             }
             if (m == null)
                 return obj;
-            m.setAccessible(true);
-            Object replacement = m.invoke(obj);
-            return replacement;
+            return m.invoke(obj);
         } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
             if (ex instanceof InvocationTargetException)
                 ((InvocationTargetException) ex).getTargetException().printStackTrace();

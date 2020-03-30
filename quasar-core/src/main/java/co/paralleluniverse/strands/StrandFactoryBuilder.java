@@ -13,15 +13,18 @@
  */
 package co.paralleluniverse.strands;
 
+import co.paralleluniverse.common.reflection.GetAccessDeclaredMethod;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.FiberScheduler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.security.PrivilegedActionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.security.AccessController.doPrivileged;
 
 /**
  * Easily creates {@code StrandFactory}s.
@@ -171,7 +174,7 @@ public class StrandFactoryBuilder {
                 final String name = _nameFormat != null ? String.format(_nameFormat, _count.getAndIncrement()) : null;
                 final Strand s;
                 if (_fiber) {
-                    s = _fs != null ? new Fiber(name, _fs, _stackSize, target) : new Fiber(name, _stackSize, target);
+                    s = _fs != null ? new Fiber<>(name, _fs, _stackSize, target) : new Fiber<>(name, _stackSize, target);
                 } else {
                     final Thread t = new Thread(null, Strand.toRunnable(target),
                             name != null ? name : "Thread-" + nextThreadNum(),
@@ -195,10 +198,9 @@ public class StrandFactoryBuilder {
 
     static {
         try {
-            nextThreadNum = Thread.class.getDeclaredMethod("nextThreadNum");
-            nextThreadNum.setAccessible(true);
-        } catch (ReflectiveOperationException e) {
-            throw new AssertionError(e);
+            nextThreadNum = doPrivileged(new GetAccessDeclaredMethod(Thread.class, "nextThreadNum"));
+        } catch (PrivilegedActionException e) {
+            throw new AssertionError(e.getCause());
         }
     }
 

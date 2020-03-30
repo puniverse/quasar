@@ -12,11 +12,14 @@
  */
 package co.paralleluniverse.common.util;
 
+import java.security.PrivilegedAction;
+import static java.security.AccessController.doPrivileged;
+
 /**
  * @author pron
  */
 class ExtendedStackTraceClassContext extends ExtendedStackTrace {
-    private static final ClassContext classContextGenerator = new ClassContext();
+    private static final ClassContext classContextGenerator = doPrivileged(new CreateClassContext());
     private ExtendedStackTraceElement[] est;
     private final Class[] classContext;
 
@@ -83,6 +86,13 @@ class ExtendedStackTraceClassContext extends ExtendedStackTrace {
         @Override
         public Class[] getClassContext() {
             return super.getClassContext();
+        }
+    }
+
+    private static final class CreateClassContext implements PrivilegedAction<ClassContext> {
+        @Override
+        public ClassContext run() {
+            return new ClassContext();
         }
     }
 }

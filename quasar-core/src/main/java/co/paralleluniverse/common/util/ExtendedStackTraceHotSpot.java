@@ -12,16 +12,20 @@
  */
 package co.paralleluniverse.common.util;
 
+import co.paralleluniverse.common.reflection.GetAccessDeclaredField;
+import co.paralleluniverse.common.reflection.GetAccessDeclaredMethod;
+
 import java.lang.reflect.Constructor;
-// import java.lang.reflect.Executable;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
+import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
 import java.util.Iterator;
 
-import static co.paralleluniverse.common.reflection.ReflectionUtil.accessible;
 import static co.paralleluniverse.common.util.Exceptions.rethrow;
+import static java.security.AccessController.doPrivileged;
 
 /**
  * This classes uses internal HotSpot data to retrieve a more detailed stacktrace from a {@link Throwable}.
@@ -224,45 +228,63 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
 
     static {
         try {
-            final String javaVersion = System.getProperty("java.version");
+            final String javaVersion = doPrivileged(new GetProperty("java.version"));
             if (!javaVersion.startsWith("1.8") && !javaVersion.startsWith("8.") && !javaVersion.startsWith("1.9") && !javaVersion.startsWith("9."))
                 throw new IllegalStateException("UnsupportedJavaVersion");
-            if (!System.getProperty("java.vm.name").toLowerCase().contains("hotspot"))
+            if (!doPrivileged(new GetProperty("java.vm.name")).toLowerCase().contains("hotspot"))
                 throw new IllegalStateException("Not HotSpot");
             // the JVM blocks access to Throwable.backtrace via reflection
             // backtrace = ReflectionUtil.accessible(Throwable.class.getDeclaredField("backtrace"));
-            getStackTraceDepth = accessible(Throwable.class.getDeclaredMethod("getStackTraceDepth"));
-            getStackTraceElement = accessible(Throwable.class.getDeclaredMethod("getStackTraceElement", int.class));
-            methodSlot = accessible(Method.class.getDeclaredField("slot"));
-            ctorSlot = accessible(Constructor.class.getDeclaredField("slot"));
-            fieldSlot = accessible(Field.class.getDeclaredField("slot"));
+            getStackTraceDepth = doPrivileged(new GetAccessDeclaredMethod(Throwable.class, "getStackTraceDepth"));
+            getStackTraceElement = doPrivileged(new GetAccessDeclaredMethod(Throwable.class, "getStackTraceElement", int.class));
+            methodSlot = doPrivileged(new GetAccessDeclaredField(Method.class, "slot"));
+            ctorSlot = doPrivileged(new GetAccessDeclaredField(Constructor.class, "slot"));
+            fieldSlot = doPrivileged(new GetAccessDeclaredField(Field.class, "slot"));
 
-            BACKTRACE_FIELD_OFFSET = guessBacktraceFieldOffset();
+            BACKTRACE_FIELD_OFFSET = doPrivileged(new GuessBacktraceFieldOffset());
 
             sanityCheck();
+        } catch (PrivilegedActionException e) {
+            throw new AssertionError(e.getCause());
         } catch (Exception e) {
             throw new AssertionError(e);
         }
     }
 
-    private static long guessBacktraceFieldOffset() {
-        Field[] fs = Throwable.class.getDeclaredFields();
-        Field second = null;
-        for (Field f : fs) {
-            if (getSlot(f) == 2) {
-                second = f;
-                break;
-            }
+    private static final class GetProperty implements PrivilegedAction<String> {
+        private final String name;
+
+        GetProperty(String name) {
+            this.name = name;
         }
-        if (second == null)
-            throw new IllegalStateException();
-        long secondOffest = UNSAFE.objectFieldOffset(second);
-        if (secondOffest == 16)
-            return 12; // compressed oops
-        if (secondOffest == 24)
-            return 16; // no compressed oops
-        else
-            throw new IllegalStateException("secondOffset: " + secondOffest); // unfamiliar
+
+        @Override
+        public String run() {
+            return System.getProperty(name);
+        }
+    }
+
+    private static final class GuessBacktraceFieldOffset implements PrivilegedAction<Long> {
+        @Override
+        public Long run() {
+            Field[] fs = Throwable.class.getDeclaredFields();
+            Field second = null;
+            for (Field f : fs) {
+                if (getSlot(f) == 2) {
+                    second = f;
+                    break;
+                }
+            }
+            if (second == null)
+                throw new IllegalStateException();
+            long secondOffest = UNSAFE.objectFieldOffset(second);
+            if (secondOffest == 16)
+                return 12L; // compressed oops
+            if (secondOffest == 24)
+                return 16L; // no compressed oops
+            else
+                throw new IllegalStateException("secondOffset: " + secondOffest); // unfamiliar
+        }
     }
 
     private static void sanityCheck() {

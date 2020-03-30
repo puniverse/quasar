@@ -12,10 +12,15 @@
  */
 package co.paralleluniverse.concurrent.util;
 
+import co.paralleluniverse.common.reflection.GetAccessDeclaredField;
+
 import java.lang.ref.Reference;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.security.PrivilegedActionException;
 import java.util.Map;
+
+import static java.security.AccessController.doPrivileged;
 
 /**
  *
@@ -100,19 +105,16 @@ public final class ThreadUtil {
 
     static {
         try {
-            threadLocalsField = Thread.class.getDeclaredField("threadLocals");
-            threadLocalsField.setAccessible(true);
-
-            inheritableThreadLocalsField = Thread.class.getDeclaredField("inheritableThreadLocals");
-            inheritableThreadLocalsField.setAccessible(true);
+            threadLocalsField = doPrivileged(new GetAccessDeclaredField(Thread.class, "threadLocals"));
+            inheritableThreadLocalsField = doPrivileged(new GetAccessDeclaredField(Thread.class, "inheritableThreadLocals"));
 
             Class threadLocalMapClass = Class.forName("java.lang.ThreadLocal$ThreadLocalMap");
-            threadLocalMapTableField = threadLocalMapClass.getDeclaredField("table");
-            threadLocalMapTableField.setAccessible(true);
+            threadLocalMapTableField = doPrivileged(new GetAccessDeclaredField(threadLocalMapClass, "table"));
 
             Class threadLocalMapEntryClass = Class.forName("java.lang.ThreadLocal$ThreadLocalMap$Entry");
-            threadLocalMapEntryValueField = threadLocalMapEntryClass.getDeclaredField("value");
-            threadLocalMapEntryValueField.setAccessible(true);
+            threadLocalMapEntryValueField = doPrivileged(new GetAccessDeclaredField(threadLocalMapEntryClass, "value"));
+        } catch (PrivilegedActionException e) {
+            throw new AssertionError(e.getCause());
         } catch (Exception e) {
             throw new AssertionError(e);
         }
