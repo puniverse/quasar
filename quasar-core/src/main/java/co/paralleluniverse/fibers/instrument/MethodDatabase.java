@@ -57,6 +57,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
+import java.util.Objects;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
@@ -545,7 +546,8 @@ public class MethodDatabase {
                 return false;
             }
             final ClassEntry other = (ClassEntry) obj;
-            return superName.equals(other.superName) && methods.equals(other.methods);
+            // CORDA-3756 names can be null.
+            return Objects.equals(superName, other.superName) && methods.equals(other.methods);
         }
 
         private static String key(String methodName, String methodDesc) {
