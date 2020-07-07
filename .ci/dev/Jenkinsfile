@@ -1,0 +1,65 @@
+@Library('corda-shared-build-pipeline-steps')
+import static com.r3.build.BuildControl.killAllExistingBuildsForJob
+
+killAllExistingBuildsForJob(env.JOB_NAME, env.BUILD_NUMBER.toInteger())
+
+boolean isReleaseBranch = (env.BRANCH_NAME =~ /^release\/.*/)
+boolean isRelease = (env.TAG_NAME =~ /^release-.*/)
+
+pipeline {
+  agent {
+    dockerfile {
+      label 'k8s'
+      additionalBuildArgs "--build-arg USER=\$(id -un) --build-arg UID=\$(id -u) --build-arg GID=\$(id -g)"
+      filename '.ci/dev/Dockerfile'
+    }
+  }
+
+  parameters {
+    booleanParam defaultValue: (isReleaseBranch || isRelease), description: 'Publish artifacts to Artifactory?', name: 'DO_PUBLISH'
+  }
+
+  options {
+    timestamps()
+    timeout(time: 1, unit: 'HOURS')
+  }
+
+  environment {
+    ARTIFACTORY_CREDENTIALS = credentials('artifactory-credentials')
+    CORDA_ARTIFACTORY_USERNAME = "${env.ARTIFACTORY_CREDENTIALS_USR}"
+    CORDA_ARTIFACTORY_PASSWORD = "${env.ARTIFACTORY_CREDENTIALS_PSW}"
+  }
+
+  stages {
+    stage('Compile') {
+      steps {
+        sh "./gradlew --no-daemon -Pcompilation.allWarningsAsErrors=true -Ptests.failFast=false -Ptests.ignoreFailures=true clean assemble"
+      }
+    }
+
+    stage('Test') {
+      steps {
+        sh "./gradlew --no-daemon -Pcompilation.allWarningsAsErrors=true -Ptests.failFast=false -Ptests.ignoreFailures=true testClasses test"
+      }
+    }
+
+    stage('Publish') {
+      when {
+        expression { params.DO_PUBLISH }
+        beforeAgent true
+      }
+      steps {
+        sh "./gradlew --no-daemon -Pcompilation.allWarningsAsErrors=true -Ptests.failFast=false -Ptests.ignoreFailures=true artifactoryPublish"
+      }
+    }
+  }
+
+  post {
+    always {
+      junit '**/build/test-results/**/*.xml'
+    }
+    cleanup {
+      deleteDir()
+    }
+  }
+}

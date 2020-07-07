@@ -544,56 +544,6 @@ project (':quasar-actors') {
     }
 }
 
-//project (':quasar-galaxy') {
-//    dependencies {
-//        provided project(path: ':quasar-core', configuration: 'shadowedJar')
-//        compile project(':quasar-actors')
-//
-//        compile ("co.paralleluniverse:galaxy:1.4")  {
-//            exclude group: 'com.lmax', module: 'disruptor'
-//            exclude group: 'de.javakaffee', module: 'kryo-serializers'
-//            exclude group: 'com.google.guava', module: 'guava'
-//            exclude group: "org.slf4j", module: '*'
-//        }
-//
-//            testCompile ('org.gridkit.lab:telecontrol-ssh:0.7.24'){
-//            exclude group: 'org.ow2.asm', module: '*'
-//            exclude group: 'org.slf4j', module: '*'
-//        }
-//        testRuntime files(jar.archivePath)
-//    }
-//
-//    tasks.withType(Test) {
-//        systemProperty "co.paralleluniverse.quasarJar", "${quasarJar}"
-//        systemProperty "jgroups.bind_addr", "127.0.0.1"
-//        systemProperty "galaxy.multicast.address", "225.0.0.1"
-//        systemProperty "galaxy.multicast.port", "7050"
-//        systemProperty "co.paralleluniverse.galaxy.configFile", "${sourceSets.main.output.resourcesDir}/config/peer.xml"
-//        systemProperty "co.paralleluniverse.galaxy.autoGoOnline", "true"
-//    }
-//
-//    tasks.withType(JavaExec) {
-//        main = mainClass
-//        systemProperty "log4j.configurationFile", "${rootProject.projectDir}/log4j.xml"
-//        systemProperty "Log4jContextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
-//        // systemProperty 'co.paralleluniverse.fibers.verifyInstrumentation', 'true'
-//        // systemProperty "co.paralleluniverse.io.useJDKSerialization", "true"
-//        jvmArgs "-javaagent:${quasarJar}" // =v, =d
-//        jvmArgs "-ea", "-XX:MaxDirectMemorySize=100M"
-//        systemProperty "jgroups.bind_addr", "127.0.0.1"
-//        systemProperty "galaxy.multicast.address", "225.0.0.1"
-//        systemProperty "galaxy.multicast.port", "7050"
-//        systemProperty "co.paralleluniverse.galaxy.configFile", "${sourceSets.main.output.resourcesDir}/config/peer.xml"
-//        systemProperty "co.paralleluniverse.galaxy.autoGoOnline", "true"
-//
-//        // systemProperty 'co.paralleluniverse.debugMode', 'true'
-//        systemProperty 'co.paralleluniverse.monitoring.flightRecorderLevel', '5'
-//        systemProperty 'co.paralleluniverse.globalFlightRecorder', 'true'
-//        systemProperty 'co.paralleluniverse.flightRecorderDumpFile', 'quasar-galaxy.log'
-//        systemProperty 'co.paralleluniverse.monitoring.flightRecorderSize', '200000'
-//    }
-//}
-
 project (':quasar-reactive-streams') {
     //project.evaluationDependsOn(':quasar-core')
     
