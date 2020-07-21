@@ -449,7 +449,7 @@ public class MethodDatabase {
 
     public enum SuspendableType {
         NON_SUSPENDABLE, SUSPENDABLE_SUPER, SUSPENDABLE
-    };
+    }
 
     public static final class ClassEntry {
         private final HashMap<String, SuspendableType> methods;

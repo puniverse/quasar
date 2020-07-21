@@ -41,20 +41,22 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import static co.paralleluniverse.fibers.instrument.Classes.*;
-import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
-import java.util.ArrayList;
-import java.util.List;
-import org.objectweb.asm.AnnotationVisitor;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.*;
 import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.IntStream;
+
+import static co.paralleluniverse.fibers.instrument.Classes.*;
+import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 
 /**
  * Instrument a class by instrumenting all suspendable methods and copying the others.
@@ -170,12 +172,34 @@ class InstrumentClass extends ClassVisitor {
                         susp = SuspendableType.NON_SUSPENDABLE;
 
                     susp = suspendableToSuperIfAbstract(access, susp);
-
                     return super.visitAnnotation(adesc, visible);
                 }
 
                 @Override
                 public void visitCode() {
+                    if(susp != SuspendableType.SUSPENDABLE &&
+                            (access & Opcodes.ACC_STATIC) == Opcodes.ACC_STATIC &&
+                            (access & Opcodes.ACC_SYNTHETIC) == Opcodes.ACC_SYNTHETIC &&
+                            name.endsWith("$default")) {
+                        Type[] expectedMethodTypes = Type.getArgumentTypes(mn.desc);
+                        Optional<MethodNode> correspondent = IntStream.rangeClosed(1, methods.size()).mapToObj(i -> methods.get(methods.size() - i))
+                                .filter(candidateMethod -> {
+                                    if(Objects.equals(candidateMethod.name + "$default", mn.name)) {
+                                        Type[] candidateMethodTypes = Type.getArgumentTypes(candidateMethod.desc);
+                                        for(int i = 0; i < candidateMethodTypes.length; i++) {
+                                            if(!Objects.equals(candidateMethodTypes[i], expectedMethodTypes[i + 1])) {
+                                                return false;
+                                            }
+                                        }
+                                        return true;
+                                    } else {
+                                        return false;
+                                    }
+                                }).findFirst();
+                        if(correspondent.isPresent()) {
+                            susp = SuspendableType.SUSPENDABLE;
+                        }
+                    }
                     commit();
                     super.visitCode();
                 }
@@ -184,7 +208,6 @@ class InstrumentClass extends ClassVisitor {
                 public void visitEnd() {
                     if (exception != null)
                         return;
-
                     commit();
                     try {
                         super.visitEnd();
