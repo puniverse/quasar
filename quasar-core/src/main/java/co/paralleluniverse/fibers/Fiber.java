@@ -81,8 +81,8 @@ import java.lang.reflect.Member;
 public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Future<V> {
     static final boolean USE_VAL_FOR_RESULT = true;
     private static final Object RESET = new Object();
-    private static final boolean traceInterrupt = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.traceInterrupt");
-    private static final boolean disableAgentWarning = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.disableAgentWarning");
+    private static boolean traceInterrupt = false;
+    private static boolean disableAgentWarning = false;
     public static final int DEFAULT_STACK_SIZE = 32;
     private static final Object SERIALIZER_BLOCKER = new Object();
     private static final boolean MAINTAIN_ACCESS_CONTROL_CONTEXT = (System.getSecurityManager() != null);
@@ -91,9 +91,10 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     private static final long serialVersionUID = 2783452871536981L;
     protected static final FlightRecorder flightRecorder = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
 
-    private static final boolean verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
+    private static boolean verifyInstrumentation = false;
 
     static {
+        readSystemProperties();
         if (Debug.isDebug())
             System.err.println("QUASAR WARNING: Debug mode enabled. This may harm performance.");
         if (Debug.isAssertionsEnabled())
@@ -104,11 +105,20 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
         assert printVerifyInstrumentationWarning();
     }
 
+    public static void readSystemProperties() {
+        // ENT-5444 To facilitate testing make reading of system properties public.
+        // Only to be called from test for the purposes of re reading the static members. So no need for volatile.
+        traceInterrupt = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.traceInterrupt");
+        disableAgentWarning = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.disableAgentWarning");
+        verifyInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.verifyInstrumentation");
+    }
+
     private static boolean printVerifyInstrumentationWarning() {
         if (verifyInstrumentation)
             System.err.println("QUASAR WARNING: Fibers are set to verify instrumentation. This may *severely* harm performance.");
         return true;
     }
+
     // private static final FiberTimedScheduler timeoutService = new FiberTimedScheduler(new ThreadFactoryBuilder().setNameFormat("fiber-timeout-%d").setDaemon(true).build());
     private static volatile UncaughtExceptionHandler defaultUncaughtExceptionHandler = new UncaughtExceptionHandler() {
         @Override
