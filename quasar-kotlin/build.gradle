@@ -12,11 +12,11 @@ apply plugin: 'org.javamodularity.moduleplugin'
 
 ext.moduleName = 'co.paralleluniverse.quasar.kotlin'
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+sourceCompatibility = '10'
+targetCompatibility = '10'
 
 dependencies {
-    provided project(path: ':quasar-core', configuration: 'shadowedJar')
+    compile project(':quasar-core')
     compile project(':quasar-actors')
 
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVer"
@@ -28,7 +28,7 @@ dependencies {
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "10"
     }
 }
 

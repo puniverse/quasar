@@ -52,7 +52,7 @@ subprojects {
 
     ext.guavaVer  = '26.0-jre'
     ext.asmVer    = '7.0'
-    ext.kotlinVer = '1.3.0'
+    ext.kotlinVer = '1.3.72'
 
     if (!project.hasProperty('mainClass')) { // must use project.hasProperty() rather than hasProperty in subprojects (gradle bug)
         ext.mainClass = ''
