@@ -51,7 +51,15 @@ public class ThreadAccess {
         try {
             MethodHandles.Lookup l = MethodHandles.lookup();
             l = MethodHandles.privateLookupIn(Thread.class, l);
-            TARGET = l.findVarHandle(Thread.class, "target", Runnable.class); // l.unreflectVarHandle(Thread.class.getDeclaredField("target"));
+	    {
+	        VarHandle target;
+	        try {
+                    target = l.findVarHandle(Thread.class, "target", Runnable.class);
+	        } catch (NoSuchFieldException ex) {
+                    target = l.findVarHandle(Thread.class, "runnable", Runnable.class);
+	        }
+	        TARGET = target;
+	    }
             THREAD_LOCALS = l.unreflectVarHandle(doPrivileged(new GetDeclaredField(Thread.class, "threadLocals")));
             INHERITABLE_THREAD_LOCALS = l.unreflectVarHandle(doPrivileged(new GetDeclaredField(Thread.class, "inheritableThreadLocals")));
             CONTEXT_CLASS_LOADER = l.unreflectVarHandle(doPrivileged(new GetDeclaredField(Thread.class, "contextClassLoader")));
