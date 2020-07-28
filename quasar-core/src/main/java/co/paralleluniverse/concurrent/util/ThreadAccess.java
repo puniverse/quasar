@@ -39,7 +39,6 @@ public class ThreadAccess {
     
     private static final Constructor<?> threadLocalMapConstructor;
     private static final Constructor<?> threadLocalMapInheritedConstructor;
-//    private static final Method threadLocalMapSet;
     private static final Field threadLocalMapTableField;
     private static final Field threadLocalMapSizeField;
     private static final Field threadLocalMapThresholdField;
@@ -51,7 +50,14 @@ public class ThreadAccess {
         try {
             MethodHandles.Lookup l = MethodHandles.lookup();
             l = MethodHandles.privateLookupIn(Thread.class, l);
-            TARGET = l.findVarHandle(Thread.class, "target", Runnable.class); // l.unreflectVarHandle(Thread.class.getDeclaredField("target"));
+
+            // ENT-5489, For openj9 vm name is runnable.
+            if (System.getProperty("java.vm.name").toLowerCase().contains("openj9")) {
+                TARGET = l.findVarHandle(Thread.class, "runnable", Runnable.class);
+            } else {
+                TARGET = l.findVarHandle(Thread.class, "target", Runnable.class);
+            }
+
             THREAD_LOCALS = l.unreflectVarHandle(doPrivileged(new GetDeclaredField(Thread.class, "threadLocals")));
             INHERITABLE_THREAD_LOCALS = l.unreflectVarHandle(doPrivileged(new GetDeclaredField(Thread.class, "inheritableThreadLocals")));
             CONTEXT_CLASS_LOADER = l.unreflectVarHandle(doPrivileged(new GetDeclaredField(Thread.class, "contextClassLoader")));
@@ -70,7 +76,6 @@ public class ThreadAccess {
             Class<?> threadLocalMapClass = Class.forName("java.lang.ThreadLocal$ThreadLocalMap");
             threadLocalMapConstructor = doPrivileged(new GetAccessDeclaredConstructor<>(threadLocalMapClass, ThreadLocal.class, Object.class));
             threadLocalMapInheritedConstructor = doPrivileged(new GetAccessDeclaredConstructor<>(threadLocalMapClass, threadLocalMapClass));
-//            threadLocalMapSet = accessible(threadLocalMapClass.getDeclaredMethod("set", ThreadLocal.class, Object.class));
             threadLocalMapTableField = doPrivileged(new GetAccessDeclaredField(threadLocalMapClass, "table"));
             threadLocalMapSizeField = doPrivileged(new GetAccessDeclaredField(threadLocalMapClass, "size"));
             threadLocalMapThresholdField = doPrivileged(new GetAccessDeclaredField(threadLocalMapClass, "threshold"));
@@ -124,23 +129,7 @@ public class ThreadAccess {
             throw new AssertionError(ex);
         }
     }
-
-//    public static void set(Thread t, ThreadLocal tl, Object value) {
-//        Object map = getThreadLocals(t);
-//        if (map != null)
-//            set(map, tl, value);
-//        else
-//            setThreadLocals(t, createThreadLocalMap(tl, value));
-//    }
-//
-//    private static void set(Object map, ThreadLocal tl, Object value) {
-//        try {
-//            threadLocalMapSet.invoke(map, tl, value);
-//        } catch (ReflectiveOperationException e) {
-//            throw new AssertionError(e);
-//        }
-//    }
-
+    
     // createInheritedMap works only for InheritableThreadLocals
     public static Object cloneThreadLocalMap(Object orig) {
         try {
