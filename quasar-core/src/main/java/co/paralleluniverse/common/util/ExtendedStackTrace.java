@@ -95,7 +95,7 @@ public class ExtendedStackTrace implements Iterable<ExtendedStackTraceElement> {
         if (method == null && este.getLineNumber() >= 0) {
             try {
                 final AtomicReference<String> descriptor = new AtomicReference<>();
-                ASMUtil.accept(este.getDeclaringClass(), ClassReader.SKIP_FRAMES, new ClassVisitor(Opcodes.ASM5) {
+                ASMUtil.accept(este.getDeclaringClass(), ClassReader.SKIP_FRAMES, new ClassVisitor(Opcodes.ASM7) {
                     @Override
                     public MethodVisitor visitMethod(int access, String name, final String desc, String signature, String[] exceptions) {
                         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);

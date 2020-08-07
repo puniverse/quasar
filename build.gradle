@@ -2,9 +2,6 @@ buildscript {
     repositories {
         mavenCentral()
         jcenter()
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
     }
     dependencies {
         classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.2'
@@ -17,7 +14,6 @@ buildscript {
 
 plugins {
   id "com.dorongold.task-tree" version "1.3.1"
-  id "com.github.ben-manes.versions" version "0.20.0"
 }
 
 subprojects {
@@ -26,15 +22,15 @@ subprojects {
     apply plugin: 'com.jfrog.artifactory'
     apply plugin: 'org.javamodularity.moduleplugin'
 
-    sourceCompatibility = '10'
-    targetCompatibility = '10' // gradle 4.10.2 does not support JDK 11 targets
+    sourceCompatibility = '11'
+    targetCompatibility = '11'
 
     tasks.withType(JavaCompile) {
         options.encoding = 'UTF-8'
     }
 
     group               = "co.paralleluniverse"
-    version             = "0.8.1_r3-SNAPSHOT"
+    version             = "0.8.1_r3"
     status              = "integration"
     description         = "Fibers, Channels and Actors for the JVM"
     ext.url             = "http://puniverse.github.com/quasar"
@@ -317,30 +313,43 @@ subprojects {
 }
 
 def scanAndInstrument(sset, configs) {
-    def cp = '' + sset.output.classesDirs*.toString().join(':') + ':' + sset.output.resourcesDir + ':' + configs*.asPath.join(':')
+
+    def cp = sset.output.classesDirs.getAsPath() + ':' + sset.output.resourcesDir + ':' + configs*.asPath.join(':')
+
+    // ENT-5598 quasar-kotlin has two output directories, java and kotlin.
+    // So we have to cope with multiple directories in classesDirs.
 
     ant.taskdef(
-        name:'scanSuspendables', classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',  classpath: cp)
+            name:'scanSuspendables',
+            classname:'co.paralleluniverse.fibers.instrument.SuspendablesScanner',
+            classpath: cp)
     ant.scanSuspendables(
-        auto: false,
-        supersFile:"$sset.output.resourcesDir/META-INF/suspendable-supers",
-        append: true) {
-//        sset.output.classesDirs.addToAntBuilder(ant, 'fileset', FileCollection.AntType.FileSet)
-        fileset(dir: sset.output.classesDir)
-    }
-
-    ant.taskdef(name:'instrumentation', classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask', classpath: cp)
-    ant.instrumentation(verbose:'true', check:'true', debug:'true') {
-//        sset.output.classesDirs.addToAntBuilder(ant, 'fileset', FileCollection.AntType.FileSet) {
-        fileset(dir: sset.output.classesDir) {
-            exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
+            auto: false,
+            supersFile:"$sset.output.resourcesDir/META-INF/suspendable-supers",
+            append: true) {
+        for (File f : sset.output.classesDirs) {
+            fileset(dir: f)
         }
     }
-    
+
+    ant.taskdef(
+            name:'instrumentation',
+            classname:'co.paralleluniverse.fibers.instrument.InstrumentationTask',
+            classpath: cp)
+    ant.instrumentation(verbose:'true', check:'true', debug:'true') {
+        for (File f : sset.output.classesDirs) {
+            fileset(dir: f) {
+                exclude(name: 'co/paralleluniverse/fibers/instrument/*.class')
+            }
+        }
+    }
+
     // Filter out the 'requires org.objectweb.asm' from quasar-core's module-info, as it will be shadowed into the jar
     ant.taskdef(name:'filterModules', classname:'co.paralleluniverse.fibers.instrument.ModuleFilterTask', classpath: cp)
     ant.filterModules(module: 'org.objectweb.asm') {
-        fileset(dir: sset.output.classesDir)
+        for (File f : sset.output.classesDirs) {
+            fileset(dir: f)
+        }
     }
 }
 
