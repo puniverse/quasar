@@ -1,2 +1,19 @@
-include 'quasar-core','quasar-actors','quasar-reactive-streams','quasar-disruptor'
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+    }
+
+    plugins {
+        id 'org.jetbrains.kotlin.jvm' version kotlinVersion
+        id 'com.dorongold.task-tree' version taskTreeVersion
+        id 'com.github.johnrengelman.shadow' version shadowVersion
+        id 'com.jfrog.artifactory' version artifactoryVersion
+        id 'org.javamodularity.moduleplugin' version modulepluginVersion
+    }
+}
+
+include 'quasar-core'
+include 'quasar-actors'
+include 'quasar-reactive-streams'
+include 'quasar-disruptor'
 include 'quasar-kotlin'

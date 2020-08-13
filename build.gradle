@@ -1,19 +1,8 @@
-buildscript {
-    repositories {
-        mavenCentral()
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.2'
-        classpath 'net.saliman:gradle-cobertura-plugin:2.5.4'
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
-        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.9.6"
-        classpath 'gradle.plugin.org.javamodularity:moduleplugin:1.0.1'
-    }
-}
-
 plugins {
-  id "com.dorongold.task-tree" version "1.3.1"
+    id 'com.jfrog.artifactory'
+    id 'org.javamodularity.moduleplugin'
+    id 'com.github.johnrengelman.shadow'
+    id 'com.dorongold.task-tree'
 }
 
 subprojects {
@@ -46,9 +35,8 @@ subprojects {
     ext.baselib         = "${rootProject.projectDir}/baselib"
     ext.quasarJar = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}.jar" // project(':quasar-core').jar.archivePath
 
-    ext.guavaVer  = '26.0-jre'
+    ext.guavaVer  = '29.0-jre'
     ext.asmVer    = '7.0'
-    ext.kotlinVer = '1.3.72'
 
     if (!project.hasProperty('mainClass')) { // must use project.hasProperty() rather than hasProperty in subprojects (gradle bug)
         ext.mainClass = ''
@@ -264,23 +252,10 @@ subprojects {
     //        classpath = sourceSets.test.runtimeClasspath
     //    }
 
-    configure (javadoc) {
+    javadoc {
         classpath += configurations.provided
-        
-        exclude 'module-info.java' // Temporary, as module path is not added
-        
         options {
-//          addStringOption('-module-path', classpath.asPath)
-            // docletpath = configurations.markdownDoclet.files.asType(List)
-            // doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
-            // addStringOption("parse-timeout", "10")
             addStringOption('Xdoclint:none', '-quiet')
-//             addStringOption('-module-path', classpath.asPath)
-            // stylesheetFile = rootProject.file('./baselib/javadoc.css')
-//            links = [
-//                "https://docs.oracle.com/en/java/javase/11/docs/api/",
-//                "https://google.github.io/guava/releases/${guavaVer}/api/docs/"
-//            ]
         }
     }
 
@@ -589,7 +564,8 @@ project (':quasar-disruptor') {
     }
 }
 
-task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
+javadoc {
+    dependsOn subprojects.javadoc
     title = "Quasar ${project(':quasar-core').version}"
     destinationDir = file("docs/javadoc")
 
@@ -598,17 +574,9 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
     source += project(':quasar-reactive-streams').sourceSets.main.allJava
 
     classpath = files(subprojects.collect { project -> project.sourceSets.main.compileClasspath })
+
     options {
-        // docletpath = project(':quasar-core').configurations.markdownDoclet.files.asType(List)
-        // doclet = 'ch.raffael.doclets.pegdown.PegdownDoclet'
-        // addStringOption("parse-timeout", "10")
-        // stylesheetFile = rootProject.file('./baselib/javadoc.css')
          addStringOption('Xdoclint:none')
-//         addStringOption('-module-path', classpath.asPath)
-//        links = [
-//        "https://docs.oracle.com/en/java/javase/11/docs/api/",
-//        "https://google.github.io/guava/releases/${subprojects.ext.guavaVer}/api/docs/"
-//        ]
     }
     excludes = [
         "module-info.java", // for now
@@ -647,7 +615,8 @@ task javadoc(type: Javadoc, dependsOn: subprojects.javadoc) {
     ]
 }
 
-task clean(dependsOn: subprojects.clean) {
+clean {
+    dependsOn subprojects.clean
     doLast() {
         delete 'docs/javadoc'
     }

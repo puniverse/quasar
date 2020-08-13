@@ -1,10 +1,6 @@
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVer"
-    }
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+    id 'org.javamodularity.moduleplugin'
 }
 
 apply plugin: 'kotlin'
@@ -19,11 +15,11 @@ dependencies {
     compile project(':quasar-core')
     compile project(':quasar-actors')
 
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVer"
-    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVer"
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
 
-    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVer"
-    testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlinVer"
+    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
+    testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion"
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
