@@ -19,7 +19,7 @@ subprojects {
     }
 
     group               = "co.paralleluniverse"
-    version             = "0.8.1_r3"
+    version             = "0.8.1_r3-SNAPSHOT"
     status              = "integration"
     description         = "Fibers, Channels and Actors for the JVM"
     ext.url             = "http://puniverse.github.com/quasar"
