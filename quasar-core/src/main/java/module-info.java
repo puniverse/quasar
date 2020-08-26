@@ -21,7 +21,7 @@ module co.paralleluniverse.quasar.core {
     requires org.objectweb.asm.commons;
     requires com.google.common;
     requires static kryo; // automatic module
-    
+
     exports co.paralleluniverse.fibers;
     exports co.paralleluniverse.fibers.futures;
     exports co.paralleluniverse.fibers.io;
@@ -40,6 +40,10 @@ module co.paralleluniverse.quasar.core {
     exports co.paralleluniverse.concurrent.util   to co.paralleluniverse.quasar.actors;
     exports co.paralleluniverse.io.serialization  to co.paralleluniverse.quasar.actors;
     exports co.paralleluniverse.strands.queues    to co.paralleluniverse.quasar.actors;
-    
+
+    // This is to appease the Java 9 module import.
+    // co.paralleluniverse.asm is actually a shadowing of org.objectweb.asm.
+    exports co.paralleluniverse.asm to co.paralleluniverse.quasar.actors;
+
     uses co.paralleluniverse.fibers.instrument.SuspendableClassifier;
 }
