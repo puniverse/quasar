@@ -78,7 +78,6 @@ class InstrumentClass extends ClassVisitor {
     private ClassEntry classEntry;
     private boolean alreadyInstrumented;
     private ArrayList<MethodNode> methodsSuspendable;
-    private ArrayList<MethodNode> methodsSyntheticStatic;
 
     private RuntimeException exception;
 
@@ -100,6 +99,7 @@ class InstrumentClass extends ClassVisitor {
 
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+
         this.className = name;
         this.isInterface = (access & Opcodes.ACC_INTERFACE) != 0;
 
@@ -132,9 +132,6 @@ class InstrumentClass extends ClassVisitor {
     boolean hasSuspendableMethods() {
         return methodsSuspendable != null && !methodsSuspendable.isEmpty();
     }
-    boolean hasSyntheticStaticMethods() {
-        return methodsSyntheticStatic != null && !methodsSyntheticStatic.isEmpty();
-    }
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
@@ -163,9 +160,6 @@ class InstrumentClass extends ClassVisitor {
         if (checkAccessForMethodVisitor(access) && !isYieldMethod(className, name)) {
             if (methodsSuspendable == null) {
                 methodsSuspendable = new ArrayList<>();
-            }
-            if (methodsSyntheticStatic == null) {
-                methodsSyntheticStatic = new ArrayList<>();
             }
 
             final MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
@@ -225,23 +219,15 @@ class InstrumentClass extends ClassVisitor {
                         }
                         methodsSuspendable.add(mn);
                     } else {
-
-                        final int ACC_STATIC_SYNTHETIC = Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC;
-
-                        // If we may have a synthesized default method then save it for later processing.
-                        if (((access & ACC_STATIC_SYNTHETIC) == ACC_STATIC_SYNTHETIC) && name.endsWith("$default")) {
-                            methodsSyntheticStatic.add(mn);
-                        } else {
-                            MethodVisitor _mv = makeOutMV(mn);
-                            _mv = new JSRInlinerAdapter(_mv, access, name, desc, signature, exceptions);
-                            mn.accept(new MethodVisitor(ASMAPI, _mv) {
-                                @Override
-                                public void visitEnd() {
-                                    // don't call visitEnd on MV
-                                }
-                            }); // write method as-is
-                            this.mv = _mv;
-                        }
+                        MethodVisitor _mv = makeOutMV(mn);
+                        _mv = new JSRInlinerAdapter(_mv, access, name, desc, signature, exceptions);
+                        mn.accept(new MethodVisitor(ASMAPI, _mv) {
+                            @Override
+                            public void visitEnd() {
+                                // don't call visitEnd on MV
+                            }
+                        }); // write method as-is
+                        this.mv = _mv;
                     }
                 }
             };
@@ -254,24 +240,6 @@ class InstrumentClass extends ClassVisitor {
     public void visitEnd() {
         if (exception != null) {
             throw exception;
-        }
-
-        if (hasSyntheticStaticMethods()) {
-
-            // Go through methods that are not suspendable and check for $default methods that have associated suspendable counterparts.
-            for (MethodNode mn : methodsSyntheticStatic) {
-
-                // Search though suspendable methods to see if there is a counterpart for this one.
-                if (searchSuspendables(mn)) {
-                    // We have a matching suspendable method, make this suspendable to.
-                    classEntry.set(mn.name, mn.desc, SuspendableType.SUSPENDABLE);
-                    methodsSuspendable.add(mn);
-                } else {
-                    // Output code for this method.
-                    mn.accept(makeOutMV(mn));
-                }
-
-            }
         }
 
         classEntry.setRequiresInstrumentation(false);
@@ -316,45 +284,6 @@ class InstrumentClass extends ClassVisitor {
             }
         }
         super.visitEnd();
-    }
-
-    private boolean compareSuspendableArgs(MethodNode mns, Type[] staticMethodTypes) {
-        final Type[] suspendableMethodTypes = Type.getArgumentTypes(mns.desc);
-
-        // Double check the length of method arguments array. Should be larger than suspendableMethodTypes.
-        if (staticMethodTypes.length <= suspendableMethodTypes.length) {
-            return false;
-        }
-
-        // Now check the arguments match, just in case method is overloaded.
-        // Kotlin compiler generates static counterpart as below. First argument is this, then
-        // list of arguments that must match then a bitmask for setting defaults.
-        //
-        // @Suspendable
-        // private final int defFun1(int a)
-        //
-        // $FF: synthetic method
-        // static int defFun1$default(SyntheticTest var0, int var1, int var2, Object var3)
-
-        for (int i = 0; i < suspendableMethodTypes.length; i++) {
-            if (!Objects.equals(suspendableMethodTypes[i], staticMethodTypes[i + 1])) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private boolean searchSuspendables(MethodNode mn) {
-        // Go through suspendable methods and try to find a match for mn.
-        final Type[] staticMethodTypes = Type.getArgumentTypes(mn.desc);
-        for (MethodNode mns : methodsSuspendable) {
-            if (Objects.equals(mns.name + "$default", mn.name) &&
-                compareSuspendableArgs(mns, staticMethodTypes)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private void emitInstrumentedAnn() {

@@ -1,16 +1,3 @@
-/*
- * Quasar: lightweight threads and actors for the JVM.
- * Copyright (c) 2015-2017, Parallel Universe Software Co. All rights reserved.
- *
- * This program and the accompanying materials are dual-licensed under
- * either the terms of the Eclipse Public License v1.0 as published by
- * the Eclipse Foundation
- *
- *   or (per the licensee's choosing)
- *
- * under the terms of the GNU Lesser General Public License version 3.0
- * as published by the Free Software Foundation.
- */
 package co.paralleluniverse.kotlin.fibers.lang
 
 import co.paralleluniverse.common.util.SystemProperties
@@ -21,6 +8,8 @@ import org.junit.Test
 import kotlin.test.assertEquals
 
 import co.paralleluniverse.kotlin.fibers.StaticPropertiesTest
+
+typealias MyMap = Map<Int, Int>
 
 class SyntheticTest {
 
@@ -51,7 +40,17 @@ class SyntheticTest {
                 defFun3() + defFun3(4) + defFun3(6,1);
     }
 
-    @Test fun syntheticTest() {
+    @Suspendable
+    private fun defFunMap(m : MyMap, b : Boolean = false) : MyMap {
+        Fiber.yield()
+        return if (b) {
+            m
+        } else {
+            mapOf<Int, Int>(1 to 3)
+        }
+    }
+
+    @Test fun `synthetic primitve`() {
 
         StaticPropertiesTest.withVerifyInstrumentationOn {
 
@@ -66,6 +65,39 @@ class SyntheticTest {
 
             val actual = fiber.start().get()
             assertEquals(41, actual)
+        }
+    }
+
+    @Test fun `synthetic complex`() {
+        StaticPropertiesTest.withVerifyInstrumentationOn {
+
+            Assume.assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
+
+            val fiber = object : Fiber<MyMap>() {
+                @Suspendable
+                override fun run(): MyMap {
+                    return defFunMap(mapOf(1 to 10, 2 to 20), true)
+                }
+            }
+            val actual = fiber.start().get()
+            assertEquals(mapOf(1 to 10, 2 to 20), actual)
+        }
+    }
+
+    @Test fun `synthetic complex default`() {
+        StaticPropertiesTest.withVerifyInstrumentationOn {
+
+            Assume.assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
+
+            val fiber = object : Fiber<MyMap>() {
+                @Suspendable
+                override fun run(): MyMap {
+                    return defFunMap(mapOf(1 to 11, 2 to 21))
+                }
+            }
+
+            val actual = fiber.start().get()
+            assertEquals(mapOf(1 to 3), actual)
         }
     }
 }

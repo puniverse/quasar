@@ -41,16 +41,17 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
+import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.fibers.SuspendExecution;
 import static co.paralleluniverse.fibers.instrument.Classes.INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.SUSPENDABLE_DESC;
 import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
+
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
-import org.objectweb.asm.AnnotationVisitor;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.*;
+import java.util.ArrayList;
+
 
 /**
  * Check if a class contains suspendable methods.
@@ -69,9 +70,11 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
     private ClassEntry classEntry;
     private boolean hasSuspendable;
     private boolean alreadyInstrumented;
+    private final ArrayList<Pair<String,String>> methodsSyntheticStatic;
 
     public CheckInstrumentationVisitor(MethodDatabase db) {
         super(ASMAPI);
+        this.methodsSyntheticStatic = new ArrayList<>();
         this.db = db;
         this.classifier = db.getClassifier();
     }
@@ -94,6 +97,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
 
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+
         this.className = name;
         this.isInterface = (access & Opcodes.ACC_INTERFACE) != 0;
         this.classEntry = new ClassEntry(superName);
@@ -153,6 +157,14 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
                 @Override
                 public void visitEnd() {
                     super.visitEnd();
+
+                    // If we have a method not suspendable that is synthesized static method then save for later processing.
+                    // It may be missing annotations that we can fix later in visitEnd.
+                    final int ACC_STATIC_SYNTHETIC = Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC;
+                    if (!susp && ((access & ACC_STATIC_SYNTHETIC) == ACC_STATIC_SYNTHETIC) && name.endsWith("$default")) {
+                        methodsSyntheticStatic.add(new Pair(name, desc));
+                    }
+
                     classEntry.set(name, desc, InstrumentClass.suspendableToSuperIfAbstract(access, susp ? SuspendableType.SUSPENDABLE : SuspendableType.NON_SUSPENDABLE));
                     hasSuspendable = hasSuspendable | susp;
                 }
@@ -161,4 +173,56 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
             return null;
     }
 
+    // Given a type descriptor for a synthetic static method create the corresponding method type descriptor.
+    private String buildDescriptorFromSyntheticStatic(int startAt, String descStatic) {
+
+        // Kotlin compiler generates static counterpart as below. First argument is this, then
+        // list of arguments that must match then a bitmask for setting defaults.
+        //
+        // @Suspendable
+        // private final int defFun1(int a)
+        //
+        // $FF: synthetic method
+        // index:                     0                   1         2         3
+        // static int defFun1$default(SyntheticTest var0, int var1, int var2, Object var3)
+
+        // Static synthetic methods have two additional arguments at the end.
+        final Type[] staticMethodTypes = Type.getArgumentTypes(descStatic);
+        StringBuilder desc = new StringBuilder("(");
+        for (int i=startAt; i<staticMethodTypes.length-2; ++i) {
+            desc.append(staticMethodTypes[i].toString());
+        }
+        desc.append(")");
+        desc.append(Type.getReturnType(descStatic));
+        return desc.toString();
+    }
+
+    @Override
+    public void visitEnd() {
+        // Now look at our synthetic static collection and try and match up these methods with their class counterpart.
+        // If we find a match in name and type signature then mark it as suspendable. We know these methods are synthetic.
+        // Be careful though as we need to look for class members _or_ static class members with no this pointer.
+        for (Pair<String,String> p : methodsSyntheticStatic) {
+            // We know name ends in $default. So remove last $default characters.
+            final int defaultLen = "$default".length();
+            final String name = p.getFirst().substring(0, p.getFirst().length() - defaultLen);
+
+            // Try at argument positions 0 an 1. Static method has no this pointer in first argument position.
+            for (int i=0; i<2; ++i) {
+
+                // Try and look up a matching method in classEntry.
+                final SuspendableType type = classEntry.check(name, buildDescriptorFromSyntheticStatic(i, p.getSecond()));
+
+                if (type != null) {
+                    // Finally if we've found a non null match that is suspendable set it on the synthetic static.
+                    if (type != SuspendableType.NON_SUSPENDABLE) {
+                        classEntry.set(p.getFirst(), p.getSecond(), SuspendableType.SUSPENDABLE);
+                    }
+                    // Only find one match and we're done.
+                    break;
+                }
+            }
+        }
+        super.visitEnd();
+    }
 }
