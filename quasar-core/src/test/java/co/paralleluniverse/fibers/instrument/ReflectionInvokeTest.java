@@ -30,7 +30,7 @@ import org.junit.Test;
  * @author Matthias Mann
  */
 public class ReflectionInvokeTest {
-    private ArrayList<String> results = new ArrayList<String>();
+    private final ArrayList<String> results = new ArrayList<>();
 
     private String suspendableMethod() throws SuspendExecution {
         Fiber.park();

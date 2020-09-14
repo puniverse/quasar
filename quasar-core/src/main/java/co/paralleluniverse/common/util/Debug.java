@@ -55,7 +55,7 @@ public class Debug {
         for (StackTraceElement ste : stack) {
             if (ste.getClassName().startsWith("org.junit")
                     || ste.getClassName().startsWith("junit.framework")
-                    || ste.getClassName().contains("JUnitTestClassExecuter")) {
+                    || ste.getClassName().contains("JUnitTestClass")) {
                 isUnitTest = true;
                 break;
             }
