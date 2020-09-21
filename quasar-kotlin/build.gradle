@@ -3,16 +3,15 @@ plugins {
     id 'org.javamodularity.moduleplugin'
 }
 
-apply plugin: 'kotlin'
-apply plugin: 'org.javamodularity.moduleplugin'
-
-ext.moduleName = 'co.paralleluniverse.quasar.kotlin'
+ext {
+    moduleName = 'co.paralleluniverse.quasar.kotlin'
+}
 
 sourceCompatibility = '11'
 targetCompatibility = '11'
 
 dependencies {
-    compile project(':quasar-core')
+    compile project(path: ':quasar-core', configuration: 'shadowedJar')
     compile project(':quasar-actors')
 
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
@@ -22,7 +21,7 @@ dependencies {
     testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion"
 }
 
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
         jvmTarget = "11"
     }
@@ -30,6 +29,6 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
 
 classes {
     doLast {
-        scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtime])
+        scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtimeClasspath])
     }
 }

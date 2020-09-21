@@ -73,7 +73,6 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.concurrent.util.MapUtil;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -86,8 +85,9 @@ import java.lang.ref.WeakReference;
 import java.security.ProtectionDomain;
 import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
-import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
+import static co.paralleluniverse.common.asm.ASMUtil.ASMAPI;
 
 /*
  * @author pron
@@ -97,7 +97,7 @@ import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 public class JavaAgent {
     private static final String USAGE = "Usage: vdmcbx(exclusion;...)l(exclusion;...) (verbose, debug, allow monitors, check class, allow blocking)";
     private static volatile boolean ACTIVE;
-    private static final Set<WeakReference<ClassLoader>> classLoaders = Collections.newSetFromMap(MapUtil.<WeakReference<ClassLoader>, Boolean>newConcurrentHashMap());
+    private static final Set<WeakReference<ClassLoader>> classLoaders = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     public static void premain(String agentArguments, Instrumentation instrumentation) {
         if (!instrumentation.isRetransformClassesSupported())

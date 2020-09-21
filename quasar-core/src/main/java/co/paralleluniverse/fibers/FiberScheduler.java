@@ -78,7 +78,7 @@ public abstract class FiberScheduler implements FiberFactory, StrandFactory {
     
     abstract Future<Void> schedule(Fiber<?> fiber, Object blocker, long delay, TimeUnit unit);
 
-    abstract Map<Thread, Fiber> getRunningFibers();
+    abstract Map<Thread, Fiber<?>> getRunningFibers();
 
     protected abstract int getQueueLength();
 
@@ -86,7 +86,7 @@ public abstract class FiberScheduler implements FiberFactory, StrandFactory {
 
     protected abstract boolean isCurrentThreadInScheduler();
 
-    void setCurrentFiber(Fiber fiber, Thread currentThread) {
+    void setCurrentFiber(Fiber<?> fiber, Thread currentThread) {
         Fiber.setCurrentStrand(fiber);
     }
 

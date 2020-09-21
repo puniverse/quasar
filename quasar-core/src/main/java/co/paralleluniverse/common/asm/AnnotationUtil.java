@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.common.reflection;
+package co.paralleluniverse.common.asm;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -20,16 +20,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+
+import static co.paralleluniverse.common.asm.ASMUtil.ASMAPI;
 
 /**
  *
  * @author pron
  */
 public final class AnnotationUtil {
-    public static final int ASMAPI = Opcodes.ASM7;
-    
     public static boolean hasClassAnnotation(Class<? extends Annotation> annotationType, byte[] classData) {
         return hasClassAnnotation(annotationType, new ClassReader(classData));
     }

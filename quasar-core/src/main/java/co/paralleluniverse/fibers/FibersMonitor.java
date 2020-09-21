@@ -21,13 +21,13 @@ import java.util.Collection;
  */
 public interface FibersMonitor {
 
-    void fiberStarted(Fiber fiber);
+    void fiberStarted(Fiber<?> fiber);
 
     void fiberResumed();
 
     void fiberSuspended();
 
-    void fiberTerminated(Fiber fiber);
+    void fiberTerminated(Fiber<?> fiber);
     
     void spuriousWakeup();
     
@@ -35,5 +35,5 @@ public interface FibersMonitor {
     
     void unregister();
     
-    void setRunawayFibers(Collection<Fiber> fs);
+    void setRunawayFibers(Collection<Fiber<?>> fs);
 }

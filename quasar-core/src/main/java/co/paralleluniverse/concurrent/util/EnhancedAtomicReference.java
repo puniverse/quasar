@@ -13,8 +13,8 @@
  */
 package co.paralleluniverse.concurrent.util;
 
-import com.google.common.base.Function;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 /**
  * Extension of {@link AtomicReference} with useful methods based on CAS.

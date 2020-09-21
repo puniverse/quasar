@@ -8,6 +8,7 @@ pluginManagement {
         id 'com.dorongold.task-tree' version taskTreeVersion
         id 'com.github.johnrengelman.shadow' version shadowVersion
         id 'com.jfrog.artifactory' version artifactoryVersion
+        id 'biz.aQute.bnd.builder' version bndVersion
         id 'org.javamodularity.moduleplugin' version modulepluginVersion
     }
 }

@@ -171,10 +171,10 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
     private static int getSlot(/*Executable*/Member m) {
         try {
             if (m instanceof Constructor)
-                return ctorSlot.getInt((Constructor) m);
+                return ctorSlot.getInt(m);
             else if (m instanceof Field)
-                return fieldSlot.getInt((Field) m);
-            return methodSlot.getInt((Method) m);
+                return fieldSlot.getInt(m);
+            return methodSlot.getInt(m);
         } catch (IllegalAccessException e) {
             throw new AssertionError(e);
         }
@@ -182,7 +182,7 @@ class ExtendedStackTraceHotSpot extends ExtendedStackTrace {
 
     private static Object getBacktrace(Throwable t) {
         // the JVM blocks access to Throwable.backtrace via reflection
-        return (Object[]) UNSAFE.getObject(t, BACKTRACE_FIELD_OFFSET);
+        return UNSAFE.getObject(t, BACKTRACE_FIELD_OFFSET);
 //        try {
 //            return (Object[]) backtrace.get(t);
 //        } catch (IllegalAccessException e) {

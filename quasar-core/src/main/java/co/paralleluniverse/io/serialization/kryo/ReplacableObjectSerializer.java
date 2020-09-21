@@ -30,7 +30,7 @@ import static java.security.AccessController.doPrivileged;
  * @author pron
  */
 class ReplacableObjectSerializer extends FieldSerializer<Object> {
-    public ReplacableObjectSerializer(Kryo kryo, Class type) {
+    public ReplacableObjectSerializer(Kryo kryo, Class<?> type) {
         super(kryo, type);
     }
 
@@ -58,7 +58,7 @@ class ReplacableObjectSerializer extends FieldSerializer<Object> {
 
     private static Object getReplacement(Object obj, final String replaceMethodName) {
         try {
-            Class clazz = obj.getClass();
+            Class<?> clazz = obj.getClass();
             if (!Serializable.class.isAssignableFrom(clazz))
                 return obj;
 
@@ -66,7 +66,7 @@ class ReplacableObjectSerializer extends FieldSerializer<Object> {
             try {
                 m = getDeclaredMethod(clazz, replaceMethodName);
             } catch (NoSuchMethodException ex) {
-                Class ancestor = clazz.getSuperclass();
+                Class<?> ancestor = clazz.getSuperclass();
                 while (ancestor != null) {
                     if (!Serializable.class.isAssignableFrom(ancestor))
                         return obj;

@@ -13,9 +13,11 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import java.util.ServiceLoader;
+
+import static co.paralleluniverse.fibers.instrument.Classes.LAMBDA_METHOD_PREFIX;
+import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
 
 /**
  *
@@ -53,7 +55,7 @@ public class DefaultSuspendableClassifier implements SuspendableClassifier {
                 return SuspendableType.SUSPENDABLE;
 
             // lambda$
-            if (methodName.startsWith(Classes.LAMBDA_METHOD_PREFIX))
+            if (methodName.startsWith(LAMBDA_METHOD_PREFIX))
                 return SuspendableType.SUSPENDABLE;
         } catch (Exception e) {
             e.printStackTrace();

@@ -41,17 +41,20 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.fibers.SuspendExecution;
-import static co.paralleluniverse.fibers.instrument.Classes.INSTRUMENTED_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.SUSPENDABLE_DESC;
-import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
-
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
-import org.objectweb.asm.*;
+import org.objectweb.asm.AnnotationVisitor;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 import java.util.ArrayList;
+import java.util.List;
 
+import static co.paralleluniverse.common.asm.ASMUtil.ASMAPI;
+import static co.paralleluniverse.fibers.instrument.Classes.INSTRUMENTED_DESC;
+import static co.paralleluniverse.fibers.instrument.Classes.SUSPENDABLE_DESC;
 
 /**
  * Check if a class contains suspendable methods.
@@ -59,7 +62,7 @@ import java.util.ArrayList;
  *
  * @author Matthias Mann
  */
-public class CheckInstrumentationVisitor extends ClassVisitor {
+class CheckInstrumentationVisitor extends ClassVisitor {
     private final MethodDatabase db;
     private final SuspendableClassifier classifier;
     private String sourceName;
@@ -70,9 +73,9 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
     private ClassEntry classEntry;
     private boolean hasSuspendable;
     private boolean alreadyInstrumented;
-    private final ArrayList<Pair<String,String>> methodsSyntheticStatic;
+    private final List<Pair<String,String>> methodsSyntheticStatic;
 
-    public CheckInstrumentationVisitor(MethodDatabase db) {
+    CheckInstrumentationVisitor(MethodDatabase db) {
         super(ASMAPI);
         this.methodsSyntheticStatic = new ArrayList<>();
         this.db = db;
@@ -162,7 +165,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
                     // It may be missing annotations that we can fix later in visitEnd.
                     final int ACC_STATIC_SYNTHETIC = Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC;
                     if (!susp && ((access & ACC_STATIC_SYNTHETIC) == ACC_STATIC_SYNTHETIC) && name.endsWith("$default")) {
-                        methodsSyntheticStatic.add(new Pair(name, desc));
+                        methodsSyntheticStatic.add(new Pair<>(name, desc));
                     }
 
                     classEntry.set(name, desc, InstrumentClass.suspendableToSuperIfAbstract(access, susp ? SuspendableType.SUSPENDABLE : SuspendableType.NON_SUSPENDABLE));
@@ -192,7 +195,7 @@ public class CheckInstrumentationVisitor extends ClassVisitor {
         for (int i=startAt; i<staticMethodTypes.length-2; ++i) {
             desc.append(staticMethodTypes[i].toString());
         }
-        desc.append(")");
+        desc.append(')');
         desc.append(Type.getReturnType(descStatic));
         return desc.toString();
     }

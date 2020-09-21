@@ -14,7 +14,7 @@
 package co.paralleluniverse.fibers;
 
 public final class FiberControl {
-    public static boolean unpark(Fiber f, Object unblocker) {
+    public static boolean unpark(Fiber<?> f, Object unblocker) {
         return f.unpark1(unblocker);
     }
 

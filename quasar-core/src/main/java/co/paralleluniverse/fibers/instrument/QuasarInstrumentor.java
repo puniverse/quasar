@@ -13,13 +13,10 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.common.util.Debug;
-import co.paralleluniverse.common.util.SystemProperties;
-import co.paralleluniverse.common.util.VisibleForTesting;
+import co.paralleluniverse.common.asm.ASMUtil;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.util.CheckClassAdapter;
 import org.objectweb.asm.util.TraceClassVisitor;
 
@@ -30,6 +27,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.WeakHashMap;
 import java.util.regex.Pattern;
 
@@ -38,11 +36,28 @@ import java.util.regex.Pattern;
  */
 public final class QuasarInstrumentor {
     @SuppressWarnings("WeakerAccess")
-    public static final int ASMAPI = Opcodes.ASM7;
+    public static final int ASMAPI = ASMUtil.ASMAPI;
 
-    private final static String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClasses");
-    private static final boolean allowJdkInstrumentation = SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.allowJdkInstrumentation");
-    private WeakHashMap<ClassLoader, MethodDatabase> dbForClassloader = new WeakHashMap<>();
+    private static final List<String> BUILT_IN_PACKAGES = List.of(
+        "co/paralleluniverse/asm/",
+        "co/paralleluniverse/common/asm/",
+        "co/paralleluniverse/common/resource/",
+        "org/objectweb/asm/", // For testing
+        "org/netbeans/lib/"
+    );
+
+    private static boolean isBuiltInPackage(String className) {
+        for (String packageName: BUILT_IN_PACKAGES) {
+            if (className.startsWith(packageName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static final String EXAMINED_CLASS = System.getProperty("co.paralleluniverse.fibers.writeInstrumentedClasses");
+    private static final boolean allowJdkInstrumentation = isEmptyOrTrue("co.paralleluniverse.fibers.allowJdkInstrumentation");
+    private final WeakHashMap<ClassLoader, MethodDatabase> dbForClassloader = new WeakHashMap<>();
     private MethodDatabase bootstrapDB;
     private boolean check;
     private final boolean aot;
@@ -54,6 +69,12 @@ public final class QuasarInstrumentor {
     private boolean verbose;
     private boolean debug;
     private int logLevelMask;
+
+    private static boolean isEmptyOrTrue(String value) {
+        if (value == null)
+            return false;
+        return value.isEmpty() || Boolean.parseBoolean(value);
+    }
 
     public QuasarInstrumentor() {
         this(false);
@@ -78,22 +99,21 @@ public final class QuasarInstrumentor {
     public boolean shouldInstrument(String className) {
         if (className != null) {
             className = className.replace('.', '/');
-            if (className.startsWith("co/paralleluniverse/fibers/instrument/") && !Debug.isUnitTest())
+            if (className.startsWith("co/paralleluniverse/fibers/instrument/") && !Debug.isUnitTest()) {
                 return false;
-            if (className.equals(Classes.FIBER_CLASS_NAME) || className.startsWith(Classes.FIBER_CLASS_NAME + '$'))
+            } else if (className.equals(Classes.FIBER_CLASS_NAME) || className.startsWith(Classes.FIBER_CLASS_NAME + '$')) {
                 return false;
-            if (className.equals(Classes.STACK_NAME))
+            } else if (className.equals(Classes.STACK_NAME)) {
                 return false;
-            if (className.startsWith("org/objectweb/asm/") || className.startsWith("co/paralleluniverse/asm/"))
+            } else if (className.equals(Classes.FIBER_HELPER_NAME) || className.startsWith(Classes.FIBER_HELPER_NAME + '$')) {
                 return false;
-            if (className.startsWith("org/gradle/"))
+            } else if (isBuiltInPackage(className)) {
                 return false;
-            if (className.startsWith("org/netbeans/lib/"))
+            } else if (className.startsWith("java/lang/") || (!allowJdkInstrumentation && MethodDatabase.isJDK(className))) {
                 return false;
-            if (className.startsWith("java/lang/") || (!allowJdkInstrumentation && MethodDatabase.isJDK(className)))
+            } else if (isExcluded(className)) {
                 return false;
-            if (isExcluded(className))
-                return false;
+            }
         }
         return true;
     }
@@ -108,7 +128,6 @@ public final class QuasarInstrumentor {
         return instrumentClass(loader, className, is, false);
     }
 
-    @VisibleForTesting
     byte[] instrumentClass(ClassLoader loader, String className, InputStream is, boolean forceInstrumentation) throws IOException {
         className = className != null ? className.replace('.', '/') : null;
 

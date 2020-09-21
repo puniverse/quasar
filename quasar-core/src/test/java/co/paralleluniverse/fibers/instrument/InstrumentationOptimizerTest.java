@@ -51,7 +51,7 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsToSuspendableVoid() throws InterruptedException, SuspendExecution, ExecutionException {
-        new Fiber(new SuspendableRunnable() {
+        new Fiber<>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 skipForwardsToSuspendableVoid();
@@ -71,7 +71,7 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsToSuspendableObject() throws InterruptedException, SuspendExecution, ExecutionException {
-        new Fiber(new SuspendableRunnable() {
+        new Fiber<>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 skipForwardsToSuspendableObject();
@@ -91,7 +91,7 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsToSuspendableDouble() throws InterruptedException, SuspendExecution, ExecutionException {
-        new Fiber(new SuspendableRunnable() {
+        new Fiber<>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 skipForwardsToSuspendableDouble();
@@ -111,7 +111,7 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsToSuspendableFloat() throws InterruptedException, SuspendExecution, ExecutionException {
-        new Fiber(new SuspendableRunnable() {
+        new Fiber<>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 skipForwardsToSuspendableFloat();
@@ -131,7 +131,7 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsToSuspendableInt() throws InterruptedException, SuspendExecution, ExecutionException {
-        new Fiber(new SuspendableRunnable() {
+        new Fiber<>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 skipForwardsToSuspendableInt();
@@ -151,7 +151,7 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsToSuspendableLong() throws InterruptedException, SuspendExecution, ExecutionException {
-        new Fiber(new SuspendableRunnable() {
+        new Fiber<>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 skipForwardsToSuspendableLong();
@@ -171,7 +171,7 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testDontSkipForwardsWithTryCatch() throws InterruptedException, SuspendExecution, ExecutionException {
-        new Fiber(new SuspendableRunnable() {
+        new Fiber<>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 dontSkipForwardsWithTryCatch();
@@ -187,7 +187,7 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testDontSkipForwardsWithLoop() throws InterruptedException, SuspendExecution, ExecutionException {
-        new Fiber(new SuspendableRunnable() {
+        new Fiber<>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 dontSkipForwardsWithLoop();
@@ -204,7 +204,7 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testDontSkipForwardsWithLoopBefore() throws InterruptedException, SuspendExecution, ExecutionException {
-        new Fiber(new SuspendableRunnable() {
+        new Fiber<>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 dontSkipForwardsWithLoopBefore();
@@ -221,7 +221,7 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsWithLoopAfter() throws InterruptedException, SuspendExecution, ExecutionException {
-        new Fiber(new SuspendableRunnable() {
+        new Fiber<>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 skipForwardsWithLoopAfter();
@@ -237,7 +237,7 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testDontSkipForwardsWithMethodBefore() throws InterruptedException, SuspendExecution, ExecutionException {
-        new Fiber(new SuspendableRunnable() {
+        new Fiber<>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 dontSkipForwardsWithMethodBefore();
@@ -253,7 +253,7 @@ public class InstrumentationOptimizerTest {
 
     @Test
     public void testSkipForwardsWithMethodAfter() throws InterruptedException, SuspendExecution, ExecutionException {
-        new Fiber(new SuspendableRunnable() {
+        new Fiber<>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 skipForwardsWithMethodAfter();
@@ -264,12 +264,12 @@ public class InstrumentationOptimizerTest {
 
     private void dontSkipForwardsWithReflectiveCalls() throws InterruptedException, SuspendExecution, NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         sleepFiberVoid();
-        getClass().getMethod("sleepFiberVoid", new Class[0]).invoke(this, new Object[0]);
+        getClass().getMethod("sleepFiberVoid").invoke(this);
     }
 
     @Test
     public void testDontSkipForwardsWithReflectiveCalls() throws InterruptedException, SuspendExecution, ExecutionException {
-        new Fiber(new SuspendableRunnable() {
+        new Fiber<>(new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 try {

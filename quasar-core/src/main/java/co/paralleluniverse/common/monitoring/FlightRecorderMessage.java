@@ -44,7 +44,7 @@ public class FlightRecorderMessage {
         if (args != null) {
             for (int i = 0; i < args.length; i++) {
                 if (args[i] != null && args[i].getClass().isArray()) {
-                    final Class t = args[i].getClass().getComponentType();
+                    final Class<?> t = args[i].getClass().getComponentType();
                     if (t == Boolean.TYPE)
                         args[i] = Arrays.toString((boolean[]) args[i]);
                     else if (t == Byte.TYPE)

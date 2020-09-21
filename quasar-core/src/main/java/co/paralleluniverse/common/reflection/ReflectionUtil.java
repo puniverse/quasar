@@ -190,7 +190,7 @@ public final class ReflectionUtil {
             return true;
 
         if (cls.isPrimitive()) {
-            if (toClass.isPrimitive() == false)
+            if (!toClass.isPrimitive())
                 return false;
 
             if (Integer.TYPE.equals(cls)) {
@@ -299,11 +299,11 @@ public final class ReflectionUtil {
         if (m instanceof Method)
             return ((Method) m).getParameterTypes();
         if (m instanceof Constructor)
-            return ((Constructor) m).getParameterTypes();
+            return ((Constructor<?>) m).getParameterTypes();
         throw new IllegalArgumentException("Not an executable: " + m);
     }
     
-    private static final Map<Class<?>, Class<?>> primitiveWrapperMap = new HashMap<Class<?>, Class<?>>();
+    private static final Map<Class<?>, Class<?>> primitiveWrapperMap = new HashMap<>();
 
     static {
         primitiveWrapperMap.put(Boolean.TYPE, Boolean.class);
@@ -316,7 +316,7 @@ public final class ReflectionUtil {
         primitiveWrapperMap.put(Float.TYPE, Float.class);
         primitiveWrapperMap.put(Void.TYPE, Void.TYPE);
     }
-    private static final Map<Class<?>, Class<?>> wrapperPrimitiveMap = new HashMap<Class<?>, Class<?>>();
+    private static final Map<Class<?>, Class<?>> wrapperPrimitiveMap = new HashMap<>();
 
     static {
         for (final Class<?> primitiveClass : primitiveWrapperMap.keySet()) {

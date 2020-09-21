@@ -70,7 +70,7 @@ import java.util.concurrent.TimeoutException;
  * @author pron
  */
 public abstract class FiberAsync<V, E extends Throwable> implements java.io.Serializable {
-    private final Fiber fiber;
+    private final Fiber<?> fiber;
     private final boolean immediateExec;
     private volatile boolean completed;
     private Throwable exception;
@@ -121,7 +121,7 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
         fiber.record(1, "FiberAsync", "run", "Blocking fiber %s on FiberAsync %s", fiber, this);
         while (!Fiber.park(this, new Fiber.ParkAction() {
             @Override
-            public void run(Fiber current) {
+            public void run(Fiber<?> current) {
                 try {
                     current.record(1, "FiberAsync", "run", "Calling requestAsync on class %s", this);
                     registrationThread = Thread.currentThread();
@@ -184,7 +184,7 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
         fiber.record(1, "FiberAsync", "run", "Blocking fiber %s on FibeAsync %s", fiber, this);
         while (!Fiber.park(this, new Fiber.ParkAction() {
             @Override
-            public void run(Fiber current) {
+            public void run(Fiber<?> current) {
                 try {
                     current.getScheduler().schedule(current, FiberAsync.this, timeout, unit);
                     current.record(1, "FiberAsync", "run", "Calling requestAsync on class %s", this);
@@ -344,14 +344,14 @@ public abstract class FiberAsync<V, E extends Throwable> implements java.io.Seri
         fire(fiber);
     }
 
-    private void fire(Fiber fiber) {
+    private void fire(Fiber<?> fiber) {
 //        if (Thread.currentThread() != registrationThread)
 //            while (!registrationComplete); // spin
 
         if (immediateExec) {
             fiber.record(1, "FiberAsync", "fire", "%s - Immediate exec of fiber %s", this, fiber);
             if (!fiber.exec(this, new Fiber.ParkAction() {
-                public void run(Fiber current) {
+                public void run(Fiber<?> current) {
                     prepark();
                 }
             })) {

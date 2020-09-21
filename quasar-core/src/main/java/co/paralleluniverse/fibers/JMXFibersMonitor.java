@@ -52,7 +52,7 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
     private final Counter timedParkLatencyCounter = new Counter();
     private long spuriousWakeups;
     private long meanTimedWakeupLatency;
-    private Map<Fiber, StackTraceElement[]> problemFibers;
+    private Map<Fiber<?>, StackTraceElement[]> problemFibers;
     private long notificationSequenceNumber = 1;
 
     public JMXFibersMonitor(String name, FiberScheduler scheduler, boolean detailedInfo) {
@@ -147,14 +147,14 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
     }
 
     @Override
-    public void fiberStarted(Fiber fiber) {
+    public void fiberStarted(Fiber<?> fiber) {
         activeCount.inc();
         if (details != null)
             details.fiberStarted(fiber);
     }
 
     @Override
-    public void fiberTerminated(Fiber fiber) {
+    public void fiberTerminated(Fiber<?> fiber) {
         activeCount.dec();
         //runnableCount.dec();
         if (details != null)
@@ -185,12 +185,12 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
     }
 
     @Override
-    public void setRunawayFibers(Collection<Fiber> fs) {
+    public void setRunawayFibers(Collection<Fiber<?>> fs) {
         if (fs == null || fs.isEmpty())
             this.problemFibers = null;
         else {
-            Map<Fiber, StackTraceElement[]> map = new HashMap<>();
-            for (Fiber f : fs) {
+            Map<Fiber<?>, StackTraceElement[]> map = new HashMap<>();
+            for (Fiber<?> f : fs) {
                 Thread t = f.getRunningThread();
                 final String status;
                 if (t == null)
@@ -201,7 +201,7 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
                     status = "blocking a thread (" + t + ")";
                 StackTraceElement[] st = f.getStackTrace();
 
-                Map<Fiber, StackTraceElement[]> pf = problemFibers;
+                Map<Fiber<?>, StackTraceElement[]> pf = problemFibers;
                 if (pf == null || !pf.containsKey(f)) {
                     Notification n = new RunawayFiberNotification(this, notificationSequenceNumber++, System.currentTimeMillis(),
                             "Runaway fiber " + f.getName() + " is " + status + ":\n" + Strand.toString(st));
@@ -217,7 +217,7 @@ class JMXFibersMonitor extends StandardEmitterMBean implements FibersMonitor, No
     @Override
     public Map<String, String> getRunawayFibers() {
         Map<String, String> map = new HashMap<>();
-        for (Map.Entry<Fiber, StackTraceElement[]> e : problemFibers.entrySet())
+        for (Map.Entry<Fiber<?>, StackTraceElement[]> e : problemFibers.entrySet())
             map.put(e.getKey().toString(), Strand.toString(e.getValue()));
         return map;
     }

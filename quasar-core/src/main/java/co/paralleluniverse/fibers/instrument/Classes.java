@@ -13,13 +13,11 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.fibers.*;
-
 import java.lang.reflect.UndeclaredThrowableException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
-import co.paralleluniverse.fibers.Stack;
-import co.paralleluniverse.strands.Strand;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodInsnNode;
 
@@ -28,34 +26,35 @@ import org.objectweb.asm.tree.MethodInsnNode;
  *
  * @author pron
  */
-public final class Classes {
-    private static final BlockingMethod BLOCKING_METHODS[] = {
+final class Classes {
+    private static final BlockingMethod[] BLOCKING_METHODS = {
         new BlockingMethod("java/lang/Thread", "sleep", "(J)V", "(JI)V"),
         new BlockingMethod("java/lang/Thread", "join", "()V", "(J)V", "(JI)V"),
-        new BlockingMethod("java/lang/Object", "wait", "()V", "(J)V", "(JI)V"),};
+        new BlockingMethod("java/lang/Object", "wait", "()V", "(J)V", "(JI)V")
+    };
 
-    private static final Set<String> yieldMethods = new HashSet<>(Arrays.asList(new String[]{
+    private static final Set<String> yieldMethods = Set.of(
         "park", "yield", "parkAndUnpark", "yieldAndUnpark", "parkAndSerialize", "parkAndCustomSerialize"
-    }));
+    );
 
-    // Don't load the classes
-    static final String STACK_NAME       = /*Stack.class.getName()*/ "co.paralleluniverse.fibers.Stack".replace('.', '/');
-    static final String FIBER_CLASS_NAME = /*Fiber.class.getName()*/ "co.paralleluniverse.fibers.Fiber".replace('.', '/');
-    static final String STRAND_NAME      = /*Strand.class.getName()*/"co.paralleluniverse.strands.Strand".replace('.', '/');
+    // Don't load these classes
+    static final String STACK_NAME       = /*Stack.class.getName().replace('.', '/')*/ "co/paralleluniverse/fibers/Stack";
+    static final String FIBER_CLASS_NAME = /*Fiber.class.getName().replace('.', '/')*/ "co/paralleluniverse/fibers/Fiber";
+    static final String STRAND_NAME      = /*Strand.class.getName().replace('.', '/')*/"co/paralleluniverse/strands/Strand";
+    static final String FIBER_HELPER_NAME = "co/paralleluniverse/fibers/FiberHelper";
 
     static final String THROWABLE_NAME         = Throwable.class.getName().replace('.', '/');
     static final String EXCEPTION_NAME         = Exception.class.getName().replace('.', '/');
     static final String RUNTIME_EXCEPTION_NAME = RuntimeException.class.getName().replace('.', '/');
 
-    static final String RUNTIME_SUSPEND_EXECUTION_NAME = RuntimeSuspendExecution.class.getName().replace('.', '/');
+    static final String RUNTIME_SUSPEND_EXECUTION_NAME = "co/paralleluniverse/fibers/RuntimeSuspendExecution";
     static final String UNDECLARED_THROWABLE_NAME      = UndeclaredThrowableException.class.getName().replace('.', '/');
-    static final String SUSPEND_EXECUTION_NAME         = SuspendExecution.class.getName().replace('.', '/');
+    static final String SUSPEND_EXECUTION_NAME         = "co/paralleluniverse/fibers/SuspendExecution";
     
     // computed
-    // static final String EXCEPTION_DESC = "L" + SUSPEND_EXECUTION_NAME + ";";
-    static final String SUSPENDABLE_DESC = Type.getDescriptor(Suspendable.class);
+    static final String SUSPENDABLE_DESC = "Lco/paralleluniverse/fibers/Suspendable;";
     static final String DONT_INSTRUMENT_DESC = Type.getDescriptor(DontInstrument.class);
-    static final String INSTRUMENTED_DESC = Type.getDescriptor(Instrumented.class);
+    static final String INSTRUMENTED_DESC = "Lco/paralleluniverse/fibers/Instrumented;";
     static final String LAMBDA_METHOD_PREFIX = "lambda$";
 
     static boolean isYieldMethod(String className, String methodName) {

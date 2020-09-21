@@ -13,6 +13,8 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.fibers.instrument.Constants;
+
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -25,26 +27,27 @@ import java.util.Arrays;
  * @author Ron Pressler
  */
 public final class Stack implements Serializable {
-    /*
+    /**
      * sp points to the first slot to contain data.
      * The _previous_ FRAME_RECORD_SIZE slots contain the frame record.
      * The frame record currently occupies a single long:
      *   - entry (PC)         : 14 bits
      *   - num slots          : 16 bits
      *   - prev method slots  : 16 bits
+     *
+     * @see Constants#STACK_MAX_ENTRY
+     * @see Constants#STACK_MAX_SLOTS
      */
-    public static final int MAX_ENTRY = (1 << 14) - 1;
-    public static final int MAX_SLOTS = (1 << 16) - 1;
     private static final int INITIAL_METHOD_STACK_DEPTH = 16;
     private static final int FRAME_RECORD_SIZE = 1;
     private static final long serialVersionUID = 12786283751253L;
-    private final Fiber fiber;
+    private final Fiber<?> fiber;
     private int sp;
     private transient boolean pushed;
     private long[] dataLong;        // holds primitives on stack as well as each method's entry point and the stack pointer
     private Object[] dataObject;    // holds refs on stack
 
-    Stack(Fiber fiber, int stackSize) {
+    Stack(Fiber<?> fiber, int stackSize) {
         if (stackSize <= 0)
             throw new IllegalArgumentException("stackSize");
 
@@ -56,11 +59,11 @@ public final class Stack implements Serializable {
     }
 
     public static Stack getStack() {
-        final Fiber currentFiber = Fiber.currentFiber();
+        final Fiber<?> currentFiber = Fiber.currentFiber();
         return currentFiber != null ? currentFiber.stack : null;
     }
 
-    Fiber getFiber() {
+    Fiber<?> getFiber() {
         return fiber;
     }
 

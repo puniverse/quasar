@@ -16,8 +16,8 @@ package co.paralleluniverse.fibers.instrument;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.AbstractInsnNode;
 
+import static co.paralleluniverse.common.asm.ASMUtil.ASMAPI;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
-import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 
 /**
  * @author circlespainter

@@ -1,10 +1,10 @@
 package co.paralleluniverse.fibers.instrument;
 
-import org.objectweb.asm.Type;
 import co.paralleluniverse.fibers.Instrumented;
+import org.objectweb.asm.Type;
+import org.junit.Test;
 import java.io.IOException;
 import java.io.InputStream;
-import org.junit.Test;
 
 /**
  * Test to check NPE in MethodDatabase.ClassEntry.equals.

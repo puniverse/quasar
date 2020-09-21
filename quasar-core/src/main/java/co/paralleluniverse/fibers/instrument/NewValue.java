@@ -44,7 +44,7 @@ class NewValue extends BasicValue {
     public final AbstractInsnNode insn;
     public boolean omitted;
 
-    public NewValue(Type type, boolean isDupped, AbstractInsnNode insn) {
+    NewValue(Type type, boolean isDupped, AbstractInsnNode insn) {
         super(type);
         this.isDupped = isDupped;
         this.insn = insn;

@@ -28,12 +28,12 @@ import java.security.PrivilegedActionException;
 import static java.security.AccessController.doPrivileged;
 
 /**
- * A subclass of {@link Kryo} that respects {@link Serializable java.io.Serializable}'s {@code writeReplace} and {@code readResolve}.
+ * A subclass of {@link Kryo} that respects {@link Serializable}'s {@code writeReplace} and {@code readResolve}.
  *
  * @author pron
  */
 public class ReplaceableObjectKryo extends Kryo {
-    private static final ClassValue<SerializationMethods> replaceMethodsCache = new ClassValue<SerializationMethods>() {
+    private static final ClassValue<SerializationMethods> replaceMethodsCache = new ClassValue<>() {
         @Override
         protected SerializationMethods computeValue(Class<?> type) {
             return new SerializationMethods(getMethodByReflection(type, WRITE_REPLACE),
@@ -64,10 +64,10 @@ public class ReplaceableObjectKryo extends Kryo {
     }
 
     @Override
-    protected Serializer newDefaultSerializer(Class type) {
-        final Serializer s = super.newDefaultSerializer(type);
+    protected Serializer<?> newDefaultSerializer(Class type) {
+        final Serializer<?> s = super.newDefaultSerializer(type);
         if (s instanceof FieldSerializer)
-            ((FieldSerializer) s).setIgnoreSyntheticFields(false);
+            ((FieldSerializer<?>) s).setIgnoreSyntheticFields(false);
         return s;
     }
 
@@ -134,7 +134,7 @@ public class ReplaceableObjectKryo extends Kryo {
         }
     }
 
-    private static SerializationMethods getMethods(Class clazz) {
+    private static SerializationMethods getMethods(Class<?> clazz) {
         return replaceMethodsCache.get(clazz);
     }
 
@@ -150,7 +150,7 @@ public class ReplaceableObjectKryo extends Kryo {
         }
     }
 
-    private static Method getMethodByReflection(Class clazz, final String methodName, Class<?>... paramTypes) throws SecurityException {
+    private static Method getMethodByReflection(Class<?> clazz, final String methodName, Class<?>... paramTypes) throws SecurityException {
         if (!Serializable.class.isAssignableFrom(clazz))
             return null;
 
@@ -158,7 +158,7 @@ public class ReplaceableObjectKryo extends Kryo {
         try {
             m = getDeclaredMethod(clazz, methodName, paramTypes);
         } catch (NoSuchMethodException ex) {
-            Class ancestor = clazz.getSuperclass();
+            Class<?> ancestor = clazz.getSuperclass();
             while (ancestor != null) {
                 if (!Serializable.class.isAssignableFrom(ancestor))
                     return null;

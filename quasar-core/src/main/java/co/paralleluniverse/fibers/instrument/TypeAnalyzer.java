@@ -45,7 +45,7 @@ import org.objectweb.asm.tree.analysis.Value;
  * @author matthias
  */
 class TypeAnalyzer extends Analyzer {
-    public TypeAnalyzer(MethodDatabase db) {
+    TypeAnalyzer(MethodDatabase db) {
         super(new TypeInterpreter(db));
     }
 

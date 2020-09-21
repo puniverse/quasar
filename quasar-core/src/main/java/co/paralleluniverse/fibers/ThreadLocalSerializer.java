@@ -53,7 +53,7 @@ public class ThreadLocalSerializer extends Serializer<ThreadLocal<?>> {
     @Override
     public ThreadLocal<?> read(Kryo kryo, Input input, Class<ThreadLocal<?>> type) {
         final boolean inheritable = input.readBoolean();
-        final ThreadLocal tl = inheritable ? new InheritableThreadLocal() : new ThreadLocal();
+        final ThreadLocal<? super Object> tl = inheritable ? new InheritableThreadLocal<>() : new ThreadLocal<>();
 
         final Object val = kryo.readClassAndObject(input);
         if (!(val instanceof DEFAULT))

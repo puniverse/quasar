@@ -41,6 +41,8 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.fibers.instrument.Constants;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -60,16 +62,16 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Instrumented {
     // Relevant only for methods
-    String FIELD_NAME_METHOD_OPTIMIZED = "methodOptimized";
+    String FIELD_NAME_METHOD_OPTIMIZED = Constants.FIELD_NAME_METHOD_OPTIMIZED;
     boolean methodOptimized() default false;
-    String FIELD_NAME_SUSPENDABLE_CALL_SITES = "suspendableCallSites";
+    String FIELD_NAME_SUSPENDABLE_CALL_SITES = Constants.FIELD_NAME_SUSPENDABLE_CALL_SITES;
     int[] suspendableCallSites() default {}; // in source lines
-    String FIELD_NAME_METHOD_START = "methodStart";
+    String FIELD_NAME_METHOD_START = Constants.FIELD_NAME_METHOD_START;
     int methodStart() default -1; // the source line of the start of the method
-    String FIELD_NAME_METHOD_END = "methodEnd";
+    String FIELD_NAME_METHOD_END = Constants.FIELD_NAME_METHOD_END;
     int methodEnd() default -1; // the source line of the end of the method
-    String FIELD_NAME_SUSPENDABLE_CALL_SITE_NAMES = "suspendableCallSiteNames";
+    String FIELD_NAME_SUSPENDABLE_CALL_SITE_NAMES = Constants.FIELD_NAME_SUSPENDABLE_CALL_SITE_NAMES;
     String[] suspendableCallSiteNames() default {};
-    String FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR = "suspendableCallSitesOffsetsAfterInstr";
+    String FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR = Constants.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR;
     int[] suspendableCallSitesOffsetsAfterInstr() default {}; // in bci
 }

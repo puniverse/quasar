@@ -37,14 +37,14 @@ import org.objectweb.asm.ClassWriter;
  * @author Matthias Mann
  */
 class DBClassWriter extends ClassWriter {
-    
+
     private final MethodDatabase db;
 
-    public DBClassWriter(MethodDatabase db, ClassReader classReader) {
+    DBClassWriter(MethodDatabase db, ClassReader classReader) {
         super(classReader, COMPUTE_FRAMES | COMPUTE_MAXS);
         this.db = db;
     }
-    
+
     @Override
     protected String getCommonSuperClass(String type1, String type2) {
         return db.getCommonSuperClass(type1, type2);

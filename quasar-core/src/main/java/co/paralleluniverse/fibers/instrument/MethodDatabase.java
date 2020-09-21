@@ -41,16 +41,15 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.common.reflection.ClassLoaderUtil;
-import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
-import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
+import co.paralleluniverse.common.resource.ClassLoaderUtil;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Opcodes;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -58,9 +57,9 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.Objects;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Opcodes;
+
+import static co.paralleluniverse.common.asm.ASMUtil.ASMAPI;
+import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
 
 /**
  * <p>
@@ -71,14 +70,14 @@ import org.objectweb.asm.Opcodes;
  * @author Matthias Mann
  * @author pron
  */
-public class MethodDatabase {
+public final class MethodDatabase {
     private final WeakReference<ClassLoader> clRef;
     private final SuspendableClassifier classifier;
     private final NavigableMap<String, ClassEntry> classes;
     private final HashMap<String, String> superClasses;
     private final QuasarInstrumentor instrumentor;
 
-    public MethodDatabase(QuasarInstrumentor instrumentor, ClassLoader classloader, SuspendableClassifier classifier) {
+    MethodDatabase(QuasarInstrumentor instrumentor, ClassLoader classloader, SuspendableClassifier classifier) {
         this.instrumentor = instrumentor;
         this.clRef = classloader != null ? new WeakReference<>(classloader) : null;
         this.classifier = classifier;
@@ -373,7 +372,7 @@ public class MethodDatabase {
     }
 
     private ArrayList<String> getSuperClasses(String className) {
-        ArrayList<String> result = new ArrayList<String>();
+        ArrayList<String> result = new ArrayList<>();
         for (;;) {
             result.add(0, className);
             if ("java/lang/Object".equals(className)) {
@@ -450,7 +449,7 @@ public class MethodDatabase {
 
     public enum SuspendableType {
         NON_SUSPENDABLE, SUSPENDABLE_SUPER, SUSPENDABLE
-    };
+    }
 
     public static final class ClassEntry {
         private final HashMap<String, SuspendableType> methods;
@@ -563,10 +562,10 @@ public class MethodDatabase {
         }
     }
 
-    public static class ExtractSuperClass extends ClassVisitor {
+    static class ExtractSuperClass extends ClassVisitor {
         String superClass;
 
-        public ExtractSuperClass() {
+        ExtractSuperClass() {
             super(ASMAPI);
         }
 

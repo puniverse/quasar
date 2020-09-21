@@ -41,16 +41,8 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import static co.paralleluniverse.fibers.instrument.Classes.*;
-import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
-
 import co.paralleluniverse.fibers.instrument.MethodDatabase.ClassEntry;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-
-import org.objectweb.asm.Type;
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -59,6 +51,11 @@ import org.objectweb.asm.commons.JSRInlinerAdapter;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.analysis.AnalyzerException;
+import java.util.ArrayList;
+import java.util.List;
+
+import static co.paralleluniverse.common.asm.ASMUtil.ASMAPI;
+import static co.paralleluniverse.fibers.instrument.Classes.*;
 
 /**
  * Instrument a class by instrumenting all suspendable methods and copying the others.
@@ -77,7 +74,7 @@ class InstrumentClass extends ClassVisitor {
     private boolean suspendableInterface;
     private ClassEntry classEntry;
     private boolean alreadyInstrumented;
-    private ArrayList<MethodNode> methodsSuspendable;
+    private final List<MethodNode> methodsSuspendable;
 
     private RuntimeException exception;
 
@@ -87,6 +84,7 @@ class InstrumentClass extends ClassVisitor {
         this.classifier = db.getClassifier();
         this.forceInstrumentation = forceInstrumentation;
         this.suspendableInterface = false;
+        this.methodsSuspendable = new ArrayList<>();
     }
 
     static SuspendableType suspendableToSuperIfAbstract(int access, SuspendableType suspendable) {
@@ -108,7 +106,7 @@ class InstrumentClass extends ClassVisitor {
 
         this.forceInstrumentation |= classEntry.requiresInstrumentation();
 
-        // need atleast 1.5 for annotations to work
+        // need at least 1.5 for annotations to work
         if (version < Opcodes.V1_5)
             version = Opcodes.V1_5;
 
@@ -130,12 +128,12 @@ class InstrumentClass extends ClassVisitor {
     }
 
     boolean hasSuspendableMethods() {
-        return methodsSuspendable != null && !methodsSuspendable.isEmpty();
+        return !methodsSuspendable.isEmpty();
     }
 
     @Override
     public AnnotationVisitor visitAnnotation(String desc, boolean visible) {
-        if (desc.equals(INSTRUMENTED_DESC))
+        if (desc.equals(INSTRUMENTED_DESC) || desc.equals(DONT_INSTRUMENT_DESC))
             this.alreadyInstrumented = true;
         else if (isInterface && desc.equals(SUSPENDABLE_DESC))
             this.suspendableInterface = true;
@@ -158,15 +156,11 @@ class InstrumentClass extends ClassVisitor {
         final SuspendableType suspendable = max(markedSuspendable, setSuspendable, SuspendableType.NON_SUSPENDABLE);
 
         if (checkAccessForMethodVisitor(access) && !isYieldMethod(className, name)) {
-            if (methodsSuspendable == null) {
-                methodsSuspendable = new ArrayList<>();
-            }
-
             final MethodNode mn = new MethodNode(access, name, desc, signature, exceptions);
 
             return new MethodVisitor(ASMAPI, mn) {
                 private SuspendableType susp = suspendable;
-                private boolean commited = false;
+                private boolean committed = false;
 
                 @Override
                 public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
@@ -201,10 +195,10 @@ class InstrumentClass extends ClassVisitor {
                 }
 
                 private void commit() {
-                    if (commited) {
+                    if (committed) {
                         return;
                     }
-                    commited = true;
+                    committed = true;
 
                     if (db.isDebug())
                         db.log(LogLevel.INFO, "Method %s#%s%s suspendable: %s (markedSuspendable: %s setSuspendable: %s)", className, name, desc, susp, susp, setSuspendable);

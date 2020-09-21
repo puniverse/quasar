@@ -24,7 +24,7 @@ public class NoopFibersMonitor implements FibersMonitor {
     }
 
     @Override
-    public void fiberStarted(Fiber fiber) {
+    public void fiberStarted(Fiber<?> fiber) {
     }
 
     @Override
@@ -36,7 +36,7 @@ public class NoopFibersMonitor implements FibersMonitor {
     }
 
     @Override
-    public void fiberTerminated(Fiber fiber) {
+    public void fiberTerminated(Fiber<?> fiber) {
     }
 
     @Override
@@ -48,7 +48,7 @@ public class NoopFibersMonitor implements FibersMonitor {
     }
 
     @Override
-    public void setRunawayFibers(Collection<Fiber> fs) {
+    public void setRunawayFibers(Collection<Fiber<?>> fs) {
     } 
 
     @Override

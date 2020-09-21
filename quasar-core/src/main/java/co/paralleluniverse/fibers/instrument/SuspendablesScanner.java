@@ -13,15 +13,22 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.common.reflection.ClassLoaderUtil;
-import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
-import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;
-import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
-import static co.paralleluniverse.fibers.instrument.Classes.SUSPENDABLE_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_DESC;
-import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
+import co.paralleluniverse.common.resource.ClassLoaderUtil;
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
-import com.google.common.base.Function;
+import org.apache.tools.ant.AntClassLoader;
+import org.apache.tools.ant.BuildException;
+import org.apache.tools.ant.DirectoryScanner;
+import org.apache.tools.ant.Project;
+import org.apache.tools.ant.Task;
+import org.apache.tools.ant.types.FileSet;
+import org.objectweb.asm.AnnotationVisitor;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.Handle;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -51,19 +58,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
-import org.apache.tools.ant.AntClassLoader;
-import org.apache.tools.ant.BuildException;
-import org.apache.tools.ant.DirectoryScanner;
-import org.apache.tools.ant.Project;
-import org.apache.tools.ant.Task;
-import org.apache.tools.ant.types.FileSet;
-import org.objectweb.asm.AnnotationVisitor;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Handle;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
+import java.util.function.Function;
+
+import static co.paralleluniverse.common.asm.ASMUtil.ASMAPI;
+import static co.paralleluniverse.common.resource.ClassLoaderUtil.classToResource;
+import static co.paralleluniverse.common.resource.ClassLoaderUtil.isClassFile;
+import static co.paralleluniverse.fibers.instrument.Classes.DONT_INSTRUMENT_DESC;
+import static co.paralleluniverse.fibers.instrument.Classes.SUSPENDABLE_DESC;
+import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
 
 public class SuspendablesScanner extends Task {
     private final Map<String, MethodNode> methods = new HashMap<>();
@@ -193,15 +195,12 @@ public class SuspendablesScanner extends Task {
                 log("Scanned external suspendables in " + (tScanExternal - tStart) / 1000000 + " ms", Project.MSG_INFO);
 
             // scan classes in filesets
-            Function<InputStream, Void> fileVisitor = new Function<InputStream, Void>() {
-                @Override
-                public Void apply(InputStream is1) {
-                    try (InputStream is = is1) {
-                        createGraph(is);
-                        return null;
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
+            Function<InputStream, Void> fileVisitor = is1 -> {
+                try (InputStream is = is1) {
+                    createGraph(is);
+                    return null;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
             };
             if (ant)
@@ -243,7 +242,7 @@ public class SuspendablesScanner extends Task {
         });
     }
 
-    private void visitAntProject(Function<InputStream, Void> classFileVisitor) throws IOException {
+    private void visitAntProject(Function<InputStream, Void> classFileVisitor) {
         for (FileSet fs : filesets) {
             try {
                 final DirectoryScanner ds = fs.getDirectoryScanner(getProject());
@@ -310,7 +309,7 @@ public class SuspendablesScanner extends Task {
         private String className;
         private boolean suspendableClass;
 
-        public SuspendableClassifier(boolean inProject, int api, ClassVisitor cv) {
+        SuspendableClassifier(boolean inProject, int api, ClassVisitor cv) {
             super(api, cv);
             this.inProject = inProject;
         }
@@ -409,7 +408,7 @@ public class SuspendablesScanner extends Task {
         private final List<String> methods = new ArrayList<>();
         private ClassNode cn;
 
-        public ClassNodeVisitor(boolean inProject, int api, ClassVisitor cv) {
+        ClassNodeVisitor(boolean inProject, int api, ClassVisitor cv) {
             super(api, cv);
             this.inProject = inProject;
         }
@@ -447,7 +446,7 @@ public class SuspendablesScanner extends Task {
         private final boolean inProject;
         private String className;
 
-        public CallGraphVisitor(boolean inProject, int api, ClassVisitor cv) {
+        CallGraphVisitor(boolean inProject, int api, ClassVisitor cv) {
             super(api, cv);
             this.inProject = inProject;
         }
@@ -694,7 +693,7 @@ public class SuspendablesScanner extends Task {
         private int numSubs;
         private String[] methods;
 
-        public ClassNode(String name) {
+        ClassNode(String name) {
             this.name = name;
         }
 
@@ -767,12 +766,12 @@ public class SuspendablesScanner extends Task {
         private MethodNode[] callers;
         private int numCallers;
 
-        public MethodNode(String owner, String nameAndDesc) {
+        MethodNode(String owner, String nameAndDesc) {
             this.owner = owner.intern();
             this.name = nameAndDesc.intern();
         }
 
-        public void addCaller(MethodNode caller) {
+        void addCaller(MethodNode caller) {
             if (callers == null)
                 callers = new MethodNode[4];
             if (numCallers + 1 >= callers.length)
@@ -785,7 +784,7 @@ public class SuspendablesScanner extends Task {
         public Collection<MethodNode> getCallers() {
             if (callers == null)
                 return Collections.emptyList();
-            return new AbstractCollection<MethodNode>() {
+            return new AbstractCollection<>() {
                 public int size() {
                     return numCallers;
                 }

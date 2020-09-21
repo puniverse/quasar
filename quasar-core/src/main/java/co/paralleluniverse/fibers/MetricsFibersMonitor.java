@@ -35,7 +35,7 @@ class MetricsFibersMonitor implements FibersMonitor {
     private final Meter spuriousWakeups;
     private final Histogram timedParkLatency;
     private final Gauge<Map<String, String>> runawayFibers;
-    private Map<Fiber, StackTraceElement[]> problemFibers;
+    private Map<Fiber<?>, StackTraceElement[]> problemFibers;
 
     public MetricsFibersMonitor(String name, FiberScheduler scheduler) {
         this.activeCount = Metrics.counter(metric(name, "numActiveFibers"));
@@ -47,7 +47,7 @@ class MetricsFibersMonitor implements FibersMonitor {
             public Map<String, String> getValue() {
                 Map<String, String> map = new HashMap<>();
                 if (problemFibers != null) {
-                    for (Map.Entry<Fiber, StackTraceElement[]> e : problemFibers.entrySet())
+                    for (Map.Entry<Fiber<?>, StackTraceElement[]> e : problemFibers.entrySet())
                         map.put(e.getKey().toString(), Strand.toString(e.getValue()));
                 }
                 return map;
@@ -65,12 +65,12 @@ class MetricsFibersMonitor implements FibersMonitor {
     }
 
     @Override
-    public void fiberStarted(Fiber fiber) {
+    public void fiberStarted(Fiber<?> fiber) {
         activeCount.inc();
     }
 
     @Override
-    public void fiberTerminated(Fiber fiber) {
+    public void fiberTerminated(Fiber<?> fiber) {
         activeCount.dec();
         //runnableCount.dec();
     }
@@ -98,12 +98,12 @@ class MetricsFibersMonitor implements FibersMonitor {
     }
 
     @Override
-    public void setRunawayFibers(Collection<Fiber> fs) {
+    public void setRunawayFibers(Collection<Fiber<?>> fs) {
         if (fs == null || fs.isEmpty())
             this.problemFibers = null;
         else {
             this.problemFibers = new HashMap<>();
-            for (Fiber f : fs)
+            for (Fiber<?> f : fs)
                 problemFibers.put(f, f.getStackTrace());
         }
     }

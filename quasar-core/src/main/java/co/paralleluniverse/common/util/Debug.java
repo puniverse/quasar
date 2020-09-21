@@ -31,7 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * @author pron
  */
-public class Debug {
+public final class Debug {
     private static final boolean debugMode = SystemProperties.isEmptyOrTrue("co.paralleluniverse.debugMode");
     private static final String FLIGHT_RECORDER_DUMP_FILE = System.getProperty("co.paralleluniverse.flightRecorderDumpFile");
     private static final FlightRecorder flightRecorder = (debugMode && SystemProperties.isEmptyOrTrue("co.paralleluniverse.globalFlightRecorder") ? new FlightRecorder("PUNIVERSE-FLIGHT-RECORDER") : null);
@@ -368,16 +368,16 @@ public class Debug {
         return url != null ? url.toString() : null;
     }
 
-    private static Class findClass(String className) {
+    private static Class<?> findClass(String className) {
         try {
-            return Thread.currentThread().getContextClassLoader().loadClass(className);
+            return Class.forName(className, true, Thread.currentThread().getContextClassLoader());
         } catch (ClassNotFoundException e) {
+            try {
+                return Class.forName(className, true, Debug.class.getClassLoader());
+            } catch (ClassNotFoundException e2) {
+                return null;
+            }
         }
-        try {
-            return Class.forName(className);
-        } catch (ClassNotFoundException e) {
-        }
-        return null;
     }
 
     public static String getClassLoaderInfo(ClassLoader cl) {

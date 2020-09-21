@@ -24,11 +24,11 @@ import java.util.Objects;
  */
 public interface Mix<M> extends ReceivePort<M> {
 
-    public static enum SoloEffect { PAUSE_OTHERS, MUTE_OTHERS };
+    enum SoloEffect { PAUSE_OTHERS, MUTE_OTHERS }
 
-    public static enum Mode { NORMAL, PAUSE, MUTE };
+    enum Mode { NORMAL, PAUSE, MUTE }
 
-    public static class State {
+    class State {
         public final Mode mode;
         public final Boolean solo;
 
@@ -82,26 +82,26 @@ public interface Mix<M> extends ReceivePort<M> {
         }
     }
 
-    public <T extends ReceivePort<? extends M>> void add(final T... items) throws SuspendExecution, InterruptedException;
+    <T extends ReceivePort<? super M>> void add(final T... items) throws SuspendExecution, InterruptedException;
 
     /**
      * @param items If {@code null} or empty, all items will be removed.
      */
-    public <T extends ReceivePort<? extends M>> void remove(final T... items) throws SuspendExecution, InterruptedException;
+    <T extends ReceivePort<? super M>> void remove(final T... items) throws SuspendExecution, InterruptedException;
 
     /**
      * @param items If {@code null} or empty, all items will be removed.
      */
-    public <T extends ReceivePort<? extends M>> Map<T, State> getState(final T... items);
+    <T extends ReceivePort<? super M>> Map<T, State> getState(final T... items);
 
     /**
      * @param items If {@code null} or empty, all items state will be set to {@code state}.
      */
-    public <T extends ReceivePort<? extends M>> void setState(final State state, final T... items) throws SuspendExecution, InterruptedException;
+    <T extends ReceivePort<? super M>> void setState(final State state, final T... items) throws SuspendExecution, InterruptedException;
 
-    public <T extends ReceivePort<? extends M>> void setState(final Map<T, State> states) throws SuspendExecution, InterruptedException;
+    <T extends ReceivePort<? super M>> void setState(final Map<T, State> states) throws SuspendExecution, InterruptedException;
 
-    public SoloEffect getSoloEffect();
+    SoloEffect getSoloEffect();
 
-    public void setSoloEffect(final SoloEffect effect) throws SuspendExecution, InterruptedException;   
+    void setSoloEffect(final SoloEffect effect) throws SuspendExecution, InterruptedException;
  }

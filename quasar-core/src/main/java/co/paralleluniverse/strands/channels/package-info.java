@@ -13,4 +13,7 @@
 /**
  * Channels - a CSP (Communicating Sequential Processes) construct
  */
+@Export
 package co.paralleluniverse.strands.channels;
+
+import org.osgi.annotation.bundle.Export;

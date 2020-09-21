@@ -13,4 +13,7 @@
 /**
  * Strands - abstractions over fibers and threads
  */
+@Export
 package co.paralleluniverse.strands;
+
+import org.osgi.annotation.bundle.Export;

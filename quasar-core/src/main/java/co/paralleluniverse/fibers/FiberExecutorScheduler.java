@@ -86,7 +86,7 @@ public class FiberExecutorScheduler extends FiberScheduler implements Executor {
     }
 
     @Override
-    protected Map<Thread, Fiber> getRunningFibers() {
+    protected Map<Thread, Fiber<?>> getRunningFibers() {
         return null;
     }
 
@@ -102,7 +102,7 @@ public class FiberExecutorScheduler extends FiberScheduler implements Executor {
 
     @Override
     <V> FiberTask<V> newFiberTask(Fiber<V> fiber) {
-        return new RunnableFiberTask<V>(fiber, this);
+        return new RunnableFiberTask<>(fiber, this);
     }
 
     @Override
@@ -111,7 +111,7 @@ public class FiberExecutorScheduler extends FiberScheduler implements Executor {
     }
 
     @Override
-    void setCurrentFiber(Fiber target, Thread currentThread) {
+    void setCurrentFiber(Fiber<?> target, Thread currentThread) {
         Fiber.setCurrentStrand(target);
     }
 

@@ -22,13 +22,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author pron
  */
 class FibersDetailedMonitor {
-    private final Map<Long, Fiber> fibers = new ConcurrentHashMap<>();
+    private final Map<Long, Fiber<?>> fibers = new ConcurrentHashMap<>();
 
-    void fiberStarted(Fiber fiber) {
+    void fiberStarted(Fiber<?> fiber) {
         fibers.put(fiber.getId(), fiber);
     }
 
-    void fiberTerminated(Fiber fiber) {
+    void fiberTerminated(Fiber<?> fiber) {
         fibers.remove(fiber.getId());
     }
 
@@ -47,7 +47,7 @@ class FibersDetailedMonitor {
     }
 
     public FiberInfo getFiberInfo(long id, boolean stack) {
-        final Fiber f = fibers.get(id);
+        final Fiber<?> f = fibers.get(id);
         if (f == null)
             return null;
         return f.getFiberInfo(stack);

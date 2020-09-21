@@ -13,4 +13,7 @@
 /**
  * Fiber-blocking {@link java.nio.channels NIO}
  */
+@Export
 package co.paralleluniverse.fibers.io;
+
+import org.osgi.annotation.bundle.Export;

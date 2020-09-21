@@ -41,9 +41,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-// import co.paralleluniverse.common.util.SystemProperties;
-import co.paralleluniverse.fibers.Instrumented;
-import co.paralleluniverse.fibers.Stack;
+import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import static co.paralleluniverse.fibers.instrument.Classes.INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.THROWABLE_NAME;
@@ -55,7 +53,6 @@ import static co.paralleluniverse.fibers.instrument.Classes.UNDECLARED_THROWABLE
 import static co.paralleluniverse.fibers.instrument.Classes.isAllowedToBlock;
 import static co.paralleluniverse.fibers.instrument.Classes.blockingCallIdx;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
-import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isInvocationHandlerInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isMethodHandleInvocation;
 import static co.paralleluniverse.fibers.instrument.MethodDatabase.isReflectInvocation;
@@ -111,7 +108,7 @@ class InstrumentMethod {
     private final String className;
 
     private final MethodNode mn;
-    private final Frame[] frames;
+    private final Frame<?>[] frames;
 
     private final int lvarStack; // ref to Stack
     private final int lvarResumed; // boolean indicating if we've been resumed
@@ -144,7 +141,7 @@ class InstrumentMethod {
         this.mn = mn;
 
         try {
-            Analyzer a = new TypeAnalyzer(db);
+            Analyzer<?> a = new TypeAnalyzer(db);
             this.frames = a.analyze(className, mn);
             this.lvarStack = mn.maxLocals;
             this.lvarResumed = mn.maxLocals + 1;
@@ -165,7 +162,7 @@ class InstrumentMethod {
             int count = 0;
             final Set<String> callSiteNames = new HashSet<>();
             for (int i = 0; i < numIns; i++) {
-                final Frame f = frames[i];
+                final Frame<?> f = frames[i];
                 if (f != null) { // reachable ?
                     final AbstractInsnNode in = mn.instructions.get(i);
                     if (in.getType() == AbstractInsnNode.LINE) {
@@ -252,7 +249,7 @@ class InstrumentMethod {
 
         codeBlocks[0] = FrameInfo.FIRST;
         for (int i = 0; i < numIns; i++) {
-            final Frame f = frames[i];
+            final Frame<?> f = frames[i];
             if (f != null) { // reachable ?
                 final AbstractInsnNode in = mn.instructions.get(i);
                 if (in.getType() == AbstractInsnNode.METHOD_INSN || in.getType() == AbstractInsnNode.INVOKE_DYNAMIC_INSN) {
@@ -325,7 +322,7 @@ class InstrumentMethod {
         }
     }
 
-    public void accept(MethodVisitor mv, boolean hasAnnotation) {
+    void accept(MethodVisitor mv, boolean hasAnnotation) {
         db.log(LogLevel.INFO, "Instrumenting method %s:%s#%s%s", sourceName, className, mn.name, mn.desc);
 
         if (mn.name.charAt(0) == '<')
@@ -660,24 +657,24 @@ class InstrumentMethod {
         final StringBuilder sb = db.isDebug() ? new StringBuilder() : null;
         final AnnotationVisitor instrumentedAV = mv.visitAnnotation(INSTRUMENTED_DESC, true);
         if (sb != null)
-            sb.append("@").append(Instrumented.class.getSimpleName()).append("(");
+            sb.append("@Instrumented(");
 
-        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_OPTIMIZED, skip);
+        instrumentedAV.visit(Constants.FIELD_NAME_METHOD_OPTIMIZED, skip);
         if (sb != null)
-            sb.append(Instrumented.FIELD_NAME_METHOD_OPTIMIZED + "=").append(skip).append(", ");
+            sb.append(Constants.FIELD_NAME_METHOD_OPTIMIZED + '=').append(skip).append(", ");
 
-        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_START, startSourceLine);
+        instrumentedAV.visit(Constants.FIELD_NAME_METHOD_START, startSourceLine);
         if (sb != null)
-            sb.append(Instrumented.FIELD_NAME_METHOD_START + "=").append(startSourceLine).append(", ");
+            sb.append(Constants.FIELD_NAME_METHOD_START + '=').append(startSourceLine).append(", ");
 
-        instrumentedAV.visit(Instrumented.FIELD_NAME_METHOD_END, endSourceLine);
+        instrumentedAV.visit(Constants.FIELD_NAME_METHOD_END, endSourceLine);
         if (sb != null)
-            sb.append(Instrumented.FIELD_NAME_METHOD_END + "=").append(endSourceLine).append(", ");
+            sb.append(Constants.FIELD_NAME_METHOD_END + '=').append(endSourceLine).append(", ");
 
         if (suspCallsSourceLines != null) {
-            final AnnotationVisitor linesAV = instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES);
+            final AnnotationVisitor linesAV = instrumentedAV.visitArray(Constants.FIELD_NAME_SUSPENDABLE_CALL_SITES);
             if (sb != null)
-                sb.append(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES + "=[");
+                sb.append(Constants.FIELD_NAME_SUSPENDABLE_CALL_SITES + "=[");
             for (int i = 0; i < suspCallsSourceLines.length; i++) {
                 if (sb != null && i != 0)
                     sb.append(", ");
@@ -693,9 +690,9 @@ class InstrumentMethod {
         }
 
         if (instrumentedCalls != null) {
-            final AnnotationVisitor instrumentedCallsAV = instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITE_NAMES);
+            final AnnotationVisitor instrumentedCallsAV = instrumentedAV.visitArray(Constants.FIELD_NAME_SUSPENDABLE_CALL_SITE_NAMES);
             if (sb != null)
-                sb.append(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITE_NAMES + "=[");
+                sb.append(Constants.FIELD_NAME_SUSPENDABLE_CALL_SITE_NAMES + "=[");
             for (int i = 0; i < instrumentedCalls.length; i++) {
                 if (sb != null && i != 0)
                     sb.append(", ");
@@ -711,9 +708,9 @@ class InstrumentMethod {
         }
 
         if (postInstrOffsets != null) {
-            final AnnotationVisitor postInstrOffsetsAV = instrumentedAV.visitArray(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR);
+            final AnnotationVisitor postInstrOffsetsAV = instrumentedAV.visitArray(Constants.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR);
             if (sb != null)
-                sb.append(Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR + "=[");
+                sb.append(Constants.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR + "=[");
             for (int i = 0; i < postInstrOffsets.length; i++) {
                 if (sb != null && i != 0)
                     sb.append(", ");
@@ -725,12 +722,12 @@ class InstrumentMethod {
             }
             postInstrOffsetsAV.visitEnd();
             if (sb != null)
-                sb.append("]");
+                sb.append(']');
         }
 
         instrumentedAV.visitEnd();
         if (sb != null)
-            sb.append(")");
+            sb.append(')');
 
         db.log(LogLevel.DEBUG, "Annotating method %s:%s#%s%s with %s", sourceName, className, mn.name, mn.desc, sb);
     }
@@ -740,7 +737,7 @@ class InstrumentMethod {
         mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Thread", "dumpStack", "()V", false);
     }
      */
-    private FrameInfo addCodeBlock(Frame f, int end) {
+    private FrameInfo addCodeBlock(Frame<?> f, int end) {
         if (++numCodeBlocks == codeBlocks.length) {
             FrameInfo[] newArray = new FrameInfo[numCodeBlocks * 2];
             System.arraycopy(codeBlocks, 0, newArray, 0, codeBlocks.length);
@@ -778,7 +775,7 @@ class InstrumentMethod {
     @SuppressWarnings("unchecked")
     private void splitTryCatch(FrameInfo fi) {
         for (int i = 0; i < mn.tryCatchBlocks.size(); i++) {
-            TryCatchBlockNode tcb = (TryCatchBlockNode) mn.tryCatchBlocks.get(i);
+            TryCatchBlockNode tcb = mn.tryCatchBlocks.get(i);
 
             int start = getLabelIdx(tcb.start);
             int end = getLabelIdx(tcb.end);
@@ -839,7 +836,7 @@ class InstrumentMethod {
                     MethodInsnNode min = (MethodInsnNode) ins;
                     if ("<init>".equals(min.name)) {
                         int argSize = TypeAnalyzer.getNumArguments(min.desc);
-                        Frame frame = frames[i];
+                        Frame<?> frame = frames[i];
                         int stackIndex = frame.getStackSize() - argSize - 1;
                         Value thisValue = frame.getStack(stackIndex);
                         if (stackIndex >= 1
@@ -858,7 +855,7 @@ class InstrumentMethod {
         }
     }
 
-    private static void dumpParameterAnnotations(MethodVisitor mv, List[] parameterAnnotations, boolean visible) {
+    private static void dumpParameterAnnotations(MethodVisitor mv, List<?>[] parameterAnnotations, boolean visible) {
         for (int i = 0; i < parameterAnnotations.length; i++) {
             if (parameterAnnotations[i] != null) {
                 for (Object o : parameterAnnotations[i]) {
@@ -885,7 +882,7 @@ class InstrumentMethod {
         mv.visitLdcInsn(value);
     }
      */
-    private void emitNewAndDup(MethodVisitor mv, Frame frame, int stackIndex, MethodInsnNode min) {
+    private void emitNewAndDup(MethodVisitor mv, Frame<?> frame, int stackIndex, MethodInsnNode min) {
         /*
          * This method, and the entire NewValue business has to do with dealing with the following case:
          * 
@@ -947,12 +944,12 @@ class InstrumentMethod {
     }
 
     private void emitStoreState(MethodVisitor mv, int idx, FrameInfo fi, int numArgsToPreserve) {
-        if (idx > Stack.MAX_ENTRY)
-            throw new IllegalArgumentException("Entry index (PC) " + idx + " greater than maximum of " + Stack.MAX_ENTRY + " in " + className + "." + mn.name + mn.desc);
-        if (fi.numSlots > Stack.MAX_SLOTS)
-            throw new IllegalArgumentException("Number of slots required " + fi.numSlots + " greater than maximum of " + Stack.MAX_SLOTS + " in " + className + "." + mn.name + mn.desc);
+        if (idx > Constants.STACK_MAX_ENTRY)
+            throw new IllegalArgumentException("Entry index (PC) " + idx + " greater than maximum of " + Constants.STACK_MAX_ENTRY + " in " + className + "." + mn.name + mn.desc);
+        if (fi.numSlots > Constants.STACK_MAX_SLOTS)
+            throw new IllegalArgumentException("Number of slots required " + fi.numSlots + " greater than maximum of " + Constants.STACK_MAX_SLOTS + " in " + className + "." + mn.name + mn.desc);
 
-        Frame f = frames[fi.endInstruction];
+        Frame<?> f = frames[fi.endInstruction];
 
         if (fi.lBefore != null)
             fi.lBefore.accept(mv);
@@ -1003,7 +1000,7 @@ class InstrumentMethod {
     }
 
     private void emitRestoreState(MethodVisitor mv, @SuppressWarnings("UnusedParameters") int idx, FrameInfo fi, int numArgsPreserved) {
-        Frame f = frames[fi.endInstruction];
+        Frame<?> f = frames[fi.endInstruction];
 
         // restore local vars
         for (int i = firstLocal; i < f.getLocals(); i++) {
@@ -1220,7 +1217,7 @@ class InstrumentMethod {
         BlockLabelNode lBefore;
         BlockLabelNode lAfter;
 
-        FrameInfo(Frame f, int firstLocal, int endInstruction, InsnList insnList, MethodDatabase db) {
+        FrameInfo(Frame<?> f, int firstLocal, int endInstruction, InsnList insnList, MethodDatabase db) {
             this.endInstruction = endInstruction;
 
             int idxObj = 0;

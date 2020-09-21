@@ -568,7 +568,7 @@ public final class Channels {
      * @param channels the receive ports
      * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
-    public static <M> ReceivePort<M> group(ReceivePort<? extends M>... channels) {
+    public static <M> ReceivePort<M> group(ReceivePort<? super M>... channels) {
         return new ReceivePortGroup<>(channels);
     }
 
@@ -580,7 +580,7 @@ public final class Channels {
      * @param channels the receive ports
      * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
-    public static <M> ReceivePort<M> group(Collection<? extends ReceivePort<? extends M>> channels) {
+    public static <M> ReceivePort<M> group(Collection<? extends ReceivePort<? super M>> channels) {
         return new ReceivePortGroup<>(channels);
     }
 
@@ -592,7 +592,7 @@ public final class Channels {
      * @param channels the receive ports
      * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
-    public static <M> Mix<? extends M> mix(final ReceivePort<? extends M>... channels) {
+    public static <M> Mix<? super M> mix(final ReceivePort<? super M>... channels) {
         return new ReceivePortGroup<>(channels);
     }
 
@@ -604,7 +604,7 @@ public final class Channels {
      * @param channels the receive ports
      * @return a {@link ReceivePort} that receives messages from {@code channels}.
      */
-    public static <M> Mix<? extends M> mix(final Collection<? extends ReceivePort<? extends M>> channels) {
+    public static <M> Mix<? super M> mix(final Collection<? extends ReceivePort<? super M>> channels) {
         return new ReceivePortGroup<>(channels);
     }
 

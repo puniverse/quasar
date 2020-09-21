@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.common.reflection;
+package co.paralleluniverse.common.resource;
 
 import java.io.File;
 import java.net.URL;

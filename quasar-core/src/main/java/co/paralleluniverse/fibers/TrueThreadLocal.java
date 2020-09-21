@@ -27,7 +27,7 @@ public class TrueThreadLocal<T> extends ThreadLocal<T> {
     @Override
     public T get() {
         final Thread thread = Thread.currentThread();
-        final Fiber fiber = Fiber.currentFiber();
+        final Fiber<?> fiber = Fiber.currentFiber();
         if (fiber != null)
             fiber.restoreThreadLocals(thread);
         try {
@@ -41,7 +41,7 @@ public class TrueThreadLocal<T> extends ThreadLocal<T> {
     @Override
     public void set(T value) {
         final Thread thread = Thread.currentThread();
-        final Fiber fiber = Fiber.currentFiber();
+        final Fiber<?> fiber = Fiber.currentFiber();
         if (fiber != null)
             fiber.restoreThreadLocals(thread);
         try {

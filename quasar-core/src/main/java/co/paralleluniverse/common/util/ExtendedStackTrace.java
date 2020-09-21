@@ -12,7 +12,6 @@
  */
 package co.paralleluniverse.common.util;
 
-import co.paralleluniverse.common.reflection.ASMUtil;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
@@ -20,13 +19,9 @@ import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.Type;
 
+import static co.paralleluniverse.common.asm.ASMUtil.findMethod;
+import static co.paralleluniverse.common.asm.ASMUtil.getDescriptor;
 import static java.security.AccessController.doPrivileged;
 
 /**
@@ -95,33 +90,7 @@ public class ExtendedStackTrace implements Iterable<ExtendedStackTraceElement> {
         if (method == null && este.getLineNumber() >= 0) {
             try {
                 final AtomicReference<String> descriptor = new AtomicReference<>();
-                ASMUtil.accept(este.getDeclaringClass(), ClassReader.SKIP_FRAMES, new ClassVisitor(Opcodes.ASM7) {
-                    @Override
-                    public MethodVisitor visitMethod(int access, String name, final String desc, String signature, String[] exceptions) {
-                        MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-                        if (descriptor.get() == null && este.getMethodName().equals(name)) {
-                            mv = new MethodVisitor(api, mv) {
-                                int minLine = Integer.MAX_VALUE, maxLine = Integer.MIN_VALUE;
-
-                                @Override
-                                public void visitLineNumber(int line, Label start) {
-                                    if (line < minLine)
-                                        minLine = line;
-                                    if (line > maxLine)
-                                        maxLine = line;
-                                }
-
-                                @Override
-                                public void visitEnd() {
-                                    if (minLine <= este.getLineNumber() && maxLine >= este.getLineNumber())
-                                        descriptor.set(desc);
-                                    super.visitEnd();
-                                }
-                            };
-                        }
-                        return mv;
-                    }
-                });
+                findMethod(este.getDeclaringClass(), este.getMethodName(), este.getLineNumber(), descriptor);
 
                 if (descriptor.get() != null) {
                     final String desc = descriptor.get();
@@ -141,16 +110,10 @@ public class ExtendedStackTrace implements Iterable<ExtendedStackTraceElement> {
         return method;
     }
 
-    protected static final String getName(Member m) {
+    protected static String getName(Member m) {
         if (m instanceof Constructor)
             return "<init>";
         return ((Method)m).getName();
-    }
-
-    protected static String getDescriptor(Member m) {
-        if (m instanceof Constructor)
-            return Type.getConstructorDescriptor((Constructor) m);
-        return Type.getMethodDescriptor((Method) m);
     }
 
     protected final Member[] getMethods(Class<?> clazz) {
@@ -167,7 +130,7 @@ public class ExtendedStackTrace implements Iterable<ExtendedStackTraceElement> {
         @Override
         public Member[] run() {
             Method[] ms = clazz.getDeclaredMethods();
-            Constructor[] cs = clazz.getDeclaredConstructors();
+            Constructor<?>[] cs = clazz.getDeclaredConstructors();
             Member[] es = new Member[ms.length + cs.length];
             System.arraycopy(cs, 0, es, 0, cs.length);
             System.arraycopy(ms, 0, es, cs.length, ms.length);
@@ -204,8 +167,12 @@ public class ExtendedStackTrace implements Iterable<ExtendedStackTraceElement> {
         public Class<?> getDeclaringClass() {
             if (clazz == null) {
                 try {
-                    clazz = Class.forName(getClassName());
+                    clazz = Class.forName(getClassName(), true, Thread.currentThread().getContextClassLoader());
                 } catch (ClassNotFoundException e) {
+                    try {
+                        clazz = Class.forName(getClassName(), true, getClass().getClassLoader());
+                    } catch (ClassNotFoundException e2) {
+                    }
                 }
             }
             return clazz;

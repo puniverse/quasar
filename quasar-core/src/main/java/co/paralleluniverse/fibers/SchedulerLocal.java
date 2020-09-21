@@ -91,7 +91,7 @@ public class SchedulerLocal<T> {
     }
 
     private static FiberScheduler currentScheduler() {
-        final Fiber currentFiber = Fiber.currentFiber();
+        final Fiber<?> currentFiber = Fiber.currentFiber();
         if (currentFiber == null)
             throw new IllegalStateException("Method called not within a fiber");
         return currentFiber.getScheduler();

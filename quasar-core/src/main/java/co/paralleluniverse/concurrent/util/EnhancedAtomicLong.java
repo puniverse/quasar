@@ -13,30 +13,24 @@
  */
 package co.paralleluniverse.concurrent.util;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
+import co.paralleluniverse.fibers.instrument.DontInstrument;
+
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Extension of {@link AtomicLong} with useful methods based on CAS.
- *
+ * This class doesn't need to be instrumented, but it has lambdas
+ * and so Quasar will do it anyway. Hence {@link DontInstrument}!
  * @author circlespainter
  */
+@DontInstrument
 public class EnhancedAtomicLong extends AtomicLong {
-    public static final Function<Long, Long> DEC =
-        new Function<Long, Long>() {
-            @Override
-            public Long apply(final Long l) {
-                return l - 1;
-            }                
-        };
+    public static final Function<Long, Long> DEC = l -> l - 1;
 
     public static Predicate<Long> gt(final long n) {
-        return new Predicate<Long>() {
-            public boolean apply(final Long l) {
-                return l > n;
-            }
-        };
+        return l -> l > n;
     }
 
     public boolean evalAndUpdate(final Predicate<Long> predicate, final Function<Long, Long> update) {
@@ -44,7 +38,7 @@ public class EnhancedAtomicLong extends AtomicLong {
         boolean satisfied;
         do {
             val = get();
-            satisfied = predicate.apply(val);
+            satisfied = predicate.test(val);
         } while (satisfied && !compareAndSet(val, update.apply(val)));
         return satisfied;
     }

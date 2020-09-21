@@ -42,4 +42,7 @@
 /**
  * Quasar continuations instrumentation
  */
+@Export
 package co.paralleluniverse.fibers.instrument;
+
+import org.osgi.annotation.bundle.Export;

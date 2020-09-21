@@ -20,8 +20,8 @@ import org.objectweb.asm.tree.MethodNode;
 
 import java.util.*;
 
+import static co.paralleluniverse.common.asm.ASMUtil.ASMAPI;
 import static co.paralleluniverse.fibers.instrument.Classes.*;
-import static co.paralleluniverse.fibers.instrument.QuasarInstrumentor.ASMAPI;
 
 /**
  * @author circlespainter
@@ -39,7 +39,7 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         this.className = name;
 
-        // need atleast 1.5 for annotations to work
+        // need at least 1.5 for annotations to work
         if (version < Opcodes.V1_5)
             version = Opcodes.V1_5;
 
@@ -71,7 +71,7 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                 private int[] suspCallSites = new int[0];
                 private String[] suspCallSiteNames = new String[0];
                 
-                private List<Integer> suspOffsetsAfterInstrL = new ArrayList<>();
+                private final List<Integer> suspOffsetsAfterInstrL = new ArrayList<>();
 
                 @Override
                 public AnnotationVisitor visitAnnotation(final String adesc, boolean visible) {
@@ -96,7 +96,7 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                                         suspCallSites = (int[]) value;
                                         break;
                                     case Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITES_OFFSETS_AFTER_INSTR:
-                                        ; // Ignore, we're filling it
+                                        // Ignore, we're filling it
                                         break;
                                     default:
                                         throw new RuntimeException("Unexpected `@Instrumented` field: " + attrib);
@@ -108,7 +108,7 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                                 // String[] value not handled by visit
                                 if (Instrumented.FIELD_NAME_SUSPENDABLE_CALL_SITE_NAMES.equals(attrib))
                                     return new AnnotationVisitor(ASMAPI) {
-                                        List<String> callSites = new ArrayList<>();
+                                        final List<String> callSites = new ArrayList<>();
                                         
                                         @Override
                                         public void visit(String attrib, Object value) {

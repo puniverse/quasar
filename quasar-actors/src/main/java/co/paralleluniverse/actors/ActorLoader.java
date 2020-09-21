@@ -13,8 +13,8 @@
  */
 package co.paralleluniverse.actors;
 
-import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
-import static co.paralleluniverse.common.reflection.ClassLoaderUtil.resourceToClass;
+import static co.paralleluniverse.common.resource.ClassLoaderUtil.isClassFile;
+import static co.paralleluniverse.common.resource.ClassLoaderUtil.resourceToClass;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import com.google.common.base.Function;

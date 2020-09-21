@@ -30,7 +30,7 @@ import java.util.concurrent.TimeoutException;
  *
  * @author pron
  */
-class RunnableFiberTask<V> implements Runnable, FiberTask {
+class RunnableFiberTask<V> implements Runnable, FiberTask<V> {
     public static final FlightRecorder RECORDER = Debug.isDebug() ? Debug.getGlobalFlightRecorder() : null;
     public static final boolean CAPTURE_UNPARK_STACK = Debug.isDebug() || SystemProperties.isEmptyOrTrue("co.paralleluniverse.fibers.captureUnparkStackTrace");
     //public static final Object EMERGENCY_UNBLOCKER = new Object();
@@ -50,7 +50,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
         this.executor = executor;
         this.fiber = fiber;
         this.state = RUNNABLE;
-        this.future = Fiber.USE_VAL_FOR_RESULT ? null : new SettableFuture<V>();
+        this.future = Fiber.USE_VAL_FOR_RESULT ? null : new SettableFuture<>();
     }
 
     @Override
@@ -65,13 +65,13 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
 
     @Override
     @Suspendable
-    public Object get() throws InterruptedException, ExecutionException {
+    public V get() throws InterruptedException, ExecutionException {
         return future.get();
     }
 
     @Override
     @Suspendable
-    public Object get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public V get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return future.get(timeout, unit);
     }
 
@@ -278,8 +278,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask {
 
     @Override
     public boolean tryUnpark(Object unblocker) {
-        boolean res = compareAndSetState(PARKED, RUNNABLE);
-        return res;
+        return compareAndSetState(PARKED, RUNNABLE);
     }
 
     @DontInstrument

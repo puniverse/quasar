@@ -13,11 +13,11 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.common.reflection.ASMUtil;
-import co.paralleluniverse.common.reflection.AnnotationUtil;
-import co.paralleluniverse.common.reflection.ClassLoaderUtil;
-import static co.paralleluniverse.common.reflection.ClassLoaderUtil.classToResource;
-import static co.paralleluniverse.common.reflection.ClassLoaderUtil.isClassFile;
+import co.paralleluniverse.common.asm.ASMUtil;
+import co.paralleluniverse.common.asm.AnnotationUtil;
+import co.paralleluniverse.common.resource.ClassLoaderUtil;
+import static co.paralleluniverse.common.resource.ClassLoaderUtil.classToResource;
+import static co.paralleluniverse.common.resource.ClassLoaderUtil.isClassFile;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.Resources;
 import java.io.File;

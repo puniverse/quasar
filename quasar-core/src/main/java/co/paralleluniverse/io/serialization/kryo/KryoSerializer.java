@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * @author pron
  */
 public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
-    private static Queue<Registration> registrations = new ConcurrentLinkedQueue<Registration>();
+    private static final Queue<Registration> registrations = new ConcurrentLinkedQueue<>();
     public final Kryo kryo;
     private Input input;
     private Output output;
@@ -49,19 +49,19 @@ public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
         return kryo;
     }
 
-    public static void register(Class type) {
+    public static void register(Class<?> type) {
         register(type, NULL_SERIALIZER, -1);
     }
 
-    public static void register(Class type, int id) {
+    public static void register(Class<?> type, int id) {
         register(type, NULL_SERIALIZER, id);
     }
 
-    public static void register(Class type, Serializer ser) {
+    public static void register(Class<?> type, Serializer<?> ser) {
         register(type, ser, -1);
     }
 
-    public static void register(Class type, Serializer ser, int id) {
+    public static void register(Class<?> type, Serializer<?> ser, int id) {
         registrations.add(new Registration(type, ser, id));
     }
 
@@ -76,7 +76,7 @@ public class KryoSerializer implements ByteArraySerializer, IOStreamSerializer {
             output = new Output(4096, -1);
         return output;
     }
-    private static Serializer NULL_SERIALIZER = new Serializer<Object>() {
+    private static final Serializer<? super Object> NULL_SERIALIZER = new Serializer<>() {
         @Override
         public void write(Kryo kryo, Output output, Object object) {
             throw new UnsupportedOperationException();

@@ -42,9 +42,9 @@ public class Var<T> {
 
     private final Channel<T> ch;
     private final SuspendableCallable<T> f;
-    private final Set<VarFiber<?>> registeredFibers = Collections.newSetFromMap(MapUtil.<VarFiber<?>, Boolean>newConcurrentHashMap());
+    private final Set<VarFiber<?>> registeredFibers = Collections.newSetFromMap(MapUtil.newConcurrentHashMap());
 
-    private final ThreadLocal<TLVar> tlv = new ThreadLocal<TLVar>() {
+    private final ThreadLocal<TLVar> tlv = new ThreadLocal<>() {
         @Override
         protected TLVar initialValue() {
             return new TLVar();
@@ -78,7 +78,7 @@ public class Var<T> {
         this.f = f;
 
         if (f != null)
-            new VarFiber<T>(scheduler != null ? scheduler : DefaultFiberScheduler.getInstance(), this).start();
+            new VarFiber<>(scheduler != null ? scheduler : DefaultFiberScheduler.getInstance(), this).start();
     }
 
     /**
@@ -163,8 +163,8 @@ public class Var<T> {
     public T get() throws SuspendExecution, InterruptedException {
         TLVar tl = tlv.get();
         if (tl.type == UNKNOWN) {
-            Fiber currentFiber = Fiber.currentFiber();
-            if (currentFiber != null && currentFiber instanceof VarFiber) {
+            Fiber<?> currentFiber = Fiber.currentFiber();
+            if (currentFiber instanceof VarFiber) {
                 final VarFiber<?> vf = (VarFiber<?>) currentFiber;
                 tl.type = VARFIBER;
                 registeredFibers.add(vf);
@@ -210,19 +210,19 @@ public class Var<T> {
 
     private static class VarFiber<T> extends Fiber<Void> {
         private final WeakReference<Var<T>> var;
-        final Set<Var<?>> registeredVars = Collections.newSetFromMap(MapUtil.<Var<?>, Boolean>newConcurrentHashMap());
+        final Set<Var<?>> registeredVars = Collections.newSetFromMap(MapUtil.newConcurrentHashMap());
         private volatile boolean hasNewVal;
 
         VarFiber(FiberScheduler scheduler, Var<T> v) {
             super(scheduler);
-            this.var = new WeakReference<Var<T>>(v);
+            this.var = new WeakReference<>(v);
         }
 
         VarFiber(Var<T> v) {
-            this.var = new WeakReference<Var<T>>(v);
+            this.var = new WeakReference<>(v);
         }
 
-        void signalNewValue(Var var) {
+        void signalNewValue(Var<?> var) {
             Var.record("signalNewValue", "Fiber %s for var %s signalled by %s", this, this.var, var);
             hasNewVal = true;
             unpark(var);

@@ -5,7 +5,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.common.reflection.ClassLoaderUtil;
+import co.paralleluniverse.common.resource.ClassLoaderUtil;
 import org.junit.Test;
 import static org.junit.Assert.*;
 

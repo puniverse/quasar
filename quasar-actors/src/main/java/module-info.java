@@ -14,11 +14,11 @@
 module co.paralleluniverse.quasar.actors {
     requires java.management;
     requires jdk.unsupported; // needed for sun.reflect.ReflectionFactory in InstanceUpgrader
-    
+
     requires transitive co.paralleluniverse.quasar.core;
     requires slf4j.api;
     requires static net.bytebuddy;
-    
+
     exports co.paralleluniverse.actors;
     exports co.paralleluniverse.actors.behaviors;
     exports co.paralleluniverse.actors.spi;

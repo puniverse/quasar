@@ -13,4 +13,7 @@
 /**
  * Concurrency primitives for strands - ports of {@code java.util.concurrent} classes compatible with strands
  */
+@Export
 package co.paralleluniverse.strands.concurrent;
+
+import org.osgi.annotation.bundle.Export;

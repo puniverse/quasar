@@ -34,7 +34,7 @@ class FiberSerializer {
         fiber.record(1, "FiberAsync", "run", "Blocking fiber %s on FibeAsync %s", fiber, this);
         while (!Fiber.park(this, new Fiber.ParkAction() {
             @Override
-            public void run(Fiber current) {
+            public void run(Fiber<?> current) {
                 try {
                     // serialize
                 } catch (Throwable t) {

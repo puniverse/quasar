@@ -14,10 +14,10 @@ import org.objectweb.asm.Type;
  *
  * @author pron
  */
-public class FindAnnotatedMethods extends ClassVisitor {
+class FindAnnotatedMethods extends ClassVisitor {
     private final String annotation;
     
-    public FindAnnotatedMethods(int api, Class<Annotation> annotation) {
+    FindAnnotatedMethods(int api, Class<Annotation> annotation) {
         super(api);
         this.annotation = Type.getDescriptor(annotation);
     }

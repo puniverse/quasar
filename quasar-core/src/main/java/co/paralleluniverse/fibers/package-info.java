@@ -13,4 +13,7 @@
 /**
  * Fibers - lightweight threads
  */
+@Export
 package co.paralleluniverse.fibers;
+
+import org.osgi.annotation.bundle.Export;

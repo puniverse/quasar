@@ -13,4 +13,7 @@
 /**
  * Common future implementations as fiber-blocking operations
  */
+@Export
 package co.paralleluniverse.fibers.futures;
+
+import org.osgi.annotation.bundle.Export;
