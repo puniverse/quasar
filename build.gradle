@@ -467,6 +467,10 @@ project (':quasar-core') {
         }
     }
 
+    ext {
+        shadowJarURI = shadowJar.archiveFile.map { it.asFile.toURI() }
+    }
+
     def bundle = tasks.register('bundle', Bundle) {
         dependsOn shadowJar
         from(zipTree(shadowJar.archiveFile)) {
@@ -491,7 +495,7 @@ project (':quasar-core') {
         bnd """
 Bundle-SymbolicName: co.paralleluniverse.quasar-core
 Bundle-Name: Quasar Fibers
-Bundle-Version: $version
+Bundle-Version: \${project.version}
 Import-Package: \
  org.LatencyUtils.*;resolution:=optional,\
  org.HdrHistogram.*;resolution:=optional,\
@@ -531,10 +535,10 @@ Import-Package: \
         archiveClassifier = 'agent'
 
         bnd """
--include: "jar:${shadowJar.archiveFile.map { it.asFile.toURI() }.get()}!/META-INF/MANIFEST.MF"
+-include: "jar:\${project.shadowJarURI}!/META-INF/MANIFEST.MF"
 Bundle-SymbolicName: co.paralleluniverse.quasar-core.agent
 Bundle-Name: Quasar Agent
-Bundle-Version: $version
+Bundle-Version: \${project.version}
 """
     }
 
