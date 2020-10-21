@@ -73,11 +73,11 @@ class CheckInstrumentationVisitor extends ClassVisitor {
     private ClassEntry classEntry;
     private boolean hasSuspendable;
     private boolean alreadyInstrumented;
-    private final List<Pair<String,String>> methodsSyntheticStatic;
+    private final List<Pair<String,String>> methodsSyntheticStatic = new ArrayList<>();
+    private final List<Pair<String,String>> methodsSyntheticBridge = new ArrayList<>();
 
     CheckInstrumentationVisitor(MethodDatabase db) {
         super(ASMAPI);
-        this.methodsSyntheticStatic = new ArrayList<>();
         this.db = db;
         this.classifier = db.getClassifier();
     }
@@ -129,6 +129,7 @@ class CheckInstrumentationVisitor extends ClassVisitor {
     @Override
     public MethodVisitor visitMethod(final int access, final String name, final String desc, String signature, String[] exceptions) {
         SuspendableType suspendable = null;
+
         if (suspendableInterface)
             suspendable = SuspendableType.SUSPENDABLE_SUPER;
         if (suspendable == null)
@@ -146,7 +147,8 @@ class CheckInstrumentationVisitor extends ClassVisitor {
         suspendable = InstrumentClass.suspendableToSuperIfAbstract(access, suspendable);
         classEntry.set(name, desc, suspendable);
 
-        if (suspendable == null) // look for @Suspendable annotation
+        if (suspendable == null) {
+            // look for @Suspendable annotation
             return new MethodVisitor(ASMAPI) {
                 private boolean susp = false;
 
@@ -154,7 +156,7 @@ class CheckInstrumentationVisitor extends ClassVisitor {
                 public AnnotationVisitor visitAnnotation(String adesc, boolean visible) {
                     if (adesc.equals(SUSPENDABLE_DESC))
                         susp = true;
-                    return null;
+                    return super.visitAnnotation(adesc, visible);
                 }
 
                 @Override
@@ -168,12 +170,21 @@ class CheckInstrumentationVisitor extends ClassVisitor {
                         methodsSyntheticStatic.add(new Pair<>(name, desc));
                     }
 
+                    // If we have a method not suspendable that is a synthetic bridge method then save for later processing.
+                    // It may be that the method should be suspendable as it's a bridge for a suspendable method.
+                    final int ACC_SYNTHETIC_BRIDGE = Opcodes.ACC_SYNTHETIC | Opcodes.ACC_BRIDGE;
+                    if (!susp && ((access & ACC_SYNTHETIC_BRIDGE) == ACC_SYNTHETIC_BRIDGE)) {
+                        methodsSyntheticBridge.add(new Pair<>(name, desc));
+                    }
+
                     classEntry.set(name, desc, InstrumentClass.suspendableToSuperIfAbstract(access, susp ? SuspendableType.SUSPENDABLE : SuspendableType.NON_SUSPENDABLE));
                     hasSuspendable = hasSuspendable | susp;
                 }
             };
-        else
+        }
+        else {
             return null;
+        }
     }
 
     // Given a type descriptor for a synthetic static method create the corresponding method type descriptor.
@@ -202,6 +213,7 @@ class CheckInstrumentationVisitor extends ClassVisitor {
 
     @Override
     public void visitEnd() {
+
         // Now look at our synthetic static collection and try and match up these methods with their class counterpart.
         // If we find a match in name and type signature then mark it as suspendable. We know these methods are synthetic.
         // Be careful though as we need to look for class members _or_ static class members with no this pointer.
@@ -226,6 +238,22 @@ class CheckInstrumentationVisitor extends ClassVisitor {
                 }
             }
         }
+
+        // Now look through synthetic bridge methods and try and find a corresponding invoke with same signature.
+        // If we find such a method and it is suspendable then mark synthetic as suspendable.
+        for (Pair<String,String> p : methodsSyntheticBridge) {
+
+            // Try and look up a matching method in classEntry.
+            final SuspendableType type = classEntry.check("invoke", p.getSecond());
+
+            if (type != null) {
+                // Finally if we've found a non null match that is suspendable set it on the synthetic static.
+                if (type != SuspendableType.NON_SUSPENDABLE) {
+                    classEntry.set(p.getFirst(), p.getSecond(), SuspendableType.SUSPENDABLE);
+                }
+            }
+        }
+
         super.visitEnd();
     }
 }

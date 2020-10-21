@@ -6,8 +6,8 @@ plugins {
     id 'com.jfrog.artifactory'
     id 'org.javamodularity.moduleplugin'
     id 'com.github.johnrengelman.shadow'
-    id 'biz.aQute.bnd.builder' apply false
     id 'com.dorongold.task-tree'
+    id 'biz.aQute.bnd.builder' apply false
 }
 
 subprojects {
@@ -24,7 +24,7 @@ subprojects {
     }
 
     group               = "co.paralleluniverse"
-    version             = "0.8.3_r3-SNAPSHOT"
+    version             = quasarVersion
     status              = "integration"
     description         = "Fibers, Channels and Actors for the JVM"
     ext.url             = "http://puniverse.github.com/quasar"
@@ -99,11 +99,12 @@ subprojects {
     }
 
     compileJmhJava {
-        sourceCompatibility = '1.8'
-        targetCompatibility = '1.8'
+        sourceCompatibility = '11'
+        targetCompatibility = '11'
     }
 
     dependencies {
+
         implementation "io.dropwizard.metrics:metrics-core:$drpWizVer"
         implementation "io.dropwizard.metrics:metrics-jmx:$drpWizVer"
         provided "org.apache.ant:ant:1.10.5"
@@ -296,6 +297,13 @@ subprojects {
     ///////// Publish Artifacts
     apply plugin: 'maven'
 }
+
+logger.lifecycle("Gradle version: {}", gradle.gradleVersion)
+logger.lifecycle("Java version: {}", JavaVersion.current())
+logger.lifecycle("Java source compatibility: {}", sourceCompatibility)
+logger.lifecycle("Java target compatibility: {}", targetCompatibility)
+logger.lifecycle("Kotlin version: {}", kotlinVersion)
+logger.lifecycle("Building quasar version: {}", quasarVersion)
 
 def scanAndInstrument(sset, configs) {
 
@@ -645,12 +653,12 @@ project (':quasar-reactive-streams') {
     
     dependencies {
         provided project(path: ':quasar-core', configuration: 'shadowedJar')
-        compile "org.reactivestreams:reactive-streams:1.0.2"
-        testCompile("org.reactivestreams:reactive-streams-tck:1.0.2") {
+        implementation "org.reactivestreams:reactive-streams:1.0.2"
+        testImplementation("org.reactivestreams:reactive-streams-tck:1.0.2") {
             exclude group: "junit", module: "*"
             exclude group: "org.testng", module: "testng"
         }
-        testCompile('org.testng:testng:7.0.0-beta1') {
+        testImplementation('org.testng:testng:7.0.0-beta1') {
             exclude group: "com.google.guava", module: "*"
             exclude group: "junit", module: "*"
         }
@@ -669,7 +677,7 @@ project (':quasar-disruptor') {
 
     dependencies {
         provided project(path: ':quasar-core', configuration: 'shadowedJar')
-        compile "com.lmax:disruptor:3.4.2"
+        implementation "com.lmax:disruptor:3.4.2"
     }
 }
 

@@ -1,6 +1,9 @@
 package co.paralleluniverse.kotlin.fibers
 
+import co.paralleluniverse.common.util.SystemProperties
 import co.paralleluniverse.fibers.Fiber;
+import co.paralleluniverse.fibers.Suspendable
+import org.junit.Assume
 
 object StaticPropertiesTest {
 
@@ -26,4 +29,16 @@ object StaticPropertiesTest {
         }
     }
 
+    fun <T> fiberWithVerifyInstrumentationOn(f: () -> T) : T {
+        return withVerifyInstrumentationOn {
+            Assume.assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
+            val fiber = object : Fiber<T>() {
+                @Suspendable
+                override fun run(): T {
+                    return f()
+                }
+            }
+            fiber.start().get()
+        }
+    }
 }
