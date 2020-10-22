@@ -386,6 +386,18 @@ project (':quasar-core') {
                 srcDir 'src/main/java'
             }
         }
+        agent {
+            java {
+                srcDir 'src/main/agent'
+            }
+            compileClasspath += main.compileClasspath
+        }
+        bundle {
+            java {
+                srcDir 'src/main/bundle'
+            }
+            compileClasspath += main.compileClasspath
+        }
 
         test {
             java {
@@ -414,6 +426,8 @@ project (':quasar-core') {
 
     configurations {
         compileClasspath.extendsFrom provided
+        bundleImplementation.extendsFrom implementation
+        bundleImplementation.extendsFrom agentImplementation
     }
 
     dependencies {
@@ -434,6 +448,28 @@ project (':quasar-core') {
         }
 
         compileOnly "org.osgi:osgi.annotation:$osgiVer"
+
+        agentImplementation files(sourceSets.main.output) {
+            builtBy tasks.named('compileJava', JavaCompile)
+        }
+        bundleImplementation files(sourceSets.agent.output) {
+            builtBy tasks.named('compileAgentJava', JavaCompile)
+        }
+    }
+
+    compileAgentJava {
+        options.compilerArgs += [
+            '--patch-module', "${project.moduleName}.agent=${sourceSets.main.output.asPath}",
+            '--module-version', project.version
+        ]
+    }
+
+    compileBundleJava {
+        options.compilerArgs += [
+            '--patch-module', "${project.moduleName}.osgi=${sourceSets.main.output.asPath}",
+            '--module-path', configurations.bundleCompileClasspath.asPath,
+            '--module-version', project.version
+        ]
     }
 
     // this happens after we've filtered the dependency on ASM from core's module-info
@@ -488,6 +524,7 @@ project (':quasar-core') {
             exclude 'co/paralleluniverse/fibers/instrument/**'
             exclude 'module-info.class'
         }
+        from(sourceSets.bundle.output)
         archiveAppendix = 'osgi'
 
         manifest {
@@ -496,7 +533,6 @@ project (':quasar-core') {
                 "Implementation-Title"      :   project.name,
                 "Implementation-Version"    :   archiveVersion.get(),
                 "Implementation-Vendor"     :   vendor,
-                "Automatic-Module-Name"     :   "${moduleName}.osgi",
             )
         }
 
@@ -539,6 +575,7 @@ Import-Package: \
             exclude 'co/paralleluniverse/fibers/instrument/OldSuspendablesScanner*'
             exclude 'co/paralleluniverse/fibers/instrument/SuspendablesScanner*'
         }
+        from(sourceSets.agent.output)
         archiveAppendix = 'osgi'
         archiveClassifier = 'agent'
 
@@ -575,8 +612,10 @@ Bundle-Version: \${project.version}
     }
 
     artifacts {
-        shadowedJar shadowJar.archiveFile
-        archives shadowJar.archiveFile
+        shadowedJar shadowJar
+        archives shadowJar
+        archives agentBundle
+        archives bundle
         archives sourcesJar
         archives javadocJar
     }
