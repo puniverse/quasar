@@ -30,6 +30,31 @@ dependencies {
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion"
 }
 
+sourceSets {
+    AnnotationTest {
+        compileClasspath += main.compileClasspath + main.output + test.compileClasspath + test.output
+        runtimeClasspath += main.runtimeClasspath + test.runtimeClasspath
+    }
+}
+
+configurations {
+    AnnotationTestImplementation.extendsFrom implementation
+    AnnotationTestRuntimeOnly.extendsFrom runtimeOnly
+}
+
+task AnnotationTest(type: Test) {
+    description = 'Custom Annotation Tests'
+    group = 'verification'
+
+    testClassesDirs = sourceSets.AnnotationTest.output.classesDirs
+    classpath = sourceSets.AnnotationTest.runtimeClasspath
+
+    jvmArgs = jvmArgs.findAll {!it.contains("javaagent")}
+    jvmArgs "-javaagent:${quasarJar}=a(SUSPENDABLE=Lco/paralleluniverse/kotlin/fibers/MySuspendable;,Lco/paralleluniverse/kotlin/fibers/DennisSuspendable;)"
+}
+
+test.dependsOn AnnotationTest
+
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
         jvmTarget = "11"

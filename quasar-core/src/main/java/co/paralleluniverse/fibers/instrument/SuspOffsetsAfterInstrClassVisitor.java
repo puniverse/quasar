@@ -21,7 +21,9 @@ import org.objectweb.asm.tree.MethodNode;
 import java.util.*;
 
 import static co.paralleluniverse.common.asm.ASMUtil.ASMAPI;
-import static co.paralleluniverse.fibers.instrument.Classes.*;
+import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
+import static co.paralleluniverse.fibers.instrument.Classes.toIntArray;
+import static co.paralleluniverse.fibers.instrument.Classes.INSTRUMENTED_DESC;
 
 /**
  * @author circlespainter
@@ -75,7 +77,7 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
 
                 @Override
                 public AnnotationVisitor visitAnnotation(final String adesc, boolean visible) {
-                    if (Classes.INSTRUMENTED_DESC.equals(adesc)) {
+                    if (INSTRUMENTED_DESC.equals(adesc)) {
                         instrumented = true;
 
                         return new AnnotationVisitor(ASMAPI) { // Only collect info

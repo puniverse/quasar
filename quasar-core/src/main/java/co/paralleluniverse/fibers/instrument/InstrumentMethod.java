@@ -42,6 +42,7 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
+
 import static co.paralleluniverse.fibers.instrument.Classes.INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.THROWABLE_NAME;

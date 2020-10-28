@@ -107,10 +107,34 @@ public class JavaAgent {
         ACTIVE = true;
         SuspendableHelper.javaAgent = true;
 
+        instrumentor.setLog(new Log() {
+            @Override
+            public void log(LogLevel level, String msg, Object... args) {
+                System.err.println("[quasar] " + level + ": " + String.format(msg, args));
+            }
+
+            @Override
+            public void error(String msg, Throwable exc) {
+                System.err.println("[quasar] ERROR: " + msg);
+                exc.printStackTrace(System.err);
+            }
+        });
+
         if (agentArguments != null) {
             for (int i = 0; i < agentArguments.length(); i++) {
                 char c = agentArguments.charAt(i);
                 switch (c) {
+                    case 'a': {
+                            final String s = parseArgBrackets(agentArguments, ++i);
+                            i += s.length() + 1;
+                            final String[] attr = s.split("\\=");
+                            if (attr.length > 1) {
+                                final String[] types = attr[1].split(",");
+                                instrumentor.addTypeDesc(attr[0], types);
+                            }
+                        }
+                        break;
+
                     case 'v':
                         instrumentor.setVerbose(true);
                         break;
@@ -131,57 +155,32 @@ public class JavaAgent {
                         instrumentor.setAllowBlocking(true);
                         break;
                         
-                    case 'x':
-                        i++;
-                        c = agentArguments.charAt(i);
-                        if (c != '(')
-                            throw new IllegalStateException(USAGE);
-                        StringBuilder sb = new StringBuilder();
-                        while(true) {
-                            c = agentArguments.charAt(++i);
-                            if (c == ')')
-                                break;
-                            sb.append(c);
+                    case 'x': {
+                            final String s = parseArgBrackets(agentArguments, ++i);
+                            i += s.length() + 1;
+
+                            String[] exclusions = s.split(";", 0);
+                            for (String x : exclusions) {
+                                instrumentor.addExcludedPackage(x);
+                            }
                         }
-                        String[] exclusions = sb.toString().split(";");
-                        for (String x : exclusions)
-                            instrumentor.addExcludedPackage(x);
                         break;
 
-                    case 'l':
-                        ++i;
-                        c = agentArguments.charAt(i);
-                        if (c != '(') {
-                            throw new IllegalStateException(USAGE);
+                    case 'l': {
+                            final String s = parseArgBrackets(agentArguments, ++i);
+                            i += s.length() + 1;
+
+                            String[] classLoaderExclusions = s.split(";",0);
+                            for (String x : classLoaderExclusions) {
+                                instrumentor.addExcludedClassLoader(x);
+                            }
                         }
-                        int j = agentArguments.indexOf(')', ++i);
-                        if (j == -1) {
-                            throw new IllegalStateException(USAGE);
-                        }
-                        String[] classLoaderExclusions = agentArguments.substring(i, j).split(";", 0);
-                        for (String x : classLoaderExclusions) {
-                            instrumentor.addExcludedClassLoader(x);
-                        }
-                        i = j;
                         break;
                     default:
                         throw new IllegalStateException(USAGE);
                 }
             }
         }
-
-        instrumentor.setLog(new Log() {
-            @Override
-            public void log(LogLevel level, String msg, Object... args) {
-                System.err.println("[quasar] " + level + ": " + String.format(msg, args));
-            }
-
-            @Override
-            public void error(String msg, Throwable exc) {
-                System.err.println("[quasar] ERROR: " + msg);
-                exc.printStackTrace(System.err);
-            }
-        });
 
         Retransform.instrumentation = instrumentation;
         Retransform.instrumentor = instrumentor;
@@ -268,5 +267,16 @@ public class JavaAgent {
         };
         cr.accept(cv, 0);
         return cw.toByteArray();
+    }
+
+    private static String parseArgBrackets(String args, int indexStart) {
+        if (args.charAt(indexStart) != '(') {
+            throw new IllegalStateException(USAGE);
+        }
+        final int indexEnd = args.indexOf(')', ++indexStart);
+        if (indexEnd == -1) {
+            throw new IllegalStateException(USAGE);
+        }
+        return args.substring(indexStart, indexEnd);
     }
 }
