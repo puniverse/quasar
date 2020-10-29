@@ -12,10 +12,13 @@
  */
 package co.paralleluniverse.common.util;
 
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
@@ -89,25 +92,41 @@ public class ExtendedStackTrace implements Iterable<ExtendedStackTraceElement> {
         }
         if (method == null && este.getLineNumber() >= 0) {
             try {
-                final AtomicReference<String> descriptor = new AtomicReference<>();
-                findMethod(este.getDeclaringClass(), este.getMethodName(), este.getLineNumber(), descriptor);
-
-                if (descriptor.get() != null) {
-                    final String desc = descriptor.get();
-                    for (Member m : ms) {
-                        if (este.getMethodName().equals(getName(m)) && desc.equals(getDescriptor(m))) {
-                            method = m;
-                            break;
-                        }
-                    }
-                }
-            } catch (Exception e) {
+                method = doPrivileged(new FindMethod(este, ms));
+            } catch (PrivilegedActionException pae) {
+                Exception e = pae.getException();
                 if (!(e instanceof UnsupportedOperationException))
                     e.printStackTrace();
             }
         }
 
         return method;
+    }
+
+    private static class FindMethod implements PrivilegedExceptionAction<Member> {
+        private final ExtendedStackTraceElement este;
+        private final Member[] methods;
+
+        FindMethod(ExtendedStackTraceElement este, Member[] methods) {
+            this.este = este;
+            this.methods = methods;
+        }
+
+        @Override
+        public Member run() throws IOException {
+            final AtomicReference<String> descriptor = new AtomicReference<>();
+            findMethod(este.getDeclaringClass(), este.getMethodName(), este.getLineNumber(), descriptor);
+
+            if (descriptor.get() != null) {
+                final String desc = descriptor.get();
+                for (Member m : methods) {
+                    if (este.getMethodName().equals(getName(m)) && desc.equals(getDescriptor(m))) {
+                        return m;
+                    }
+                }
+            }
+            return null;
+        }
     }
 
     protected static String getName(Member m) {

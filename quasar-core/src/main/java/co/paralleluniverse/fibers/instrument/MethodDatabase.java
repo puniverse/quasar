@@ -50,9 +50,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -60,6 +62,7 @@ import java.util.Objects;
 
 import static co.paralleluniverse.common.asm.ASMUtil.ASMAPI;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
+import static java.security.AccessController.doPrivileged;
 
 /**
  * <p>
@@ -268,9 +271,9 @@ public final class MethodDatabase {
         }
     }
 
-    public String getCommonSuperClass(String classA, String classB) {
-        ArrayList<String> listA = getSuperClasses(classA);
-        ArrayList<String> listB = getSuperClasses(classB);
+    String getCommonSuperClass(String classA, String classB) {
+        List<String> listA = getSuperClasses(classA);
+        List<String> listB = getSuperClasses(classB);
         if (listA == null || listB == null) {
             return null;
         }
@@ -316,8 +319,13 @@ public final class MethodDatabase {
             }
         }
 
+        if (className.startsWith("[")) {
+            // Don't try looking for an "array" class.
+            return null;
+        }
+
         log(LogLevel.INFO, "Reading class: %s", className);
-        try (final InputStream is = ClassLoaderUtil.getResourceAsStream(cl, className + ".class")) {
+        try (final InputStream is = doPrivileged(new GetResourceAsStream(cl, className + ".class"))) {
             if (is == null) {
                 log(LogLevel.INFO, "Class not found: %s", className);
                 return null;
@@ -339,15 +347,13 @@ public final class MethodDatabase {
     }
 
     private CheckInstrumentationVisitor checkFileAndClose(InputStream is, String name) throws IOException {
-        try {
+        try (is) {
             ClassReader r = new ClassReader(is);
 
             CheckInstrumentationVisitor civ = new CheckInstrumentationVisitor(this);
             r.accept(civ, ClassReader.SKIP_FRAMES | ClassReader.SKIP_CODE);
 
             return civ;
-        } finally {
-            is.close();
         }
     }
 
@@ -371,8 +377,8 @@ public final class MethodDatabase {
         return null;
     }
 
-    private ArrayList<String> getSuperClasses(String className) {
-        ArrayList<String> result = new ArrayList<>();
+    private List<String> getSuperClasses(String className) {
+        List<String> result = new ArrayList<>();
         for (;;) {
             result.add(0, className);
             if ("java/lang/Object".equals(className)) {
@@ -449,6 +455,21 @@ public final class MethodDatabase {
 
     public enum SuspendableType {
         NON_SUSPENDABLE, SUSPENDABLE_SUPER, SUSPENDABLE
+    }
+
+    private static final class GetResourceAsStream implements PrivilegedAction<InputStream> {
+        private final ClassLoader cl;
+        private final String resourceName;
+
+        GetResourceAsStream(ClassLoader cl, String resourceName) {
+            this.cl = cl;
+            this.resourceName = resourceName;
+        }
+
+        @Override
+        public InputStream run() {
+            return cl.getResourceAsStream(resourceName);
+        }
     }
 
     public static final class ClassEntry {
