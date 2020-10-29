@@ -346,6 +346,14 @@ def scanAndInstrument(sset, configs) {
     }
 }
 
+boolean containsOnly(String values, List<String> expected) {
+    expected.containsAll(parsePackages(values))
+}
+
+List<String> parsePackages(String values) {
+    values.split(',').findAll { !it.startsWith('java.') }
+}
+
 String fetchManifestAttributeFrom(File archive, String attributeName) {
     return new JarFile(archive).with { jar ->
         Manifest manifest = jar.manifest
@@ -483,7 +491,7 @@ project (':quasar-core') {
         }
     }
 
-    tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
+    def shadowJar = tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
         destinationDirectory = file("$buildDir/libs")
         archiveClassifier = ''
 
@@ -511,13 +519,9 @@ project (':quasar-core') {
         }
     }
 
-    ext {
-        shadowJarURI = shadowJar.archiveFile.map { it.asFile.toURI() }
-    }
-
     def bundle = tasks.register('bundle', Bundle) {
         dependsOn shadowJar
-        from(zipTree(shadowJar.archiveFile)) {
+        from(zipTree(shadowJar.flatMap { it.archiveFile })) {
             exclude 'co/paralleluniverse/asm/**'
             exclude 'co/paralleluniverse/common/asm/**'
             exclude 'co/paralleluniverse/common/resource/**'
@@ -551,9 +555,9 @@ Import-Package: \
     def validateBundle = tasks.register("validateBundle") {
         dependsOn bundle
         doLast {
-            String exportPackages = fetchManifestAttributeFrom(bundle, 'Export-Package')
-            if (exportPackages && exportPackages.contains('co.paralleluniverse.asm')) {
-                throw new InvalidUserCodeException("OSGi bundle should not import shaded ASM package: " + exportPackages)
+            String importPackages = fetchManifestAttributeFrom(bundle, 'Import-Package')
+            if (importPackages && !parsePackages(importPackages).disjoint(['co.paralleluniverse.asm'])) {
+                throw new InvalidUserCodeException("OSGi bundle should not import shaded ASM package: " + importPackages)
             }
         }
     }
@@ -564,7 +568,7 @@ Import-Package: \
 
     def agentBundle = tasks.register("agentBundle", Bundle) {
         dependsOn shadowJar
-        from(zipTree(shadowJar.archiveFile)) {
+        from(zipTree(shadowJar.flatMap { it.archiveFile })) {
             include 'co/paralleluniverse/asm/**'
             include 'co/paralleluniverse/common/asm/**'
             include 'co/paralleluniverse/common/resource/**'
@@ -579,8 +583,13 @@ Import-Package: \
         archiveAppendix = 'osgi'
         archiveClassifier = 'agent'
 
+        bnd shadowJar.flatMap { jar ->
+            jar.archiveFile.map { file ->
+                "-include: jar:${file.asFile.toURI()}!/META-INF/MANIFEST.MF"
+            }
+        }
+
         bnd """
--include: "jar:\${project.shadowJarURI}!/META-INF/MANIFEST.MF"
 Bundle-SymbolicName: co.paralleluniverse.quasar-core.agent
 Bundle-Name: Quasar Agent
 Bundle-Version: \${project.version}
@@ -591,8 +600,8 @@ Bundle-Version: \${project.version}
         dependsOn agentBundle
         doLast {
             String importPackages = fetchManifestAttributeFrom(agentBundle, 'Import-Package')
-            if (importPackages && !importPackages.equals("co.paralleluniverse.common.resource")) {
-                throw new InvalidUserDataException("OSGi bundle for Java agent should only import from itself: " + importPackages)
+            if (importPackages && !containsOnly(importPackages, ['co.paralleluniverse.common.resource'])) {
+                throw new InvalidUserDataException("OSGi bundle for Java agent should only import from Java or itself: " + importPackages)
             }
         }
     }
@@ -607,7 +616,7 @@ Bundle-Version: \${project.version}
         classpath = project.sourceSets.test.runtimeClasspath
 
         project.afterEvaluate {
-            jvmArgs "-javaagent:${shadowJar.archiveFile.get()}" // =vdc
+            jvmArgs "-javaagent:${shadowJar.flatMap { it.archiveFile }.get()}" // =vdc
         }
     }
 
