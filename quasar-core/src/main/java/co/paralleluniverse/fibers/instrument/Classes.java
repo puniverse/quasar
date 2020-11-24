@@ -16,10 +16,10 @@ package co.paralleluniverse.fibers.instrument;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.EnumMap;
+import java.util.Collections;
 
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodInsnNode;
@@ -79,29 +79,15 @@ final class Classes {
             return descIds.get(id).contains(s);
         }
 
-        private void clear(ID id) {
-            descIds.get(id).clear();
-        }
-
         String get(ID id) {
             // Just return first element from iterator, fine for singletons, which is default.
             return descIds.get(id).iterator().next();
         }
 
-        private void set(ID id, String s) { descIds.put(id, new HashSet<>(Arrays.asList(s))); }
+        private void set(ID id, String s) { descIds.put(id, new HashSet<>(Collections.singletonList(s))); }
 
         private void add(ID id, String s) {
             descIds.get(id).add(s);
-        }
-
-        boolean clear(String id) {
-            try {
-                clear(ID.valueOf(id));
-            }
-            catch (IllegalArgumentException e) {
-                return false;
-            }
-            return true;
         }
 
         boolean add(String id, String s) {

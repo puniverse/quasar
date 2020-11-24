@@ -77,12 +77,15 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Type;
+import co.paralleluniverse.common.resource.ClassLoaderUtil;
 
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.lang.ref.WeakReference;
 import java.security.ProtectionDomain;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -129,8 +132,8 @@ public class JavaAgent {
                             i += s.length() + 1;
                             final String[] attr = s.split("\\=");
                             if (attr.length > 1) {
-                                final String[] types = attr[1].split(",");
-                                instrumentor.addTypeDesc(attr[0], types);
+                                final String[] names = attr[1].split(",");
+                                instrumentor.addTypeDesc(attr[0], toTypeDescriptors(names));
                             }
                         }
                         break;
@@ -154,7 +157,7 @@ public class JavaAgent {
                     case 'b':
                         instrumentor.setAllowBlocking(true);
                         break;
-                        
+
                     case 'x': {
                             final String s = parseArgBrackets(agentArguments, ++i);
                             i += s.length() + 1;
@@ -195,6 +198,10 @@ public class JavaAgent {
 
     public static boolean isActive() {
         return ACTIVE;
+    }
+
+    private static String[] toTypeDescriptors(String[] names) {
+        return Arrays.stream(names).map((s) -> Type.getObjectType(ClassLoaderUtil.classToSlashed(s)).getDescriptor()).toArray(String[]::new);
     }
 
     private static class Transformer implements ClassFileTransformer {

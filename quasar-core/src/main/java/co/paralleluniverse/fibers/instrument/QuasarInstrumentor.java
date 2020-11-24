@@ -435,15 +435,11 @@ public final class QuasarInstrumentor {
     }
 
     public synchronized void addTypeDesc(String id, String[] types) {
-        if (!Classes.getTypeDescs().clear(id)) {
-            log(LogLevel.WARNING, "Failed to clear type desc '%s'", id);
-        } else {
-            for (String s : types) {
-                if (!Classes.getTypeDescs().add(id, s)) {
-                    log(LogLevel.WARNING, "Failed to add type desc '%s' = '%s'", id, s);
-                } else {
-                    log(LogLevel.INFO, "Added type desc '%s' = '%s'", id, s);
-                }
+        for (String s : types) {
+            if (!Classes.getTypeDescs().add(id, s)) {
+                log(LogLevel.WARNING, "Failed to add type desc '%s' = '%s'", id, s);
+            } else {
+                log(LogLevel.INFO, "Added type desc '%s' = '%s'", id, s);
             }
         }
     }

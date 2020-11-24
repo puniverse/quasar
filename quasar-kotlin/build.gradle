@@ -50,7 +50,7 @@ task AnnotationTest(type: Test) {
     classpath = sourceSets.AnnotationTest.runtimeClasspath
 
     jvmArgs = jvmArgs.findAll {!it.contains("javaagent")}
-    jvmArgs "-javaagent:${quasarJar}=a(SUSPENDABLE=Lco/paralleluniverse/kotlin/fibers/MySuspendable;,Lco/paralleluniverse/kotlin/fibers/DennisSuspendable;)"
+    jvmArgs "-javaagent:${quasarJar}=a(SUSPENDABLE=co.paralleluniverse.kotlin.fibers.MySuspendable,co.paralleluniverse.kotlin.fibers.DennisSuspendable)"
 }
 
 test.dependsOn AnnotationTest
