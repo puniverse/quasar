@@ -9,7 +9,7 @@ boolean isRelease = (env.TAG_NAME =~ /^release-.*/)
 pipeline {
   agent {
     dockerfile {
-      label 'k8s'
+      label 'standard'
       additionalBuildArgs "--build-arg USER=\$(id -un) --build-arg UID=\$(id -u) --build-arg GID=\$(id -g)"
       filename '.ci/dev/Dockerfile'
     }

@@ -305,7 +305,7 @@ logger.lifecycle("Java target compatibility: {}", targetCompatibility)
 logger.lifecycle("Kotlin version: {}", kotlinVersion)
 logger.lifecycle("Building quasar version: {}", quasarVersion)
 
-def scanAndInstrument(sset, configs) {
+def scanAndInstrument(SourceSet sset, configs) {
 
     def cp = sset.output.classesDirs.getAsPath() + ':' + sset.output.resourcesDir + ':' + configs*.asPath.join(':')
 
@@ -318,7 +318,7 @@ def scanAndInstrument(sset, configs) {
             classpath: cp)
     ant.scanSuspendables(
             auto: false,
-            supersFile:"$sset.output.resourcesDir/META-INF/suspendable-supers",
+            supersFile:"${sset.output.resourcesDir}/META-INF/suspendable-supers",
             append: true) {
         for (File f : sset.output.classesDirs) {
             fileset(dir: f)
@@ -485,12 +485,6 @@ project (':quasar-core') {
         options.compilerArgs += ["--add-modules", "org.objectweb.asm", "--add-reads", "co.paralleluniverse.quasar.core=org.objectweb.asm"]
     }
 
-    configure(project.tasks.compileJava) {
-        doLast {
-            rootProject.scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtimeClasspath])
-        }
-    }
-
     def shadowJar = tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
         destinationDirectory = file("$buildDir/libs")
         archiveClassifier = ''
@@ -522,6 +516,7 @@ project (':quasar-core') {
     def bundle = tasks.register('bundle', Bundle) {
         dependsOn shadowJar
         from(zipTree(shadowJar.flatMap { it.archiveFile })) {
+            exclude 'META-INF/suspendable*'
             exclude 'co/paralleluniverse/asm/**'
             exclude 'co/paralleluniverse/common/asm/**'
             exclude 'co/paralleluniverse/common/resource/**'
@@ -569,6 +564,7 @@ Import-Package: \
     def agentBundle = tasks.register("agentBundle", Bundle) {
         dependsOn shadowJar
         from(zipTree(shadowJar.flatMap { it.archiveFile })) {
+            include 'META-INF/suspendable*'
             include 'co/paralleluniverse/asm/**'
             include 'co/paralleluniverse/common/asm/**'
             include 'co/paralleluniverse/common/resource/**'
