@@ -92,6 +92,9 @@ subprojects {
     }
 
     sourceSets {
+        main {
+            output.dir "$buildDir/generated-resources/main", builtBy: 'compileJava'
+        }
         jmh {
             compileClasspath += main.compileClasspath + main.output + test.compileClasspath + test.output
             runtimeClasspath += compileClasspath + main.runtimeClasspath + test.runtimeClasspath
@@ -151,12 +154,12 @@ subprojects {
             }
         }
     }
-    
+
     test.dependsOn jar
 
     tasks.withType(Test).configureEach {
         useJUnit()
-    
+
         if (project.name != 'quasar-kotlin') {
             moduleOptions {
                 runOnClasspath = true
@@ -318,7 +321,7 @@ def scanAndInstrument(SourceSet sset, configs) {
             classpath: cp)
     ant.scanSuspendables(
             auto: false,
-            supersFile:"${sset.output.resourcesDir}/META-INF/suspendable-supers",
+            supersFile:"${sset.output.dirs.singleFile}/META-INF/suspendable-supers",
             append: true) {
         for (File f : sset.output.classesDirs) {
             fileset(dir: f)
