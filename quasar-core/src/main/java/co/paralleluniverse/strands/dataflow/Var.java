@@ -18,6 +18,7 @@ import co.paralleluniverse.common.monitoring.FlightRecorderMessage;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.concurrent.util.MapUtil;
 import co.paralleluniverse.fibers.*;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.channels.Channel;
 import co.paralleluniverse.strands.channels.Channels;

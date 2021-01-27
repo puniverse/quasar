@@ -42,6 +42,7 @@ public final class QuasarInstrumentor {
         "co/paralleluniverse/asm/",
         "co/paralleluniverse/common/asm/",
         "co/paralleluniverse/common/resource/",
+        "co/paralleluniverse/fibers/suspend/",
         "org/objectweb/asm/", // For testing
         "org/netbeans/lib/"
     );

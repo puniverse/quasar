@@ -1,6 +1,6 @@
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.fibers.Instrumented;
+import co.paralleluniverse.fibers.suspend.Instrumented;
 import org.objectweb.asm.Type;
 import org.junit.Test;
 import java.io.IOException;

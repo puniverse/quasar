@@ -2,6 +2,7 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.common.test.*;
 import co.paralleluniverse.fibers.*;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.*;
 import org.junit.*;
 

@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.strands.channels.disruptor;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.ReceivePort;
 import com.lmax.disruptor.AbstractSequencer;

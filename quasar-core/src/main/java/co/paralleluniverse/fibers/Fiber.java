@@ -27,6 +27,9 @@ import co.paralleluniverse.common.util.VisibleForTesting;
 import co.paralleluniverse.concurrent.util.ThreadAccess;
 import co.paralleluniverse.concurrent.util.ThreadUtil;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler.FiberForkJoinTask;
+import co.paralleluniverse.fibers.suspend.Instrumented;
+import co.paralleluniverse.fibers.suspend.RuntimeSuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import co.paralleluniverse.io.serialization.kryo.KryoSerializer;
 import co.paralleluniverse.strands.Strand;
@@ -44,13 +47,18 @@ import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.io.StringWriter;
+import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.invoke.MethodType;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -95,7 +103,45 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
 
     private static boolean verifyInstrumentation = false;
 
+    // SuspendExecution must belong to the instrumentor for OSGi's sake,
+    // but we cannot risk users throwing any instances of this exception
+    // themselves either. So we keep these elements as package protected.
+    private static final MethodHandle CREATE_SUSPEND;
+    private static final SuspendExecution YIELD;
+    private static final SuspendExecution PARK;
+
+    private static class GetSuspendExecution implements PrivilegedExceptionAction<SuspendExecution> {
+        private final String fieldName;
+
+        GetSuspendExecution(String fieldName) {
+            this.fieldName = fieldName;
+        }
+
+        @Override
+        public SuspendExecution run() throws Exception {
+            Lookup lookup = MethodHandles.privateLookupIn(SuspendExecution.class, MethodHandles.lookup());
+            MethodHandle mh = lookup.findStaticGetter(SuspendExecution.class, fieldName, SuspendExecution.class);
+            try {
+                return (SuspendExecution) mh.invokeExact();
+            } catch (Throwable t) {
+                throw new Exception(t.getMessage(), t);
+            }
+        }
+    }
+
     static {
+        try {
+            CREATE_SUSPEND = doPrivileged((PrivilegedExceptionAction<MethodHandle>) () -> {
+                Lookup lookup = MethodHandles.privateLookupIn(SuspendExecution.class, MethodHandles.lookup());
+                return lookup.findConstructor(SuspendExecution.class, MethodType.methodType(void.class));
+            });
+            YIELD = doPrivileged(new GetSuspendExecution("YIELD"));
+            PARK = doPrivileged(new GetSuspendExecution("PARK"));
+        } catch (PrivilegedActionException e) {
+            Throwable cause = e.getCause();
+            throw new InternalError(cause.getMessage(), cause);
+        }
+
         readSystemProperties();
         if (Debug.isDebug())
             System.err.println("QUASAR WARNING: Debug mode enabled. This may harm performance.");
@@ -105,6 +151,18 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             System.err.println("QUASAR WARNING: Quasar Java Agent isn't running. If you're using another instrumentation method you can ignore this message; "
                     + "otherwise, please refer to the Getting Started section in the Quasar documentation.");
         assert printVerifyInstrumentationWarning();
+    }
+
+    private static SuspendExecution createSuspend() {
+        try {
+            return (SuspendExecution) CREATE_SUSPEND.invokeExact();
+        } catch (Throwable t) {
+            throw new InternalError(t.getMessage(), t);
+        }
+    }
+
+    static SuspendExecution parkable(boolean yield) {
+        return yield ? YIELD : PARK;
     }
 
     public static void readSystemProperties() {
@@ -814,7 +872,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 throw (SuspendExecution) e.getCause();
             }
         } catch (SuspendExecution ex) {
-            assert ex == SuspendExecution.PARK || ex == SuspendExecution.YIELD;
+            assert SuspendExecution.isPark(ex) || SuspendExecution.isYield(ex);
             //stack.dump();
             stack.resumeStack();
             runningThread = null;
@@ -828,9 +886,9 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
             restored = true;
 
             record(1, "Fiber", "exec", "parked %s %s", state, this);
-            task.doPark(ex == SuspendExecution.YIELD); // now we can complete parking
+            task.doPark(SuspendExecution.isYield(ex)); // now we can complete parking
 
-            assert ppa == null || ex == SuspendExecution.PARK; // can't have postParkActions on yield
+            assert ppa == null || SuspendExecution.isPark(ex); // can't have postParkActions on yield
             if (ppa != null) {
                 // Redirect any exceptions thrown by the user code provided in the post-park action, as exceptions
                 // which propagate out of here may not always be caught and printed.
@@ -927,7 +985,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 throw (SuspendExecution) e.getCause();
             }
         } catch (SuspendExecution | IllegalStateException ex) {
-            assert ex != SuspendExecution.PARK && ex != SuspendExecution.YIELD;
+            assert !SuspendExecution.isPark(ex) && !SuspendExecution.isYield(ex);
             //stack.dump();
             stack.resumeStack();
 
@@ -1153,7 +1211,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
                 park1(null, null, 0, null);
             } catch (SuspendExecution e) {
             }
-            SuspendExecution ex = new SuspendExecution();
+            SuspendExecution ex = createSuspend();
             ex.setStackTrace(new Throwable().getStackTrace());
             throw ex;
         }
@@ -1653,10 +1711,6 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     public final String toString() {
         return "Fiber@" + fid + (name != null ? (':' + name) : "")
                 + "[task: " + task + ", target: " + Objects.systemToString(target) + ", scheduler: " + scheduler + ']';
-    }
-
-    final Stack getStack() {
-        return stack;
     }
 
     /**

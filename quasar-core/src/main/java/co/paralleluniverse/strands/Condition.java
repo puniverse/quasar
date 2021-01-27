@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.strands;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import java.util.concurrent.TimeUnit;
 
 /**

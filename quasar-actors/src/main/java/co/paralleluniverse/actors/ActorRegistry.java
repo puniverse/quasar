@@ -18,9 +18,10 @@ import co.paralleluniverse.common.util.ServiceUtil;
 import co.paralleluniverse.fibers.DefaultFiberScheduler;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.FiberScheduler;
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

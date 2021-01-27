@@ -14,6 +14,8 @@
 
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 

@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.channels.ReceivePort.EOFException;
 import java.util.concurrent.TimeUnit;

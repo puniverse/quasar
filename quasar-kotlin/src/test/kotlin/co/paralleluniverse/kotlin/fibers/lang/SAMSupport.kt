@@ -13,8 +13,8 @@
  */
 package co.paralleluniverse.kotlin.fibers.lang
 
-import co.paralleluniverse.fibers.SuspendExecution
 import co.paralleluniverse.fibers.Suspendable
+import co.paralleluniverse.fibers.suspend.SuspendExecution
 
 // See https://github.com/puniverse/quasar/issues/275
 @FunctionalInterface

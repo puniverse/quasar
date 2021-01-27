@@ -16,8 +16,9 @@ package co.paralleluniverse.fibers.io;
 import co.paralleluniverse.common.util.CheckedCallable;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberAsync;
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
+
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.nio.channels.CompletionHandler;

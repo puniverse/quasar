@@ -16,6 +16,7 @@ package co.paralleluniverse.fibers;
 import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import co.paralleluniverse.strands.Condition;
 import co.paralleluniverse.strands.SettableFuture;

@@ -13,7 +13,7 @@
 package co.paralleluniverse.strands.channels.reactivestreams;
 
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableAction2;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.channels.ReceivePort;

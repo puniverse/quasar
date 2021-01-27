@@ -28,12 +28,13 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.fibers.Instrumented;
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.Instrumented;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Locale;
+
 import org.junit.Test;
 import static org.junit.Assert.*;
 

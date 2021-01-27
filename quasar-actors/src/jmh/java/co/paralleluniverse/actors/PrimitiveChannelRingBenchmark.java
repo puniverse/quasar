@@ -1,7 +1,7 @@
 package co.paralleluniverse.actors;
 
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.IntChannel;
 import co.paralleluniverse.strands.channels.ReceivePort;

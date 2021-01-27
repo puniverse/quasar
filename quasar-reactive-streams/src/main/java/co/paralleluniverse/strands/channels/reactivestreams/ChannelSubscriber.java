@@ -13,8 +13,8 @@
  */
 package co.paralleluniverse.strands.channels.reactivestreams;
 
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import co.paralleluniverse.strands.Timeout;
 import co.paralleluniverse.strands.channels.Channel;

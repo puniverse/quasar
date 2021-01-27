@@ -13,7 +13,8 @@
  */
 package co.paralleluniverse.fibers.io;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
+
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.SocketOption;

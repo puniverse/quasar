@@ -28,7 +28,7 @@
  */
 package co.paralleluniverse.strands.channels.disruptor;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.SimpleConditionSynchronizer;
 import com.lmax.disruptor.AlertException;
 import com.lmax.disruptor.EventProcessor;

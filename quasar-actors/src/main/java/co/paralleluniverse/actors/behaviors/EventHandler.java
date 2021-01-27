@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.actors.behaviors;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 
 /**
  * A handler that can be registered with an {@link EventSource} actor to receive all events {@link EventSource#notify(java.lang.Object) sent}

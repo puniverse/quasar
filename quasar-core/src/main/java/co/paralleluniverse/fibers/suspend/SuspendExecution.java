@@ -11,7 +11,7 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.fibers;
+package co.paralleluniverse.fibers.suspend;
 
 /**
  * <p>
@@ -31,6 +31,14 @@ package co.paralleluniverse.fibers;
 public final class SuspendExecution extends Exception { // InterruptedException {
     static final SuspendExecution PARK = new SuspendExecution();
     static final SuspendExecution YIELD = new SuspendExecution();
+
+    public static boolean isPark(Throwable ex) {
+        return ex == PARK;
+    }
+
+    public static boolean isYield(Throwable ex) {
+        return ex == YIELD;
+    }
 
     protected SuspendExecution() {
         super("Oops. Forgot to instrument a method. Run your program with -Dco.paralleluniverse.fibers.verifyInstrumentation=true to catch the culprit!");

@@ -31,8 +31,8 @@
 
 package co.paralleluniverse.strands.concurrent;
 
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;

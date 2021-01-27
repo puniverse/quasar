@@ -3,8 +3,8 @@ package co.paralleluniverse.fibers.dynamic;
 import co.paralleluniverse.common.test.TestInterface;
 import co.paralleluniverse.common.test.TestInterface2;
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 
 import java.util.ArrayList;
 

@@ -22,6 +22,7 @@ import co.paralleluniverse.concurrent.forkjoin.ExtendedForkJoinWorkerThread;
 import co.paralleluniverse.concurrent.forkjoin.MonitoredForkJoinPool;
 import co.paralleluniverse.concurrent.forkjoin.ParkableForkJoinTask;
 import co.paralleluniverse.fibers.instrument.DontInstrument;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.lang.Thread.UncaughtExceptionHandler;
@@ -329,7 +330,7 @@ public class FiberForkJoinScheduler extends FiberScheduler {
         @Override
         @DontInstrument
         protected void throwPark(boolean yield) throws SuspendExecution {
-            throw yield ? SuspendExecution.YIELD : SuspendExecution.PARK;
+            throw Fiber.parkable(yield);
         }
 
         @Override

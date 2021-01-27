@@ -13,7 +13,8 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
+
 import java.util.Map;
 import java.util.Objects;
 

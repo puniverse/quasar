@@ -33,6 +33,7 @@ module co.paralleluniverse.quasar.core {
     exports co.paralleluniverse.fibers.futures;
     exports co.paralleluniverse.fibers.instrument;
     exports co.paralleluniverse.fibers.io;
+    exports co.paralleluniverse.fibers.suspend;
     exports co.paralleluniverse.remote;
     exports co.paralleluniverse.strands;
     exports co.paralleluniverse.strands.channels;
@@ -53,6 +54,8 @@ module co.paralleluniverse.quasar.core {
     // co.paralleluniverse.asm is actually a shadowing of org.objectweb.asm.
     exports co.paralleluniverse.asm to co.paralleluniverse.quasar.actors;
     exports co.paralleluniverse.common.asm to co.paralleluniverse.quasar.actors;
+
+    opens co.paralleluniverse.fibers.suspend to co.paralleluniverse.fibers;
 
     uses co.paralleluniverse.fibers.instrument.SuspendableClassifier;
 }

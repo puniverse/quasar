@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.remote.RemoteChannelProxyFactoryService;
 import co.paralleluniverse.strands.channels.Channels.OverflowPolicy;
 import co.paralleluniverse.strands.channels.SingleConsumerQueueChannel;

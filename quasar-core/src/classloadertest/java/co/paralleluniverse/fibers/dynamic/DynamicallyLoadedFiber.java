@@ -1,7 +1,7 @@
 package co.paralleluniverse.fibers.dynamic;
 
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 
 import java.util.ArrayList;
 

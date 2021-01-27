@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.remote.RemoteChannelProxyFactoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

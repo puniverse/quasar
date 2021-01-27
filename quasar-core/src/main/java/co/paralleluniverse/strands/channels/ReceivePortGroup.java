@@ -15,7 +15,7 @@ package co.paralleluniverse.strands.channels;
 
 import co.paralleluniverse.common.util.Pair;
 import co.paralleluniverse.concurrent.util.EnhancedAtomicReference;
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;

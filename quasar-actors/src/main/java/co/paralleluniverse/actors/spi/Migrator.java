@@ -16,7 +16,7 @@ package co.paralleluniverse.actors.spi;
 import co.paralleluniverse.actors.Actor;
 import co.paralleluniverse.actors.ActorImpl;
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.io.serialization.ByteArraySerializer;
 
 /**

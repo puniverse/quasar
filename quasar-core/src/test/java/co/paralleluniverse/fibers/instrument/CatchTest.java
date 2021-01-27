@@ -29,19 +29,18 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
-import static co.paralleluniverse.fibers.TestsHelper.exec;
-
 import co.paralleluniverse.fibers.Suspendable;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableCallable;
 import co.paralleluniverse.strands.SuspendableRunnable;
+import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import static co.paralleluniverse.fibers.TestsHelper.exec;
 import static org.junit.Assert.*;
-import org.junit.Test;
 
 /**
  * Check that a generic catch all does not affect the suspension of a method

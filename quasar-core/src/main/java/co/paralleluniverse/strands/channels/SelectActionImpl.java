@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 
 public final class SelectActionImpl<Message> extends SelectAction<Message> {
     private volatile Selector selector;

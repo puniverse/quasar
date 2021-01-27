@@ -1,6 +1,6 @@
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.fibers.Instrumented;
+import co.paralleluniverse.fibers.suspend.Instrumented;
 
 public final class Constants {
     /**

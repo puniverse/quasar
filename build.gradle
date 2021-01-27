@@ -524,6 +524,7 @@ project (':quasar-core') {
             exclude 'co/paralleluniverse/common/asm/**'
             exclude 'co/paralleluniverse/common/resource/**'
             exclude 'co/paralleluniverse/fibers/instrument/**'
+            exclude 'co/paralleluniverse/fibers/suspend/**'
             exclude 'module-info.class'
         }
         from(sourceSets.bundle.output)
@@ -577,6 +578,7 @@ Import-Package: \
             exclude 'co/paralleluniverse/fibers/instrument/ModuleFilterTask*'
             exclude 'co/paralleluniverse/fibers/instrument/OldSuspendablesScanner*'
             exclude 'co/paralleluniverse/fibers/instrument/SuspendablesScanner*'
+            include 'co/paralleluniverse/fibers/suspend/**'
         }
         from(sourceSets.agent.output)
         archiveAppendix = 'osgi'
@@ -599,7 +601,7 @@ Bundle-Version: \${project.version}
         dependsOn agentBundle
         doLast {
             String importPackages = fetchManifestAttributeFrom(agentBundle, 'Import-Package')
-            if (importPackages && !containsOnly(importPackages, ['co.paralleluniverse.common.resource'])) {
+            if (importPackages && !containsOnly(importPackages, ['co.paralleluniverse.common.resource', 'co.paralleluniverse.fibers.suspend'])) {
                 throw new InvalidUserDataException("OSGi bundle for Java agent should only import from Java or itself: " + importPackages)
             }
         }

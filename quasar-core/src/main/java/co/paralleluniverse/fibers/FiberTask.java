@@ -13,6 +13,8 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
+
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;

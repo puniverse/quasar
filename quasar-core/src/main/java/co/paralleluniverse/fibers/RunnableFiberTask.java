@@ -18,6 +18,7 @@ import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.fibers.instrument.DontInstrument;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.SettableFuture;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
@@ -186,7 +187,7 @@ class RunnableFiberTask<V> implements Runnable, FiberTask<V> {
 
     @DontInstrument
     protected void throwPark(boolean yield) throws SuspendExecution {
-        throw yield ? SuspendExecution.YIELD : SuspendExecution.PARK;
+        throw Fiber.parkable(yield);
     }
 
     protected boolean park(Object blocker) throws Exception {

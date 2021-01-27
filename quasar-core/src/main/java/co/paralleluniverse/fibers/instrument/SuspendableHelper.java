@@ -18,6 +18,8 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static co.paralleluniverse.fibers.instrument.Classes.LAMBDA_METHOD_PREFIX;
+
 /**
  *
  * @author pron
@@ -33,7 +35,7 @@ public final class SuspendableHelper {
 
     @SuppressWarnings("WeakerAccess")
     public static boolean isSyntheticAndNotLambda(Member m) {
-        return m.isSynthetic() && !m.getName().startsWith(Classes.LAMBDA_METHOD_PREFIX);
+        return m.isSynthetic() && !m.getName().startsWith(LAMBDA_METHOD_PREFIX);
     }
 
     @SuppressWarnings("WeakerAccess")

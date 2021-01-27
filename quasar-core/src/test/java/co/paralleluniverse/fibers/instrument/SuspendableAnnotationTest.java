@@ -16,9 +16,10 @@ package co.paralleluniverse.fibers.instrument;
 import co.paralleluniverse.common.util.Exceptions;
 import co.paralleluniverse.common.util.SystemProperties;
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
 import static co.paralleluniverse.fibers.TestsHelper.exec;
+
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableCallable;
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -17,7 +17,7 @@ import co.paralleluniverse.common.test.TestUtil;
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import co.paralleluniverse.strands.channels.Channels;
 import co.paralleluniverse.strands.channels.IntChannel;
@@ -72,7 +72,7 @@ public class FiberAsyncIOTest {
     public void testFiberAsyncSocket() throws Exception {
         final IntChannel sync = Channels.newIntChannel(0);
         
-        final Fiber server = new Fiber(scheduler, new SuspendableRunnable() {
+        final Fiber<?> server = new Fiber<>(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution, InterruptedException {
                 try (FiberServerSocketChannel socket = FiberServerSocketChannel.open().bind(new InetSocketAddress(PORT))) {
@@ -180,7 +180,7 @@ public class FiberAsyncIOTest {
 
     @Test
     public void testFiberAsyncFile() throws Exception {
-        new Fiber(scheduler, new SuspendableRunnable() {
+        new Fiber<>(scheduler, new SuspendableRunnable() {
             @Override
             public void run() throws SuspendExecution {
                 try (FiberFileChannel ch = FiberFileChannel.open(Paths.get(System.getProperty("user.home"), "fibertest.bin"), READ, WRITE, CREATE, TRUNCATE_EXISTING)) {

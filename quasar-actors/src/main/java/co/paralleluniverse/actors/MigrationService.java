@@ -15,7 +15,7 @@ package co.paralleluniverse.actors;
 
 import co.paralleluniverse.actors.spi.Migrator;
 import co.paralleluniverse.common.util.ServiceUtil;
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.io.serialization.ByteArraySerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

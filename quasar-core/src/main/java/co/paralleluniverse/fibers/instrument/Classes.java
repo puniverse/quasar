@@ -21,6 +21,7 @@ import java.util.HashSet;
 import java.util.EnumMap;
 import java.util.Collections;
 
+import co.paralleluniverse.fibers.suspend.Instrumented;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.tree.MethodInsnNode;
 
@@ -50,14 +51,15 @@ final class Classes {
     static final String EXCEPTION_NAME         = Exception.class.getName().replace('.', '/');
     static final String RUNTIME_EXCEPTION_NAME = RuntimeException.class.getName().replace('.', '/');
 
-    static final String RUNTIME_SUSPEND_EXECUTION_NAME = "co/paralleluniverse/fibers/RuntimeSuspendExecution";
+    static final String RUNTIME_SUSPEND_EXECUTION_NAME = "co/paralleluniverse/fibers/suspend/RuntimeSuspendExecution";
     static final String UNDECLARED_THROWABLE_NAME      = UndeclaredThrowableException.class.getName().replace('.', '/');
-    static final String SUSPEND_EXECUTION_NAME         = "co/paralleluniverse/fibers/SuspendExecution";
+    static final String SUSPEND_EXECUTION_NAME         = "co/paralleluniverse/fibers/suspend/SuspendExecution";
+    static final String STACK_OPS_NAME                 = "co/paralleluniverse/fibers/suspend/StackOps";
 
     static final String LAMBDA_METHOD_PREFIX            = "lambda$";
 
     static final String DONT_INSTRUMENT_DESC = Type.getDescriptor(DontInstrument.class);
-    static final String INSTRUMENTED_DESC    = "Lco/paralleluniverse/fibers/Instrumented;";
+    static final String INSTRUMENTED_DESC    = Type.getDescriptor(Instrumented.class);
 
     // CORE-21 : Provide getter and setter for annotation types.
     static class AnnotationDescriptors {
@@ -67,7 +69,7 @@ final class Classes {
         };
 
         // Keep as non volatile for now as should only be modified by the agent on initialisation.
-        private EnumMap<ID, Set<String>> descIds = new EnumMap<>(ID.class);
+        private final EnumMap<ID, Set<String>> descIds = new EnumMap<>(ID.class);
 
         AnnotationDescriptors() {
             // We use string literals rather than Type.getDescriptor as we do not want

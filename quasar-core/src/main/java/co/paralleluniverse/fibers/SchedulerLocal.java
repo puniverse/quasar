@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.concurrent.ReentrantLock;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;

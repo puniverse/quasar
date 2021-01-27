@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.strands.channels;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 
 /**
  * A listener associated with a {@link Selector#send(SendPort, Object, SelectSendListener)  send SelectAction}, which is called if an only if

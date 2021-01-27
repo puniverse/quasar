@@ -14,7 +14,7 @@
 
 package co.paralleluniverse.actors;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 
 /**
  *

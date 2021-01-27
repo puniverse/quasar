@@ -14,8 +14,9 @@
 package co.paralleluniverse.strands;
 
 import co.paralleluniverse.common.util.Exceptions;
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.instrument.DontInstrument;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
+
 import java.util.concurrent.Callable;
 
 /**

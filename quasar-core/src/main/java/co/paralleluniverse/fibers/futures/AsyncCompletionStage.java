@@ -15,7 +15,7 @@ package co.paralleluniverse.fibers.futures;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.FiberAsync;
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.Timeout;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -39,7 +39,7 @@ public class AsyncCompletionStage<V> extends FiberAsync<V, ExecutionException> {
      */
     public static <V> V get(CompletionStage<V> future) throws ExecutionException, InterruptedException, SuspendExecution {
         if (Fiber.isCurrentFiber())
-            return new AsyncCompletionStage<V>(future).run();
+            return new AsyncCompletionStage<>(future).run();
         else
             return future.toCompletableFuture().get();
     }

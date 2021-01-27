@@ -13,6 +13,7 @@
  */
 package co.paralleluniverse.fibers;
 
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableRunnable;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;

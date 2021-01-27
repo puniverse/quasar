@@ -15,10 +15,9 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
 import co.paralleluniverse.fibers.Stack;
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.TestsHelper;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.SuspendableRunnable;
-import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.List;

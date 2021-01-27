@@ -12,7 +12,7 @@
  */
 package co.paralleluniverse.strands;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 
 
 public interface SuspendableAction2<S1, S2> {

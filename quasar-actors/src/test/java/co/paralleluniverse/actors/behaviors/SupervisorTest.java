@@ -29,7 +29,7 @@ import co.paralleluniverse.common.util.Debug;
 import co.paralleluniverse.fibers.FiberFactory;
 import co.paralleluniverse.fibers.FiberForkJoinScheduler;
 import co.paralleluniverse.fibers.FiberScheduler;
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import co.paralleluniverse.strands.Strand;
 import java.util.Arrays;
 import java.util.List;

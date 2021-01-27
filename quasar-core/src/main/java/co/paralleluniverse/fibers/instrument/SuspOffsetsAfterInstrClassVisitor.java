@@ -13,7 +13,7 @@
  */
 package co.paralleluniverse.fibers.instrument;
 
-import co.paralleluniverse.fibers.Instrumented;
+import co.paralleluniverse.fibers.suspend.Instrumented;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -151,6 +151,7 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                         final int type = AbstractInsnNode.METHOD_INSN;
                         if (InstrumentMethod.isSuspendableCall(db, type, opcode, owner, name, desc) &&
                                 !Classes.STACK_NAME.equals(owner) && // postRestore
+                                !Classes.STACK_OPS_NAME.equals(owner) &&
                                 currLabel != null && currLabel.info instanceof Integer)
                             addLine();
                     }
@@ -165,6 +166,7 @@ class SuspOffsetsAfterInstrClassVisitor extends ClassVisitor {
                         final int opcode = Opcodes.INVOKEDYNAMIC;
                         if (InstrumentMethod.isSuspendableCall(db, type, opcode, handle.getOwner(), name, desc) &&
                                 !Classes.STACK_NAME.equals(handle.getOwner()) && // postRestore
+                                !Classes.STACK_OPS_NAME.equals(handle.getOwner()) &&
                                 currLabel != null && currLabel.info instanceof Integer)
                             addLine();
                     }

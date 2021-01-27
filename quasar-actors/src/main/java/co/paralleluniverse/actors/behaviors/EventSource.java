@@ -14,8 +14,9 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.ActorRef;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
+
 import static co.paralleluniverse.actors.behaviors.RequestReplyHelper.call;
-import co.paralleluniverse.fibers.SuspendExecution;
 
 /**
  * An interface to an {@link EventSourceActor}.

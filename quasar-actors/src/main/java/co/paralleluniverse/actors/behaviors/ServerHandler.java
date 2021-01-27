@@ -14,7 +14,7 @@
 package co.paralleluniverse.actors.behaviors;
 
 import co.paralleluniverse.actors.ActorRef;
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 
 /**
  * A delegate object that can be used instead of subclassing {@link ServerActor} and overriding its methods.

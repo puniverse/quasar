@@ -45,11 +45,12 @@ import co.paralleluniverse.fibers.instrument.MethodDatabase.SuspendableType;
 
 import static co.paralleluniverse.fibers.instrument.Classes.INSTRUMENTED_DESC;
 import static co.paralleluniverse.fibers.instrument.Classes.EXCEPTION_NAME;
+import static co.paralleluniverse.fibers.instrument.Classes.LAMBDA_METHOD_PREFIX;
+import static co.paralleluniverse.fibers.instrument.Classes.STACK_OPS_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.THROWABLE_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.RUNTIME_EXCEPTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.SUSPEND_EXECUTION_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.RUNTIME_SUSPEND_EXECUTION_NAME;
-import static co.paralleluniverse.fibers.instrument.Classes.STACK_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.UNDECLARED_THROWABLE_NAME;
 import static co.paralleluniverse.fibers.instrument.Classes.isAllowedToBlock;
 import static co.paralleluniverse.fibers.instrument.Classes.blockingCallIdx;
@@ -343,7 +344,6 @@ class InstrumentMethod {
         // Else instrument
         collectCodeBlocks(); // Must be called first, sets flags & state used below
 
-        //noinspection ConstantConditions
         final boolean handleProxyInvocations = HANDLE_PROXY_INVOCATIONS && callsSuspendableSupers;
 
         mv.visitCode();
@@ -397,7 +397,7 @@ class InstrumentMethod {
         for (final Object o : mn.tryCatchBlocks) {
             final TryCatchBlockNode tcb = (TryCatchBlockNode) o;
 
-            if (SUSPEND_EXECUTION_NAME.equals(tcb.type) && !hasAnnotation && !mn.name.startsWith(Classes.LAMBDA_METHOD_PREFIX)) // we allow catch of SuspendExecution only in methods annotated with @Suspendable and in lambda-generated ones.
+            if (SUSPEND_EXECUTION_NAME.equals(tcb.type) && !hasAnnotation && !mn.name.startsWith(LAMBDA_METHOD_PREFIX)) // we allow catch of SuspendExecution only in methods annotated with @Suspendable and in lambda-generated ones.
                 throw new UnableToInstrumentException("catch for SuspendExecution", className, mn.name, mn.desc);
             if (handleProxyInvocations && UNDECLARED_THROWABLE_NAME.equals(tcb.type)) // we allow catch of SuspendExecution in method annotated with @Suspendable.
                 throw new UnableToInstrumentException("catch for UndeclaredThrowableException", className, mn.name, mn.desc);
@@ -423,7 +423,7 @@ class InstrumentMethod {
 
         mv.visitTryCatchBlock(lMethodStart, lMethodEnd, lCatchAll, null);
 
-        mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "getStack", "()L" + STACK_NAME + ";", false);
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_OPS_NAME, "getStack", "()L" + STACK_OPS_NAME + ";", false);
         mv.visitInsn(Opcodes.DUP);
         mv.visitVarInsn(Opcodes.ASTORE, lvarStack);
 
@@ -435,7 +435,7 @@ class InstrumentMethod {
 
         emitStoreResumed(mv, true); // we'll assume we have been resumed
 
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "nextMethodEntry", "()I", false);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_OPS_NAME, "nextMethodEntry", "()I", false);
         mv.visitTableSwitchInsn(1, numCodeBlocks - 1, lMethodStart2, lMethodCalls);
 
         mv.visitLabel(lMethodStart2);
@@ -443,7 +443,7 @@ class InstrumentMethod {
         // the following code handles the case of an instrumented method called not as part of a suspendable code path
         // isFirstInStack will return false in that case.
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "isFirstInStackOrPushed", "()Z", false);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_OPS_NAME, "isFirstInStackOrPushed", "()Z", false);
         mv.visitJumpInsn(Opcodes.IFNE, lMethodStart); // if true
 
         // This will reset the fiber stack local if isFirstStack returns false.
@@ -637,8 +637,7 @@ class InstrumentMethod {
     }
 
     private boolean hasSuspendableTryCatchBlocksAround(int bci) {
-        //noinspection unchecked
-        for (final TryCatchBlockNode tcb : (List<TryCatchBlockNode>) mn.tryCatchBlocks) {
+        for (final TryCatchBlockNode tcb : mn.tryCatchBlocks) {
             if (mn.instructions.indexOf(tcb.start) <= bci && mn.instructions.indexOf(tcb.end) >= bci
                 && (THROWABLE_NAME.equals(tcb.type)
                     || EXCEPTION_NAME.equals(tcb.type)
@@ -773,7 +772,6 @@ class InstrumentMethod {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private void splitTryCatch(FrameInfo fi) {
         for (int i = 0; i < mn.tryCatchBlocks.size(); i++) {
             TryCatchBlockNode tcb = mn.tryCatchBlocks.get(i);
@@ -938,7 +936,7 @@ class InstrumentMethod {
 
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         emitConst(mv, maxRefSlots);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "popMethod", "(I)V", false);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_OPS_NAME, "popMethod", "(I)V", false);
 
         // DUAL
         mv.visitLabel(lbl);
@@ -958,7 +956,7 @@ class InstrumentMethod {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
         emitConst(mv, idx);
         emitConst(mv, fi.numSlots);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "pushMethod", "(II)V", false);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_OPS_NAME, "pushMethod", "(II)V", false);
 
         // store operand stack
         for (int i = f.getStackSize(); i-- > 0;) {
@@ -1036,7 +1034,7 @@ class InstrumentMethod {
 
     private void emitPostRestore(MethodVisitor mv) {
         mv.visitVarInsn(Opcodes.ALOAD, lvarStack);
-        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "postRestore", "()V", false);
+        mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_OPS_NAME, "postRestore", "()V", false);
     }
 
     /*
@@ -1067,23 +1065,23 @@ class InstrumentMethod {
         switch (v.getType().getSort()) {
             case Type.OBJECT:
             case Type.ARRAY:
-                desc = "(Ljava/lang/Object;L" + STACK_NAME + ";I)V";
+                desc = "(Ljava/lang/Object;L" + STACK_OPS_NAME + ";I)V";
                 break;
             case Type.BOOLEAN:
             case Type.BYTE:
             case Type.SHORT:
             case Type.CHAR:
             case Type.INT:
-                desc = "(IL" + STACK_NAME + ";I)V";
+                desc = "(IL" + STACK_OPS_NAME + ";I)V";
                 break;
             case Type.FLOAT:
-                desc = "(FL" + STACK_NAME + ";I)V";
+                desc = "(FL" + STACK_OPS_NAME + ";I)V";
                 break;
             case Type.LONG:
-                desc = "(JL" + STACK_NAME + ";I)V";
+                desc = "(JL" + STACK_OPS_NAME + ";I)V";
                 break;
             case Type.DOUBLE:
-                desc = "(DL" + STACK_NAME + ";I)V";
+                desc = "(DL" + STACK_OPS_NAME + ";I)V";
                 break;
             default:
                 throw new InternalError("Unexpected type: " + v.getType());
@@ -1093,7 +1091,7 @@ class InstrumentMethod {
 //        if (v.getType().getSort() == Type.OBJECT || v.getType().getSort() == Type.ARRAY)
 //            println(mv, "STORE " + (lvar >= 0 ? ("VAR " + lvar + ": ") : "OPRND: "));
         emitConst(mv, idx);
-        mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_NAME, "push", desc, false);
+        mv.visitMethodInsn(Opcodes.INVOKESTATIC, STACK_OPS_NAME, "push", desc, false);
     }
 
     private void emitRestoreValue(MethodVisitor mv, BasicValue v, int lvarStack, int idx, @SuppressWarnings("UnusedParameters") int lvar) {
@@ -1103,39 +1101,39 @@ class InstrumentMethod {
         switch (v.getType().getSort()) {
             case Type.OBJECT:
                 String internalName = v.getType().getInternalName();
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getObject", "(I)Ljava/lang/Object;", false);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_OPS_NAME, "getObject", "(I)Ljava/lang/Object;", false);
                 if (!internalName.equals("java/lang/Object"))  // don't cast to Object ;)
                     mv.visitTypeInsn(Opcodes.CHECKCAST, internalName);
 //                println(mv, "RESTORE " + (lvar >= 0 ? ("VAR " + lvar + ": ") : "OPRND: "));
                 break;
             case Type.ARRAY:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getObject", "(I)Ljava/lang/Object;", false);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_OPS_NAME, "getObject", "(I)Ljava/lang/Object;", false);
                 mv.visitTypeInsn(Opcodes.CHECKCAST, v.getType().getDescriptor());
                 break;
             case Type.BYTE:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getInt", "(I)I", false);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_OPS_NAME, "getInt", "(I)I", false);
                 mv.visitInsn(Opcodes.I2B);
                 break;
             case Type.SHORT:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getInt", "(I)I", false);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_OPS_NAME, "getInt", "(I)I", false);
                 mv.visitInsn(Opcodes.I2S);
                 break;
             case Type.CHAR:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getInt", "(I)I", false);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_OPS_NAME, "getInt", "(I)I", false);
                 mv.visitInsn(Opcodes.I2C);
                 break;
             case Type.BOOLEAN:
             case Type.INT:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getInt", "(I)I", false);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_OPS_NAME, "getInt", "(I)I", false);
                 break;
             case Type.FLOAT:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getFloat", "(I)F", false);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_OPS_NAME, "getFloat", "(I)F", false);
                 break;
             case Type.LONG:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getLong", "(I)J", false);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_OPS_NAME, "getLong", "(I)J", false);
                 break;
             case Type.DOUBLE:
-                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_NAME, "getDouble", "(I)D", false);
+                mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, STACK_OPS_NAME, "getDouble", "(I)D", false);
                 break;
             default:
                 throw new InternalError("Unexpected type: " + v.getType());

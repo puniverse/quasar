@@ -14,8 +14,12 @@
 package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.fibers.Fiber;
-import co.paralleluniverse.fibers.SuspendExecution;
 import co.paralleluniverse.fibers.Suspendable;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.objectweb.asm.Type;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,10 +27,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import static org.junit.Assert.*;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.objectweb.asm.Type;
 
 public class SuspendablesScannerTest {
     private static SuspendablesScanner scanner;

@@ -4,7 +4,7 @@
  */
 package co.paralleluniverse.strands.channels.disruptor;
 
-import co.paralleluniverse.fibers.SuspendExecution;
+import co.paralleluniverse.fibers.suspend.SuspendExecution;
 import com.lmax.disruptor.AlertException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;

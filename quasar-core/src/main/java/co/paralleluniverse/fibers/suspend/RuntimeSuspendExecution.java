@@ -11,16 +11,16 @@
  * under the terms of the GNU Lesser General Public License version 3.0
  * as published by the Free Software Foundation.
  */
-package co.paralleluniverse.fibers;
+package co.paralleluniverse.fibers.suspend;
 
 public final class RuntimeSuspendExecution extends RuntimeException { // InterruptedException {
-    static final RuntimeSuspendExecution PARK = new RuntimeSuspendExecution(SuspendExecution.PARK);
-    static final RuntimeSuspendExecution YIELD = new RuntimeSuspendExecution(SuspendExecution.YIELD);
+    private static final RuntimeSuspendExecution PARK = new RuntimeSuspendExecution(SuspendExecution.PARK);
+    private static final RuntimeSuspendExecution YIELD = new RuntimeSuspendExecution(SuspendExecution.YIELD);
 
     public static RuntimeSuspendExecution of(SuspendExecution e) {
-        if (e == SuspendExecution.PARK)
+        if (SuspendExecution.isPark(e))
             return PARK;
-        else if (e == SuspendExecution.YIELD)
+        else if (SuspendExecution.isYield(e))
             return YIELD;
         else
             return new RuntimeSuspendExecution(e);
