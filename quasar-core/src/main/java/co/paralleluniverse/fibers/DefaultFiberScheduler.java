@@ -34,7 +34,6 @@ import java.lang.Thread.UncaughtExceptionHandler;
 public class DefaultFiberScheduler {
     private static final String PROPERTY_PARALLELISM = "co.paralleluniverse.fibers.DefaultFiberPool.parallelism";
     private static final String PROPERTY_EXCEPTION_HANDLER = "co.paralleluniverse.fibers.DefaultFiberPool.exceptionHandler";
-    private static final String PROPERTY_THREAD_FACTORY = "co.paralleluniverse.fibers.DefaultFiberPool.threadFactory";
     private static final String PROPERTY_MONITOR_TYPE = "co.paralleluniverse.fibers.DefaultFiberPool.monitor";
     private static final String PROPERTY_DETAILED_FIBER_INFO = "co.paralleluniverse.fibers.DefaultFiberPool.detailedFiberInfo";
     private static final int MAX_CAP = 0x7fff;  // max #workers - 1
@@ -46,7 +45,7 @@ public class DefaultFiberScheduler {
         int par = 0;
         UncaughtExceptionHandler handler = null;
         // ForkJoinPool.ForkJoinWorkerThreadFactory fac = new NamingForkJoinWorkerFactory(name);
-        MonitorType monitorType = MonitorType.JMX;
+        MonitorType monitorType = null;
         boolean detailedFiberInfo = false;
 
         // get overrides
@@ -74,7 +73,7 @@ public class DefaultFiberScheduler {
 
         String dfis = System.getProperty(PROPERTY_DETAILED_FIBER_INFO);
         if (dfis != null)
-            detailedFiberInfo = Boolean.valueOf(dfis);
+            detailedFiberInfo = Boolean.parseBoolean(dfis);
 
         // build instance
         instance = new FiberForkJoinScheduler(name, par, handler, monitorType, detailedFiberInfo);

@@ -33,7 +33,7 @@ public abstract class FiberScheduler implements FiberFactory, StrandFactory {
     static final FibersMonitor NOOP_FIBERS_MONITOR = new NoopFibersMonitor();
     private final String name;
     private final FibersMonitor fibersMonitor;
-    final ConcurrentMap<SchedulerLocal, SchedulerLocal.Entry<?>> schedLocals = new MapMaker().weakKeys().makeMap();
+    final ConcurrentMap<SchedulerLocal<?>, SchedulerLocal.Entry<?>> schedLocals = new MapMaker().weakKeys().makeMap();
 
     FiberScheduler(String name, MonitorType monitorType, boolean detailedInfo) {
         this.name = name;
@@ -68,7 +68,7 @@ public abstract class FiberScheduler implements FiberFactory, StrandFactory {
 
     @Override
     public <T> Fiber<T> newFiber(SuspendableCallable<T> target) {
-        return new Fiber<T>(this, target);
+        return new Fiber<>(this, target);
     }
 
     @Override

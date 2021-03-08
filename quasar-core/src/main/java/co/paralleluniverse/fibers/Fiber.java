@@ -682,7 +682,7 @@ public class Fiber<V> extends Strand implements Joinable<V>, Serializable, Futur
     }
 
     public static long getCurrentRun() {
-        Fiber f = currentFiber();
+        Fiber<?> f = currentFiber();
         if (f == null)
             throw new IllegalStateException("Not in fiber");
         return f.getRun();

@@ -42,7 +42,7 @@ public class SchedulerLocal<T> {
      */
     public final T get() throws SuspendExecution {
         final FiberScheduler scheduler = currentScheduler();
-        final ConcurrentMap<SchedulerLocal, Entry<?>> map = scheduler.schedLocals;
+        final ConcurrentMap<SchedulerLocal<?>, Entry<?>> map = scheduler.schedLocals;
         Entry<T> entry = (Entry<T>) map.get(this);
         if (entry == null) {
             lock.lock();
@@ -76,11 +76,11 @@ public class SchedulerLocal<T> {
         getMap().remove(this);
     }
 
-    private static ConcurrentMap<SchedulerLocal, Entry<?>> getMap() {
+    private static ConcurrentMap<SchedulerLocal<?>, Entry<?>> getMap() {
         return currentScheduler().schedLocals;
     }
 
-    private Entry<T> getEntry(ConcurrentMap<SchedulerLocal, Entry<?>> map) {
+    private Entry<T> getEntry(ConcurrentMap<SchedulerLocal<?>, Entry<?>> map) {
         Entry<T> entry = (Entry<T>) map.get(this);
         if (entry == null) {
             entry = new Entry<>();

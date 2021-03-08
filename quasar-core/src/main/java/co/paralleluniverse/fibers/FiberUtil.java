@@ -67,7 +67,7 @@ public final class FiberUtil {
      * @throws InterruptedException
      */
     public static <V> V runInFiber(FiberScheduler scheduler, SuspendableCallable<V> target) throws ExecutionException, InterruptedException {
-        return new Fiber<V>(scheduler, target).start().get();
+        return new Fiber<>(scheduler, target).start().get();
     }
 
     /**
@@ -123,7 +123,7 @@ public final class FiberUtil {
      */
     public static <V> V runInFiberRuntime(FiberScheduler scheduler, SuspendableCallable<V> target) throws InterruptedException {
         try {
-            return new Fiber<V>(scheduler, target).start().get();
+            return new Fiber<>(scheduler, target).start().get();
         } catch (ExecutionException e) {
             throw Exceptions.rethrow(e.getCause());
         }
@@ -189,7 +189,7 @@ public final class FiberUtil {
      */
     public static <V, X extends Exception> V runInFiberChecked(FiberScheduler scheduler, SuspendableCallable<V> target, Class<X> exceptionType) throws X, InterruptedException {
         try {
-            return new Fiber<V>(scheduler, target).start().get();
+            return new Fiber<>(scheduler, target).start().get();
         } catch (ExecutionException ex) {
             throw throwChecked(ex, exceptionType);
         }
