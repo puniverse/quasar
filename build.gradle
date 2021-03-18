@@ -43,7 +43,7 @@ subprojects {
     ext.drpWizVer = '4.1.0'
     ext.guavaVer  = '29.0-jre'
     ext.asmVer    = '7.0'
-    ext.slf4jVer  = '1.7.26'
+    ext.slf4jVer  = '1.7.30'
     ext.osgiVer   = '7.0.0'
 
     if (!project.hasProperty('mainClass')) { // must use project.hasProperty() rather than hasProperty in subprojects (gradle bug)
@@ -259,7 +259,7 @@ subprojects {
     }
 
     tasks.withType(JavaExec).configureEach {
-        classpath += sourceSets.test.runtimeClasspath + sourceSets.test.output + sourceSets.jmh.runtimeClasspath + sourceSets.jmh.output
+        classpath += files(sourceSets.test.runtimeClasspath, sourceSets.test.output, sourceSets.jmh.runtimeClasspath, sourceSets.jmh.output)
     }
 
     //    tasks.withType(Debug) {
@@ -633,7 +633,7 @@ Bundle-Version: \${project.version}
     check.dependsOn test
 
     tasks.withType(JavaExec).configureEach {
-        classpath += sourceSets.test.runtimeClasspath + sourceSets.test.output
+        classpath += files(sourceSets.test.runtimeClasspath, sourceSets.test.output)
     }
     run.dependsOn compileJava, testClasses
 
