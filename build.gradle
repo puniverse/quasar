@@ -1,6 +1,7 @@
 import aQute.bnd.gradle.Bundle
 import java.util.jar.JarFile
 import java.util.jar.Manifest
+import static org.gradle.jvm.toolchain.JavaLanguageVersion.of
 
 plugins {
     id 'com.jfrog.artifactory'
@@ -11,13 +12,16 @@ plugins {
 }
 
 subprojects {
-    apply plugin: 'java'
+    apply plugin: 'java-library'
     apply plugin: 'maven-publish'
     apply plugin: 'com.jfrog.artifactory'
     apply plugin: 'org.javamodularity.moduleplugin'
 
-    sourceCompatibility = '11'
-    targetCompatibility = '11'
+    java {
+        toolchain {
+            languageVersion = of(11)
+        }
+    }
 
     tasks.withType(JavaCompile).configureEach {
         options.encoding = 'UTF-8'
@@ -99,11 +103,6 @@ subprojects {
             compileClasspath += main.compileClasspath + main.output + test.compileClasspath + test.output
             runtimeClasspath += compileClasspath + main.runtimeClasspath + test.runtimeClasspath
         }
-    }
-
-    compileJmhJava {
-        sourceCompatibility = '11'
-        targetCompatibility = '11'
     }
 
     dependencies {

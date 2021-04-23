@@ -7,9 +7,6 @@ ext {
     moduleName = 'co.paralleluniverse.quasar.kotlin'
 }
 
-sourceCompatibility = '11'
-targetCompatibility = '11'
-
 configurations.all {
     resolutionStrategy {
         dependencySubstitution {
@@ -42,22 +39,30 @@ configurations {
     AnnotationTestRuntimeOnly.extendsFrom runtimeOnly
 }
 
-task AnnotationTest(type: Test) {
+def annotationTest = tasks.register('annotationTest', Test) {
     description = 'Custom Annotation Tests'
     group = 'verification'
 
     testClassesDirs = sourceSets.AnnotationTest.output.classesDirs
     classpath = sourceSets.AnnotationTest.runtimeClasspath
+    shouldRunAfter tasks.named('test')
 
     jvmArgs = jvmArgs.findAll {!it.contains("javaagent")}
     jvmArgs "-javaagent:${quasarJar}=a(SUSPENDABLE=co.paralleluniverse.kotlin.fibers.MySuspendable,co.paralleluniverse.kotlin.fibers.DennisSuspendable)"
 }
 
-test.dependsOn AnnotationTest
+tasks.named('check') {
+    dependsOn annotationTest
+}
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = '11'
+        apiVersion = '1.4'
+        languageVersion = '1.4'
+        // We should enable this, but are currently blocked by a Kotlin bug!
+        // See https://youtrack.jetbrains.com/issue/KT-46253
+        //freeCompilerArgs = ['-Xjvm-default=all']
     }
 }
 
