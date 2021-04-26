@@ -27,6 +27,14 @@ subprojects {
         options.encoding = 'UTF-8'
     }
 
+    tasks.withType(GenerateModuleMetadata).configureEach {
+        enabled = false
+    }
+
+    tasks.register('install') {
+        dependsOn tasks.named('publishToMavenLocal')
+    }
+
     group               = "co.paralleluniverse"
     version             = quasarVersion
     status              = "integration"
@@ -63,7 +71,6 @@ subprojects {
             mavenCentral()
             maven { url "https://oss.sonatype.org/content/repositories/releases" }
             maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
-            jcenter()
         }
     }
 
@@ -295,9 +302,6 @@ subprojects {
             }
         }
     }
-
-    ///////// Publish Artifacts
-    apply plugin: 'maven'
 }
 
 logger.lifecycle("Gradle version: {}", gradle.gradleVersion)
@@ -387,8 +391,6 @@ project (':quasar-core') {
             archives.remove(it)
         }
     }
-    
-    [jar]*.enabled = false
 
     sourceSets {
         main {
@@ -485,6 +487,11 @@ project (':quasar-core') {
     // this happens after we've filtered the dependency on ASM from core's module-info
     compileTestJava {
         options.compilerArgs += ["--add-modules", "org.objectweb.asm", "--add-reads", "co.paralleluniverse.quasar.core=org.objectweb.asm"]
+    }
+
+    tasks.named('jar', Jar) {
+        archiveClassifier = 'ignore'
+        enabled = false
     }
 
     def shadowJar = tasks.named('shadowJar', com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar) {
@@ -639,15 +646,6 @@ Bundle-Version: \${project.version}
     javadoc {
         options.encoding = 'UTF-8'
         source = sourceSets.main.allJava
-    }
-
-    install.dependsOn shadowJar, bundle, agentBundle
-
-    def installer = install.repositories.mavenInstaller
-    [installer]*.pom*.whenConfigured {
-        it.dependencies.removeAll { dep ->
-            dep.groupId == 'org.ow2.asm'
-        }
     }
 
     ext {
