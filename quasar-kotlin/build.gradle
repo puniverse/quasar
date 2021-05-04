@@ -18,13 +18,12 @@ configurations.all {
 
 dependencies {
     implementation project(path: ':quasar-core', configuration: 'shadowedJar')
-    implementation project(':quasar-actors')
+    implementation(project(':quasar-actors')) {
+        exclude module: 'quasar-core'
+    }
 
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion"
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion"
-
-    testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
-    testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion"
 }
 
 sourceSets {

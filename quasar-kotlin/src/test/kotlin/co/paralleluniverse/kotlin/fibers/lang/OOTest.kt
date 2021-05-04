@@ -17,10 +17,10 @@ import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.FiberForkJoinScheduler
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.strands.SuspendableCallable
-import org.junit.Assert.assertTrue
-import org.junit.Test
 import kotlin.reflect.KProperty
-import kotlin.test.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
+import org.junit.Test
 
 
 /**

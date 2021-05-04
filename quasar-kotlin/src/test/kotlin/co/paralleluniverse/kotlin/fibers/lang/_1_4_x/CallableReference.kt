@@ -1,12 +1,10 @@
 package co.paralleluniverse.kotlin.fibers.lang._1_4_x
 
-import co.paralleluniverse.common.util.SystemProperties
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.kotlin.fibers.StaticPropertiesTest.fiberWithVerifyInstrumentationOn
-import org.junit.Assume
+import org.junit.Assert.assertEquals
 import org.junit.Test
-import kotlin.test.assertEquals
 
 class CallableReference {
 
@@ -17,7 +15,7 @@ class CallableReference {
 
     @Suspendable
     private fun def1(a0:Int=0, s0: String="hello") : String {
-        doYield();
+        doYield()
         return if (a0 > 0) {s0} else {"wow"}
     }
 

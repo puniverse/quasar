@@ -21,6 +21,8 @@ module co.paralleluniverse.quasar.core {
     requires static org.objectweb.asm.commons;
     requires com.google.common;
     requires static kryo;
+    requires static kryo.serializers;
+    requires static objenesis;
     requires static ant;
     requires static junit;
     requires static HdrHistogram;
@@ -54,8 +56,6 @@ module co.paralleluniverse.quasar.core {
     // co.paralleluniverse.asm is actually a shadowing of org.objectweb.asm.
     exports co.paralleluniverse.asm to co.paralleluniverse.quasar.actors;
     exports co.paralleluniverse.common.asm to co.paralleluniverse.quasar.actors;
-
-    opens co.paralleluniverse.fibers.suspend to co.paralleluniverse.fibers;
 
     uses co.paralleluniverse.fibers.instrument.SuspendableClassifier;
 }

@@ -3,11 +3,10 @@ package co.paralleluniverse.kotlin.fibers.lang
 import co.paralleluniverse.common.util.SystemProperties
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.Suspendable
-import org.junit.Assume
-import org.junit.Test
-import kotlin.test.assertEquals
-
 import co.paralleluniverse.kotlin.fibers.StaticPropertiesTest
+import org.junit.Assert.assertEquals
+import org.junit.Assume.assumeTrue
+import org.junit.Test
 
 abstract class SyntheticAbstractClass  {
 
@@ -61,7 +60,7 @@ class SyntheticAbstractTest {
 
         StaticPropertiesTest.withVerifyInstrumentationOn {
 
-            Assume.assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
+            assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
 
             val fiber = object : Fiber<Int>() {
                 val ac : SyntheticAbstractClass = SyntheticConcreteClass()
@@ -80,7 +79,7 @@ class SyntheticAbstractTest {
 
         StaticPropertiesTest.withVerifyInstrumentationOn {
 
-            Assume.assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
+            assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
 
             val fiber = object : Fiber<Int>() {
                 val ac : SyntheticAbstractClass = SyntheticConcreteClass()
@@ -99,7 +98,7 @@ class SyntheticAbstractTest {
 
         StaticPropertiesTest.withVerifyInstrumentationOn {
 
-            Assume.assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
+            assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
 
             val fiber = object : Fiber<MyMap>() {
                 val ac : SyntheticAbstractClass = SyntheticConcreteClass()
@@ -118,7 +117,7 @@ class SyntheticAbstractTest {
 
         StaticPropertiesTest.withVerifyInstrumentationOn {
 
-            Assume.assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
+            assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
 
             val fiber = object : Fiber<MyMap>() {
                 val ac : SyntheticAbstractClass = SyntheticConcreteClass()

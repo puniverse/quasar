@@ -1,15 +1,11 @@
 package co.paralleluniverse.kotlin.fibers.lang._1_4_x
 
-import co.paralleluniverse.common.util.SystemProperties
 import co.paralleluniverse.fibers.Fiber
-import co.paralleluniverse.fibers.Fiber.sleep
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.kotlin.fibers.StaticPropertiesTest.fiberWithVerifyInstrumentationOn
-import org.junit.Assume
-import org.junit.Ignore
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class SAMTest {
 
@@ -34,13 +30,13 @@ class SAMTest {
 
     @Suspendable
     fun localSAM(a:Int) : Boolean {
-        val isPositive = IntPredicate @Suspendable{ Fiber.yield(); it > 0}
+        val isPositive = IntPredicate @Suspendable{ Fiber.yield(); it > 0 }
         return isPositive.accept(a)
     }
 
     @Test fun `local lambdas`(){
         // This lambda will be instrumented !!
-        assertTrue { { num: Int -> num > 0}(5) }
+        assertTrue({ num: Int -> num > 0 }(5))
     }
 
     @Test fun `local lambdas in suspendables`() {

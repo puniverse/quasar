@@ -5,6 +5,11 @@ module co.paralleluniverse.quasar.core.osgi {
     requires transitive co.paralleluniverse.quasar.core.agent;
     requires com.google.common;
 
+    // These are "automatic" module names, so keep them hidden!
+    requires static kryo;
+    requires static kryo.serializers;
+    requires static objenesis;
+
     exports co.paralleluniverse.fibers;
     exports co.paralleluniverse.fibers.futures;
     exports co.paralleluniverse.fibers.io;

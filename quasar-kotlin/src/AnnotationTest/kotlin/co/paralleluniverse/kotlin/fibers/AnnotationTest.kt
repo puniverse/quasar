@@ -2,10 +2,9 @@ package co.paralleluniverse.kotlin.fibers
 
 import co.paralleluniverse.common.util.SystemProperties
 import co.paralleluniverse.fibers.Fiber
-
-import org.junit.Assume
+import org.junit.Assert.assertEquals
+import org.junit.Assume.assumeTrue
 import org.junit.Test
-import kotlin.test.assertEquals
 
 class AnnotationTest {
 
@@ -19,10 +18,10 @@ class AnnotationTest {
     }
 
     @Test
-    fun `Simple MySuspendable annotation`() {
+    fun `simple MySuspendable annotation`() {
         StaticPropertiesTest.withVerifyInstrumentationOn {
 
-            Assume.assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
+            assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
 
             val fiber = object : Fiber<Int>() {
                 @MySuspendable
@@ -37,10 +36,10 @@ class AnnotationTest {
     }
 
     @Test
-    fun `Simple DennisSuspendable annotation`() {
+    fun `simple DennisSuspendable annotation`() {
         StaticPropertiesTest.withVerifyInstrumentationOn {
 
-            Assume.assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
+            assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
 
             val fiber = object : Fiber<Int>() {
                 @DennisSuspendable
@@ -55,10 +54,10 @@ class AnnotationTest {
     }
 
     @Test
-    fun `Simple MySuspendable, DennisSuspendable annotation`() {
+    fun `simple MySuspendable, DennisSuspendable annotation`() {
         StaticPropertiesTest.withVerifyInstrumentationOn {
 
-            Assume.assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
+            assumeTrue(SystemProperties.isEmptyOrTrue(StaticPropertiesTest.verifyInstrumentationKey))
 
             val fiber = object : Fiber<Int>() {
                 @DennisSuspendable

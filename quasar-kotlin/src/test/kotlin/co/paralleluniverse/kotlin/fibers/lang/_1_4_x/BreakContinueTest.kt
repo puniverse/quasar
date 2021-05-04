@@ -3,8 +3,8 @@ package co.paralleluniverse.kotlin.fibers.lang._1_4_x
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.kotlin.fibers.StaticPropertiesTest
 import co.paralleluniverse.fibers.Suspendable
+import org.junit.Assert.assertEquals
 import org.junit.Test
-import kotlin.test.assertEquals
 
 class BreakContinueTest {
 

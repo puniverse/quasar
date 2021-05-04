@@ -131,7 +131,7 @@ public class SimpleSuspendableClassifier implements SuspendableClassifier {
                 || suspendableClasses.contains(className));
     }
 
-    // test if the given method exists expicitly in the super-suspendable files
+    // test if the given method exists explicitly in the super-suspendable files
     public boolean isSuperSuspendable(String className, String methodName, String methodDesc) {
         return (suspendableSupers.contains(className + '.' + methodName + methodDesc)
                 || suspendableSupers.contains(className + '.' + methodName)

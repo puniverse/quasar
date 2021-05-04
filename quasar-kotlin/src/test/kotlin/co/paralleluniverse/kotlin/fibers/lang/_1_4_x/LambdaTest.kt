@@ -3,10 +3,10 @@ package co.paralleluniverse.kotlin.fibers.lang._1_4_x
 import co.paralleluniverse.fibers.Fiber
 import co.paralleluniverse.fibers.Suspendable
 import co.paralleluniverse.kotlin.fibers.StaticPropertiesTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 class LambdaTest {
 
