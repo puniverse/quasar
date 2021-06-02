@@ -57,8 +57,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.TreeMap;
 import java.util.Objects;
+import java.util.TreeMap;
 
 import static co.paralleluniverse.common.asm.ASMUtil.ASMAPI;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
@@ -74,6 +74,8 @@ import static java.security.AccessController.doPrivileged;
  * @author pron
  */
 public final class MethodDatabase {
+    private static final String JAVA_OBJECT = "java/lang/Object";
+
     private final WeakReference<ClassLoader> clRef;
     private final SuspendableClassifier classifier;
     private final NavigableMap<String, ClassEntry> classes;
@@ -272,6 +274,9 @@ public final class MethodDatabase {
     }
 
     String getCommonSuperClass(String classA, String classB) {
+        if (JAVA_OBJECT.equals(classA) || JAVA_OBJECT.equals(classB)) {
+            return JAVA_OBJECT;
+        }
         List<String> listA = getSuperClasses(classA);
         List<String> listB = getSuperClasses(classB);
         if (listA == null || listB == null) {
@@ -297,7 +302,7 @@ public final class MethodDatabase {
             if ("java/lang/Throwable".equals(className))
                 return true;
 
-            if ("java/lang/Object".equals(className))
+            if (JAVA_OBJECT.equals(className))
                 return false;
 
             String superClass = getDirectSuperClass(className);
@@ -381,7 +386,7 @@ public final class MethodDatabase {
         List<String> result = new ArrayList<>();
         for (;;) {
             result.add(0, className);
-            if ("java/lang/Object".equals(className)) {
+            if (JAVA_OBJECT.equals(className)) {
                 return result;
             }
 
