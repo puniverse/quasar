@@ -43,14 +43,15 @@ package co.paralleluniverse.fibers.instrument;
 
 import co.paralleluniverse.common.resource.ClassLoaderUtil;
 import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.lang.ref.WeakReference;
 import java.security.PrivilegedAction;
+import java.security.PrivilegedActionException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -60,7 +61,6 @@ import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.TreeMap;
 
-import static co.paralleluniverse.common.asm.ASMUtil.ASMAPI;
 import static co.paralleluniverse.fibers.instrument.Classes.isYieldMethod;
 import static java.security.AccessController.doPrivileged;
 
@@ -79,7 +79,7 @@ public final class MethodDatabase {
     private final WeakReference<ClassLoader> clRef;
     private final SuspendableClassifier classifier;
     private final NavigableMap<String, ClassEntry> classes;
-    private final HashMap<String, String> superClasses;
+    private final Map<String, String> superClasses;
     private final QuasarInstrumentor instrumentor;
 
     MethodDatabase(QuasarInstrumentor instrumentor, ClassLoader classloader, SuspendableClassifier classifier) {
@@ -275,6 +275,10 @@ public final class MethodDatabase {
 
     String getCommonSuperClass(String classA, String classB) {
         if (JAVA_OBJECT.equals(classA) || JAVA_OBJECT.equals(classB)) {
+            // If one of these two classes is java.lang.Object
+            // then we know that their common super class must
+            // also be java.lang.Object. No need to examine any
+            // byte-code!
             return JAVA_OBJECT;
         }
         List<String> listA = getSuperClasses(classA);
@@ -297,20 +301,28 @@ public final class MethodDatabase {
         return null;
     }
 
-    public boolean isException(String className) {
+    public boolean isException(final String className) {
+        String currentClassName = className;
         for (;;) {
-            if ("java/lang/Throwable".equals(className))
+            if ("java/lang/Throwable".equals(currentClassName))
                 return true;
 
-            if (JAVA_OBJECT.equals(className))
+            if (JAVA_OBJECT.equals(currentClassName))
                 return false;
 
-            String superClass = getDirectSuperClass(className);
+            String superClass = getDirectSuperClass(currentClassName);
             if (superClass == null) {
-                log(isProblematicClass(className) ? LogLevel.INFO : LogLevel.WARNING, "Can't determine super class of %s (this is usually related to classloading)", className);
-                return false;
+                // Try to extract the names of all super classes from
+                // the OSGi bundle wirings instead.
+                checkOSGiSuperClasses(className);
+                superClass = getSuperClass(currentClassName);
+                if (superClass == null) {
+                    log(isProblematicClass(currentClassName) ? LogLevel.INFO : LogLevel.WARNING,
+                        "Can't determine super class of %s (this is usually related to classloading)", currentClassName);
+                    return false;
+                }
             }
-            className = superClass;
+            currentClassName = superClass;
         }
     }
 
@@ -346,8 +358,7 @@ public final class MethodDatabase {
             }
             return entry;
         } catch(IOException e) {
-            throw new RuntimeException("While opening " + className, e);
-//            return null;
+            throw new UncheckedIOException("While opening " + className, e);
         }
     }
 
@@ -372,30 +383,37 @@ public final class MethodDatabase {
         }
 
         try (final InputStream is = ClassLoaderUtil.getResourceAsStream(cl, className + ".class")) {
-            ClassReader r = new ClassReader(is);
-            ExtractSuperClass esc = new ExtractSuperClass();
-            r.accept(esc, ClassReader.SKIP_CODE | ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
-            return esc.superClass;
+            if (is != null) {
+                return ExtractSuperClass.extractFrom(is);
+            }
         } catch (IOException ex) {
             error(className, ex);
         }
         return null;
     }
 
-    private List<String> getSuperClasses(String className) {
+    private List<String> getSuperClasses(final String className) {
+        String currentClassName = className;
         List<String> result = new ArrayList<>();
         for (;;) {
-            result.add(0, className);
-            if (JAVA_OBJECT.equals(className)) {
+            result.add(0, currentClassName);
+            if (JAVA_OBJECT.equals(currentClassName)) {
                 return result;
             }
 
-            String superClass = getDirectSuperClass(className);
+            String superClass = getDirectSuperClass(currentClassName);
             if (superClass == null) {
-                log(isProblematicClass(className) ? LogLevel.INFO : LogLevel.WARNING, "Can't determine super class of %s", className);
-                return null;
+                // Try to extract the names of all super classes from
+                // the OSGi bundle wirings instead.
+                checkOSGiSuperClasses(className);
+                superClass = getSuperClass(currentClassName);
+                if (superClass == null) {
+                    log(isProblematicClass(currentClassName) ? LogLevel.INFO : LogLevel.WARNING,
+                        "Can't determine super class of %s", currentClassName);
+                    return null;
+                }
             }
-            className = superClass;
+            currentClassName = superClass;
         }
     }
 
@@ -404,10 +422,7 @@ public final class MethodDatabase {
         if (entry != null && entry != CLASS_NOT_FOUND)
             return entry.getSuperName();
 
-        String superClass;
-        synchronized (this) {
-            superClass = superClasses.get(className);
-        }
+        String superClass = getSuperClass(className);
         if (superClass == null) {
             superClass = extractSuperClass(className);
             if (superClass != null) {
@@ -422,6 +437,34 @@ public final class MethodDatabase {
             }
         }
         return superClass;
+    }
+
+    private void checkOSGiSuperClasses(String className) {
+        ClassLoader cl = null;
+        if (clRef != null) {
+            cl = clRef.get();
+        }
+        if (cl != null) {
+            try {
+                Map<String, String> osgiSuperClasses = doPrivileged(new ExtractOSGiSuperClasses(className, cl));
+                if (osgiSuperClasses != null) {
+                    synchronized(this) {
+                        // Do not replace any existing super classes.
+                        osgiSuperClasses.keySet().removeAll(superClasses.keySet());
+                        superClasses.putAll(osgiSuperClasses);
+                    }
+                }
+            } catch (PrivilegedActionException e) {
+                Exception ex = e.getException();
+                error(ex.getMessage(), ex);
+            }
+        }
+    }
+
+    private String getSuperClass(String className) {
+        synchronized(this) {
+            return superClasses.get(className);
+        }
     }
 
     public static boolean isReflectInvocation(String className, String methodName) {
@@ -478,7 +521,7 @@ public final class MethodDatabase {
     }
 
     public static final class ClassEntry {
-        private final HashMap<String, SuspendableType> methods;
+        private final Map<String, SuspendableType> methods;
         private String sourceName;
         private String sourceDebugInfo;
         private boolean isInterface;
@@ -585,19 +628,6 @@ public final class MethodDatabase {
 
         public void setInstrumented(boolean instrumented) {
             this.instrumented = instrumented;
-        }
-    }
-
-    static class ExtractSuperClass extends ClassVisitor {
-        String superClass;
-
-        ExtractSuperClass() {
-            super(ASMAPI);
-        }
-
-        @Override
-        public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-            this.superClass = superName;
         }
     }
 }

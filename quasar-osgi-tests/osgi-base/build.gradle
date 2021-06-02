@@ -1,0 +1,11 @@
+plugins {
+    id 'biz.aQute.bnd.builder'
+}
+
+ext {
+    moduleName = 'quasar.osgi.base'
+}
+
+dependencies {
+    compileOnly "org.osgi:osgi.annotation:$osgiVer"
+}

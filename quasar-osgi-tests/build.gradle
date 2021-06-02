@@ -1,0 +1,95 @@
+import aQute.bnd.gradle.Bundle
+import aQute.bnd.gradle.Resolve
+import aQute.bnd.gradle.TestOSGi
+import aQute.bnd.version.MavenVersion
+
+plugins {
+    id 'biz.aQute.bnd.builder' apply false
+}
+
+ext {
+    moduleName = 'quasar.osgi'
+    javaExecutable = file("${System.getProperty('java.home')}/bin/java")
+    quasarOsgiVersion = provider {
+        MavenVersion.parseMavenString(quasarVersion).getOSGiVersion().toString()
+    }
+    quasarOptions = provider {
+        '=x(aQute.**)'
+    }
+    reflectAsmVersion = '1.11.3'
+}
+
+sourceSets {
+    osgiTest {
+        java {
+            srcDirs = [ 'src/osgi-test/java' ]
+        }
+        resources {
+            srcDirs = [ 'src/osgi-test/resources' ]
+        }
+    }
+}
+
+configurations {
+    quasarAgent
+    systemClasspath
+}
+
+dependencies {
+    quasarAgent project(path: ':quasar-core', configuration: 'agentJar')
+    systemClasspath "com.esotericsoftware:reflectasm:$reflectAsmVersion"
+
+    osgiTestImplementation project(':quasar-osgi-tests:osgi-exception')
+    osgiTestImplementation "org.apache.felix:org.apache.felix.framework:$felixVersion"
+    osgiTestImplementation "org.assertj:assertj-core:$assertjVersion"
+    osgiTestImplementation "org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion"
+    osgiTestRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
+    osgiTestRuntimeOnly "org.junit.platform:junit-platform-launcher:$junitPlatformVersion"
+    osgiTestRuntimeOnly project(path: ':quasar-core', configuration: 'bundleJar')
+    osgiTestRuntimeOnly "org.slf4j:slf4j-simple:$slf4jVer"
+}
+
+def testingBundle = tasks.register('testingBundle', Bundle) {
+    archiveBaseName = 'quasar-osgi-tests'
+    from sourceSets.osgiTest.output
+    sourceSet = sourceSets.osgiTest
+    bnd """\
+Test-Cases: \${classes;HIERARCHY_INDIRECTLY_ANNOTATED;org.junit.platform.commons.annotation.Testable;CONCRETE}
+"""
+}
+
+def resolve = tasks.register('resolve', Resolve) {
+    dependsOn testingBundle
+    bundles = files(
+        sourceSets.osgiTest.runtimeClasspath,
+        configurations.systemClasspath.files,
+        testingBundle
+    )
+    bndrun = 'tests.bndrun'
+    //  bnd attempts to use ~/ for caching if this is unavailable the build will fail.
+    System.setProperty('bnd.home.dir', "$rootDir/bnd")
+}
+
+def testOSGi = tasks.register('testOSGi', TestOSGi) {
+    dependsOn resolve, configurations.quasarAgent.buildDependencies
+    resultsDirectory = file("$testResultsDir/test")
+    bundles = files(
+        sourceSets.osgiTest.runtimeClasspath,
+        configurations.systemClasspath.files,
+        testingBundle
+    )
+    bndrun = 'tests.bndrun'
+}
+
+tasks.named('jar', Jar) {
+    enabled = false
+}
+
+tasks.named('test', Test) {
+    dependsOn testOSGi
+    enabled = false
+}
+
+tasks.named('check') {
+    dependsOn testOSGi
+}

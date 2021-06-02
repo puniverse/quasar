@@ -1,0 +1,12 @@
+plugins {
+    id 'biz.aQute.bnd.builder'
+}
+
+ext {
+    moduleName = 'quasar.osgi.exception'
+}
+
+dependencies {
+    api project(':quasar-osgi-tests:osgi-base')
+    compileOnly "org.osgi:osgi.annotation:$osgiVer"
+}

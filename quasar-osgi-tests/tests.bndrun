@@ -1,0 +1,58 @@
+# Ensure Bnd uses the same Java executable as Gradle.
+java: ${project.javaExecutable}
+
+-tester: biz.aQute.tester.junit-platform
+-runfw: org.apache.felix.framework
+-resolve.effective: active
+-runee: JavaSE-11
+-runtrace: true
+
+-runvm: \
+    "-javaagent:${project.configurations.quasarAgent.singleFile}${project.quasarOptions}",\
+    -Dco.paralleluniverse.fibers.verifyInstrumentation,\
+    --add-opens, 'java.base/java.net=ALL-UNNAMED'
+-runpath: \
+    com.esotericsoftware.reflectasm;version=${project.reflectAsmVersion},\
+    org.objectweb.asm;version=${project.asmVer}
+-runsystempackages: \
+    co.paralleluniverse.fibers.instrument;version=${project.quasarOsgiVersion},\
+    co.paralleluniverse.fibers.suspend;version=${project.quasarOsgiVersion},\
+    co.paralleluniverse.common.resource;version=${project.quasarOsgiVersion},\
+    co.paralleluniverse.common.asm;${project.quasarOsgiVersion}
+
+-runproperties: \
+    org.osgi.framework.bootdelegation=co.paralleluniverse.fibers.suspend,com.esotericsoftware.reflectasm,\
+    org.osgi.framework.bundle.parent=framework
+
+-runrequires: \
+    bnd.identity;id='co.paralleluniverse.quasar-core',\
+    bnd.identity;id='quasar-osgi-tests',\
+    bnd.identity;id='junit-jupiter-engine',\
+    bnd.identity;id='junit-platform-launcher',\
+    bnd.identity;id='slf4j.simple'
+
+-runstartlevel: \
+    order=sortbynameversion,\
+    begin=-1
+-runbundles: \
+	assertj-core;version='[3.16.1,3.16.2)',\
+	co.paralleluniverse.quasar-core;version='[0.8.6,0.8.7)',\
+	com.esotericsoftware.kryo;version='[4.0.2,4.0.3)',\
+	com.esotericsoftware.minlog;version='[1.3.0,1.3.1)',\
+	com.google.guava;version='[29.0.0,29.0.1)',\
+	com.google.guava.failureaccess;version='[1.0.1,1.0.2)',\
+	de.javakaffee.kryo-serializers;version='[0.43.0,0.43.1)',\
+	io.dropwizard.metrics.core;version='[4.1.0,4.1.1)',\
+	io.dropwizard.metrics.jmx;version='[4.1.0,4.1.1)',\
+	junit-jupiter-api;version='[5.7.1,5.7.2)',\
+	junit-jupiter-engine;version='[5.7.1,5.7.2)',\
+	junit-platform-commons;version='[1.7.1,1.7.2)',\
+	junit-platform-engine;version='[1.7.1,1.7.2)',\
+	junit-platform-launcher;version='[1.7.1,1.7.2)',\
+	org.objenesis;version='[2.5.1,2.5.2)',\
+	org.opentest4j;version='[1.2.0,1.2.1)',\
+	osgi-base;version='[0.8.6,0.8.7)',\
+	osgi-exception;version='[0.8.6,0.8.7)',\
+	quasar-osgi-tests;version='[0.8.6,0.8.7)',\
+	slf4j.api;version='[1.7.30,1.7.31)',\
+	slf4j.simple;version='[1.7.30,1.7.31)'

@@ -13,8 +13,6 @@ plugins {
 
 subprojects {
     apply plugin: 'java-library'
-    apply plugin: 'maven-publish'
-    apply plugin: 'com.jfrog.artifactory'
     apply plugin: 'org.javamodularity.moduleplugin'
 
     java {
@@ -29,10 +27,6 @@ subprojects {
 
     tasks.withType(GenerateModuleMetadata).configureEach {
         enabled = false
-    }
-
-    tasks.register('install') {
-        dependsOn tasks.named('publishToMavenLocal')
     }
 
     group               = "co.paralleluniverse"
@@ -152,21 +146,23 @@ subprojects {
     //        // options.compilerArgs << "-Xlint:deprecation"
     //    }
 
-    compileJava.dependsOn processResources
-    compileJava {
-        if (project.name != 'quasar-kotlin') {
+    tasks.named('compileJava', JavaCompile) {
+        dependsOn tasks.named('processResources')
+        if (project.name != 'quasar-kotlin' && !project.name.contains('osgi')) {
             doLast {
                 scanAndInstrument(sourceSets.main, [configurations.provided, configurations.runtimeClasspath])
             }
         }
     }
 
-    test.dependsOn jar
+    tasks.named('test', Test) {
+        dependsOn tasks.named('jar', Jar)
+    }
 
     tasks.withType(Test).configureEach {
         useJUnit()
 
-        if (project.name != 'quasar-kotlin') {
+        if (project.name != 'quasar-kotlin' && !project.name.contains('osgi')) {
             moduleOptions {
                 runOnClasspath = true
             }
@@ -251,7 +247,7 @@ subprojects {
     project.afterEvaluate {
         run.dependsOn project(':quasar-core').tasks.named('shadowJar')
 
-        jar {
+        tasks.named('jar', Jar) {
             manifest {
                 attributes(
                     "Implementation-Title"      :   project.name,
@@ -592,6 +588,7 @@ Import-Package: \
 Bundle-SymbolicName: co.paralleluniverse.quasar-core.agent
 Bundle-Name: Quasar Agent
 Bundle-Version: \${project.version}
+Import-Package: !org.osgi.framework.*,*
 """
     }
 
@@ -779,12 +776,16 @@ clean {
     }
 }
 
-def publishedProjects = subprojects
+def publishedProjects = subprojects - project(':quasar-osgi-tests').allprojects
 
 configure(publishedProjects) { subproject ->
     apply plugin: 'java'
     apply plugin: 'maven-publish'
     apply plugin: 'com.jfrog.artifactory'
+
+    tasks.register('install') {
+        dependsOn tasks.named('publishToMavenLocal')
+    }
 
     task sourceJar(type: Jar, dependsOn: subproject.classes) {
         archiveClassifier = 'sources'
