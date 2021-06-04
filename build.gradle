@@ -47,7 +47,7 @@ subprojects {
     ext.quasarJar = "${rootProject.projectDir}/quasar-core/build/libs/quasar-core-${version}.jar" // project(':quasar-core').jar.archivePath
 
     ext.drpWizVer = '4.1.0'
-    ext.guavaVer  = '29.0-jre'
+    ext.guavaVer  = '30.1.1-jre'
     ext.asmVer    = '7.0'
     ext.slf4jVer  = '1.7.30'
     ext.osgiVer   = '7.0.0'
