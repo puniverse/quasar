@@ -12,9 +12,5 @@
  * as published by the Free Software Foundation.
  */
 module co.paralleluniverse.quasar.disruptor {
-    requires java.management;
-    requires transitive co.paralleluniverse.quasar.core;
     requires disruptor; // automatic module
-    
-    exports co.paralleluniverse.strands.channels.disruptor;
 }
